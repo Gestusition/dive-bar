@@ -1,6 +1,6 @@
 # Development handoff — slice-0.1
 
-Frozen planning baseline: 24 October 2026. Ready to begin implementation. No game runtime has been written.
+Original planning baseline: 24 October 2026. Implementation now exists. See docs/implementation-status.md and README.md for current verified behaviour; the not-started statements below describe the original handoff and must not be treated as current status.
 
 ## Start here
 Implement this baseline before adding content. Read this file, docs/gameplay-contracts.md, docs/technology-and-delivery.md and docs/acceptance.md. Use data/vertical-slice.en.json as the slice manifest, data/balance.en.json for pacing and data/toolchain.en.json for the selected stack.

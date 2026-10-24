@@ -1,0 +1,1030 @@
+{
+  "schemaVersion": 1,
+  "locale": "en",
+  "status": "sourced_runtime_expansion",
+  "conversionNote": "US-ounce recipes use rounded bar measures of 30 ml per oz, declared per recipe. House variants are explicitly identified and are not presented as universal recipes.",
+  "ingredients": [
+    {
+      "id": "vodka",
+      "name": "Vodka",
+      "kind": "spirit",
+      "unit": "ml",
+      "openingQuantity": 750,
+      "costMinorPerUnit": 4,
+      "color": "#9bbdcc"
+    },
+    {
+      "id": "ginger_beer",
+      "name": "Ginger Beer",
+      "kind": "mixer",
+      "unit": "ml",
+      "openingQuantity": 1500,
+      "costMinorPerUnit": 1,
+      "color": "#c5a55e"
+    },
+    {
+      "id": "white_rum",
+      "name": "White Rum",
+      "kind": "spirit",
+      "unit": "ml",
+      "openingQuantity": 750,
+      "costMinorPerUnit": 4,
+      "color": "#d1cba9"
+    },
+    {
+      "id": "superfine_sugar",
+      "name": "Superfine Sugar",
+      "kind": "sweetener",
+      "unit": "bar spoon",
+      "openingQuantity": 40,
+      "costMinorPerUnit": 5,
+      "color": "#f0e6ca"
+    },
+    {
+      "id": "tomato_juice",
+      "name": "Tomato Juice",
+      "kind": "juice",
+      "unit": "ml",
+      "openingQuantity": 1000,
+      "costMinorPerUnit": 1,
+      "color": "#a6443f"
+    },
+    {
+      "id": "fresh_lemon_juice",
+      "name": "Fresh Lemon Juice",
+      "kind": "juice",
+      "unit": "ml",
+      "openingQuantity": 750,
+      "costMinorPerUnit": 1,
+      "color": "#e1d184"
+    },
+    {
+      "id": "worcestershire",
+      "name": "Worcestershire Sauce",
+      "kind": "seasoning",
+      "unit": "dash",
+      "openingQuantity": 60,
+      "costMinorPerUnit": 3,
+      "color": "#6c4231"
+    },
+    {
+      "id": "hot_sauce",
+      "name": "Hot Sauce",
+      "kind": "seasoning",
+      "unit": "dash",
+      "openingQuantity": 50,
+      "costMinorPerUnit": 3,
+      "color": "#c2533d"
+    },
+    {
+      "id": "celery_salt",
+      "name": "Celery Salt",
+      "kind": "seasoning",
+      "unit": "pinch",
+      "openingQuantity": 50,
+      "costMinorPerUnit": 2,
+      "color": "#c2c294"
+    },
+    {
+      "id": "black_pepper",
+      "name": "Black Pepper",
+      "kind": "seasoning",
+      "unit": "pinch",
+      "openingQuantity": 50,
+      "costMinorPerUnit": 2,
+      "color": "#6c645a"
+    },
+    {
+      "id": "gin",
+      "name": "Gin",
+      "kind": "spirit",
+      "unit": "ml",
+      "openingQuantity": 750,
+      "costMinorPerUnit": 4,
+      "color": "#6d9d8f"
+    },
+    {
+      "id": "simple_syrup",
+      "name": "Simple Syrup",
+      "kind": "sweetener",
+      "unit": "ml",
+      "openingQuantity": 750,
+      "costMinorPerUnit": 1,
+      "color": "#e2c58b"
+    },
+    {
+      "id": "cola",
+      "name": "Cola",
+      "kind": "mixer",
+      "unit": "ml",
+      "openingQuantity": 1500,
+      "costMinorPerUnit": 1,
+      "color": "#634637"
+    },
+    {
+      "id": "brandy",
+      "name": "Brandy",
+      "kind": "spirit",
+      "unit": "ml",
+      "openingQuantity": 750,
+      "costMinorPerUnit": 4,
+      "color": "#b87741"
+    },
+    {
+      "id": "lemon_lime_soda",
+      "name": "Lemon-lime Soda",
+      "kind": "mixer",
+      "unit": "ml",
+      "openingQuantity": 1500,
+      "costMinorPerUnit": 1,
+      "color": "#b4c987"
+    },
+    {
+      "id": "cognac",
+      "name": "Cognac",
+      "kind": "spirit",
+      "unit": "ml",
+      "openingQuantity": 750,
+      "costMinorPerUnit": 5,
+      "color": "#b77743"
+    },
+    {
+      "id": "banana_liqueur",
+      "name": "Banana Liqueur",
+      "kind": "liqueur",
+      "unit": "ml",
+      "openingQuantity": 500,
+      "costMinorPerUnit": 3,
+      "color": "#d2b861"
+    },
+    {
+      "id": "lime_vodka",
+      "name": "Lime Vodka",
+      "kind": "spirit",
+      "unit": "ml",
+      "openingQuantity": 750,
+      "costMinorPerUnit": 4,
+      "color": "#8cbf6d"
+    },
+    {
+      "id": "lemonade",
+      "name": "Lemonade",
+      "kind": "mixer",
+      "unit": "ml",
+      "openingQuantity": 1500,
+      "costMinorPerUnit": 1,
+      "color": "#e5d98d"
+    },
+    {
+      "id": "dark_rum",
+      "name": "Aged Rum",
+      "kind": "spirit",
+      "unit": "ml",
+      "openingQuantity": 750,
+      "costMinorPerUnit": 4,
+      "color": "#975f31"
+    },
+    {
+      "id": "overproof_rum",
+      "name": "Overproof Rum",
+      "kind": "spirit",
+      "unit": "ml",
+      "openingQuantity": 500,
+      "costMinorPerUnit": 5,
+      "color": "#9d703d"
+    },
+    {
+      "id": "blackberry_liqueur",
+      "name": "Blackberry Liqueur",
+      "kind": "liqueur",
+      "unit": "ml",
+      "openingQuantity": 500,
+      "costMinorPerUnit": 3,
+      "color": "#764257"
+    },
+    {
+      "id": "grenadine",
+      "name": "Grenadine",
+      "kind": "sweetener",
+      "unit": "ml",
+      "openingQuantity": 500,
+      "costMinorPerUnit": 2,
+      "color": "#b34c56"
+    },
+    {
+      "id": "pineapple_juice",
+      "name": "Pineapple Juice",
+      "kind": "juice",
+      "unit": "ml",
+      "openingQuantity": 1000,
+      "costMinorPerUnit": 1,
+      "color": "#d9bd66"
+    },
+    {
+      "id": "lemonade_concentrate",
+      "name": "Cloudy Lemonade Concentrate",
+      "kind": "mixer",
+      "unit": "ml",
+      "openingQuantity": 500,
+      "costMinorPerUnit": 2,
+      "color": "#d9cd95"
+    },
+    {
+      "id": "cherry_syrup",
+      "name": "Cherry Syrup",
+      "kind": "sweetener",
+      "unit": "ml",
+      "openingQuantity": 500,
+      "costMinorPerUnit": 2,
+      "color": "#af4a59"
+    },
+    {
+      "id": "sparkling_water",
+      "name": "Sparkling Water",
+      "kind": "water",
+      "unit": "ml",
+      "openingQuantity": 2000,
+      "costMinorPerUnit": 0,
+      "color": "#a5c9cf"
+    },
+    {
+      "id": "sour_cherry_juice",
+      "name": "Sour Cherry Juice",
+      "kind": "juice",
+      "unit": "ml",
+      "openingQuantity": 1000,
+      "costMinorPerUnit": 1,
+      "color": "#893b51"
+    }
+  ],
+  "garnishes": [
+    {
+      "id": "lime_slice",
+      "name": "Lime slice",
+      "unit": "piece",
+      "openingQuantity": 40,
+      "costMinorPerUnit": 5
+    },
+    {
+      "id": "lemon_slice",
+      "name": "Lemon slice",
+      "unit": "piece",
+      "openingQuantity": 40,
+      "costMinorPerUnit": 5
+    },
+    {
+      "id": "mint_sprig",
+      "name": "Mint sprig",
+      "unit": "piece",
+      "openingQuantity": 40,
+      "costMinorPerUnit": 5
+    },
+    {
+      "id": "celery_stick",
+      "name": "Celery stick",
+      "unit": "piece",
+      "openingQuantity": 40,
+      "costMinorPerUnit": 5
+    }
+  ],
+  "recipes": [
+    {
+      "id": "moscow_mule",
+      "name": "Moscow Mule",
+      "ingredients": [
+        {
+          "slot": "vodka",
+          "allowed": [
+            "vodka"
+          ],
+          "quantity": 45,
+          "unit": "ml"
+        },
+        {
+          "slot": "ginger_beer",
+          "allowed": [
+            "ginger_beer"
+          ],
+          "quantity": 120,
+          "unit": "ml"
+        },
+        {
+          "slot": "fresh_lime_juice",
+          "allowed": [
+            "fresh_lime_juice"
+          ],
+          "quantity": 10,
+          "unit": "ml"
+        }
+      ],
+      "service": {
+        "glass": "mug",
+        "ice": "cubed_ice_in_serving_glass",
+        "garnish": {
+          "allOf": [
+            "lime_slice"
+          ]
+        }
+      },
+      "steps": [
+        {
+          "action": "stir"
+        }
+      ],
+      "source": {
+        "url": "https://iba-world.com/iba-cocktail/moscow-mule/",
+        "publisher": "International Bartenders Association"
+      },
+      "preparation": {
+        "tool": "build_glass",
+        "technique": "stir",
+        "glass": "mug",
+        "notes": "Build vodka, ginger beer and lime in a mule mug over ice. Stir gently and add lime."
+      }
+    },
+    {
+      "id": "daiquiri",
+      "name": "Daiquiri",
+      "ingredients": [
+        {
+          "slot": "white_rum",
+          "allowed": [
+            "white_rum"
+          ],
+          "quantity": 60,
+          "unit": "ml"
+        },
+        {
+          "slot": "fresh_lime_juice",
+          "allowed": [
+            "fresh_lime_juice"
+          ],
+          "quantity": 20,
+          "unit": "ml"
+        },
+        {
+          "slot": "superfine_sugar",
+          "allowed": [
+            "superfine_sugar"
+          ],
+          "quantity": 2,
+          "unit": "bar spoon"
+        }
+      ],
+      "service": {
+        "glass": "chilled_cocktail_glass",
+        "ice": "ice_in_shaker_strained_out",
+        "garnish": {
+          "allOf": []
+        }
+      },
+      "steps": [
+        {
+          "action": "shake"
+        }
+      ],
+      "source": {
+        "url": "https://iba-world.com/iba-cocktail/daiquiri/",
+        "publisher": "International Bartenders Association"
+      },
+      "preparation": {
+        "tool": "shaker",
+        "technique": "shake",
+        "glass": "cocktail_glass",
+        "notes": "Combine rum, lime and sugar in a shaker. Dissolve the sugar before adding ice. Shake and strain into a chilled coupe.",
+        "dissolve": "before_ice"
+      }
+    },
+    {
+      "id": "bloody_mary",
+      "name": "Bloody Mary",
+      "ingredients": [
+        {
+          "slot": "vodka",
+          "allowed": [
+            "vodka"
+          ],
+          "quantity": 45,
+          "unit": "ml"
+        },
+        {
+          "slot": "tomato_juice",
+          "allowed": [
+            "tomato_juice"
+          ],
+          "quantity": 90,
+          "unit": "ml"
+        },
+        {
+          "slot": "fresh_lemon_juice",
+          "allowed": [
+            "fresh_lemon_juice"
+          ],
+          "quantity": 15,
+          "unit": "ml"
+        },
+        {
+          "slot": "worcestershire",
+          "allowed": [
+            "worcestershire"
+          ],
+          "quantity": 2,
+          "unit": "dash"
+        },
+        {
+          "slot": "hot_sauce",
+          "allowed": [
+            "hot_sauce"
+          ],
+          "quantity": null,
+          "unit": "dash",
+          "optional": true,
+          "sourceAmount": "to taste",
+          "gameTarget": {
+            "preferred": 1,
+            "acceptedMin": 0,
+            "acceptedMax": 3
+          }
+        },
+        {
+          "slot": "celery_salt",
+          "allowed": [
+            "celery_salt"
+          ],
+          "quantity": null,
+          "unit": "pinch",
+          "optional": true,
+          "sourceAmount": "to taste",
+          "gameTarget": {
+            "preferred": 1,
+            "acceptedMin": 0,
+            "acceptedMax": 3
+          }
+        },
+        {
+          "slot": "black_pepper",
+          "allowed": [
+            "black_pepper"
+          ],
+          "quantity": null,
+          "unit": "pinch",
+          "optional": true,
+          "sourceAmount": "to taste",
+          "gameTarget": {
+            "preferred": 1,
+            "acceptedMin": 0,
+            "acceptedMax": 3
+          }
+        }
+      ],
+      "service": {
+        "glass": "old_fashioned_glass",
+        "ice": "cubed_ice_in_serving_glass",
+        "garnish": {
+          "allOf": []
+        }
+      },
+      "steps": [
+        {
+          "action": "stir"
+        }
+      ],
+      "source": {
+        "url": "https://iba-world.com/iba-cocktail/bloody-mary/",
+        "publisher": "International Bartenders Association"
+      },
+      "preparation": {
+        "tool": "mixing_glass",
+        "technique": "stir",
+        "glass": "old_fashioned_glass",
+        "notes": "Stir vodka, tomato, lemon and Worcestershire with ice. Season to taste and strain into a rocks glass. Celery or lemon is optional."
+      }
+    },
+    {
+      "id": "long_island",
+      "name": "Long Island Iced Tea",
+      "ingredients": [
+        {
+          "slot": "vodka",
+          "allowed": [
+            "vodka"
+          ],
+          "quantity": 15,
+          "unit": "ml"
+        },
+        {
+          "slot": "tequila_100_agave",
+          "allowed": [
+            "tequila_100_agave"
+          ],
+          "quantity": 15,
+          "unit": "ml"
+        },
+        {
+          "slot": "white_rum",
+          "allowed": [
+            "white_rum"
+          ],
+          "quantity": 15,
+          "unit": "ml"
+        },
+        {
+          "slot": "gin",
+          "allowed": [
+            "gin"
+          ],
+          "quantity": 15,
+          "unit": "ml"
+        },
+        {
+          "slot": "triple_sec",
+          "allowed": [
+            "triple_sec"
+          ],
+          "quantity": 15,
+          "unit": "ml"
+        },
+        {
+          "slot": "fresh_lemon_juice",
+          "allowed": [
+            "fresh_lemon_juice"
+          ],
+          "quantity": 25,
+          "unit": "ml"
+        },
+        {
+          "slot": "simple_syrup",
+          "allowed": [
+            "simple_syrup"
+          ],
+          "quantity": 30,
+          "unit": "ml"
+        },
+        {
+          "slot": "cola",
+          "allowed": [
+            "cola"
+          ],
+          "quantity": 30,
+          "unit": "ml"
+        }
+      ],
+      "service": {
+        "glass": "highball",
+        "ice": "cubed_ice_in_serving_glass",
+        "garnish": {
+          "allOf": []
+        }
+      },
+      "steps": [
+        {
+          "action": "stir"
+        }
+      ],
+      "source": {
+        "url": "https://iba-world.com/iba-cocktail/long-island-iced-tea/",
+        "publisher": "International Bartenders Association"
+      },
+      "preparation": {
+        "tool": "build_glass",
+        "technique": "stir",
+        "glass": "highball",
+        "notes": "Build all ingredients in a highball over ice and stir gently. The source says to top with cola; our house portion uses 30 ml. Lemon is optional."
+      }
+    },
+    {
+      "id": "wisconsin_old_fashioned",
+      "name": "Wisconsin Old Fashioned",
+      "ingredients": [
+        {
+          "slot": "brandy",
+          "allowed": [
+            "brandy"
+          ],
+          "quantity": 60,
+          "unit": "ml"
+        },
+        {
+          "slot": "sugar_cube",
+          "allowed": [
+            "sugar_cube"
+          ],
+          "quantity": 1,
+          "unit": "piece"
+        },
+        {
+          "slot": "angostura_bitters",
+          "allowed": [
+            "angostura_bitters"
+          ],
+          "quantity": 2,
+          "unit": "dash"
+        },
+        {
+          "slot": "orange_slice",
+          "allowed": [
+            "orange_slice"
+          ],
+          "quantity": 2,
+          "unit": "piece"
+        },
+        {
+          "slot": "cocktail_cherry",
+          "allowed": [
+            "cocktail_cherry"
+          ],
+          "quantity": 2,
+          "unit": "piece"
+        },
+        {
+          "slot": "lemon_lime_soda",
+          "allowed": [
+            "lemon_lime_soda"
+          ],
+          "quantity": 15,
+          "unit": "ml"
+        }
+      ],
+      "service": {
+        "glass": "old_fashioned_glass",
+        "ice": "cubed_ice_in_serving_glass",
+        "garnish": {
+          "allOf": [
+            "orange_slice",
+            "cocktail_cherry"
+          ]
+        }
+      },
+      "steps": [
+        {
+          "action": "stir"
+        }
+      ],
+      "source": {
+        "url": "https://talesofthecocktail.org/wisconsin-new-old-fashioned-favorite/",
+        "publisher": "Tales of the Cocktail Foundation"
+      },
+      "preparation": {
+        "tool": "old_fashioned_glass",
+        "technique": "stir",
+        "glass": "old_fashioned_glass",
+        "notes": "Muddle sugar, bitters, orange and cherries first. Add brandy, stir, add ice and top with lemon-lime soda. Garnish with orange and two cherries. This is the sweet variant.",
+        "dissolve": "before_spirit",
+        "garnishCounts": {
+          "cocktail_cherry": 2
+        }
+      }
+    },
+    {
+      "id": "rose_mary",
+      "name": "Rose-mary",
+      "ingredients": [
+        {
+          "slot": "cognac",
+          "allowed": [
+            "cognac"
+          ],
+          "quantity": 30,
+          "unit": "ml"
+        },
+        {
+          "slot": "banana_liqueur",
+          "allowed": [
+            "banana_liqueur"
+          ],
+          "quantity": 15,
+          "unit": "ml"
+        },
+        {
+          "slot": "fresh_lime_juice",
+          "allowed": [
+            "fresh_lime_juice"
+          ],
+          "quantity": 15,
+          "unit": "ml"
+        }
+      ],
+      "service": {
+        "glass": "cocktail_glass",
+        "ice": "ice_in_shaker_strained_out",
+        "garnish": {
+          "allOf": []
+        }
+      },
+      "steps": [
+        {
+          "action": "shake"
+        }
+      ],
+      "source": {
+        "url": "https://www.absolutdrinks.com/en/drinks/rose-mary/",
+        "publisher": "Absolut Drinks"
+      },
+      "preparation": {
+        "tool": "shaker",
+        "technique": "shake",
+        "glass": "cocktail_glass",
+        "notes": "Shake cognac, banana liqueur and lime with ice and strain into a coupe. Source ratio 1 : ½ : ½; our serving assigns 30 ml to one part."
+      }
+    },
+    {
+      "id": "summer_hummer",
+      "name": "Summer Hummer",
+      "ingredients": [
+        {
+          "slot": "lime_vodka",
+          "allowed": [
+            "lime_vodka"
+          ],
+          "quantity": 60,
+          "unit": "ml"
+        },
+        {
+          "slot": "lemonade",
+          "allowed": [
+            "lemonade"
+          ],
+          "quantity": 90,
+          "unit": "ml"
+        },
+        {
+          "slot": "lemon_lime_soda",
+          "allowed": [
+            "lemon_lime_soda"
+          ],
+          "quantity": 120,
+          "unit": "ml"
+        }
+      ],
+      "service": {
+        "glass": "highball",
+        "ice": "cubed_ice_in_serving_glass",
+        "garnish": {
+          "allOf": []
+        }
+      },
+      "steps": [
+        {
+          "action": "stir"
+        }
+      ],
+      "source": {
+        "url": "https://thelittlestcrumb.com/summer-hummer-drink/",
+        "publisher": "The Littlest Crumb · Ali"
+      },
+      "preparation": {
+        "tool": "build_glass",
+        "technique": "stir",
+        "glass": "highball",
+        "notes": "Add lime vodka and lemonade to a highball filled with ice, stir, then top with lemon-lime soda and stir gently. Published recipe uses 2 / 3 / 4 US oz; game measures use rounded 60 / 90 / 120 ml."
+      }
+    },
+    {
+      "id": "rum_runner",
+      "name": "Rum Runner",
+      "ingredients": [
+        {
+          "slot": "dark_rum",
+          "allowed": [
+            "dark_rum"
+          ],
+          "quantity": 45,
+          "unit": "ml"
+        },
+        {
+          "slot": "overproof_rum",
+          "allowed": [
+            "overproof_rum"
+          ],
+          "quantity": 15,
+          "unit": "ml"
+        },
+        {
+          "slot": "blackberry_liqueur",
+          "allowed": [
+            "blackberry_liqueur"
+          ],
+          "quantity": 15,
+          "unit": "ml"
+        },
+        {
+          "slot": "banana_liqueur",
+          "allowed": [
+            "banana_liqueur"
+          ],
+          "quantity": 15,
+          "unit": "ml"
+        },
+        {
+          "slot": "grenadine",
+          "allowed": [
+            "grenadine"
+          ],
+          "quantity": 15,
+          "unit": "ml"
+        },
+        {
+          "slot": "pineapple_juice",
+          "allowed": [
+            "pineapple_juice"
+          ],
+          "quantity": 15,
+          "unit": "ml"
+        },
+        {
+          "slot": "fresh_lime_juice",
+          "allowed": [
+            "fresh_lime_juice"
+          ],
+          "quantity": 30,
+          "unit": "ml"
+        }
+      ],
+      "service": {
+        "glass": "hurricane",
+        "ice": "ice_in_shaker_strained_out",
+        "garnish": {
+          "allOf": [
+            "lime_slice"
+          ]
+        }
+      },
+      "steps": [
+        {
+          "action": "shake"
+        }
+      ],
+      "source": {
+        "url": "https://www.kirkandsweeneyrum.com/recipes/rum-runner/",
+        "publisher": "Kirk & Sweeney"
+      },
+      "preparation": {
+        "tool": "shaker",
+        "technique": "shake",
+        "glass": "hurricane",
+        "notes": "Shake the rums, liqueurs, grenadine and juices with ice. Strain into a hurricane over fresh ice and add lime. Published ounces are rounded at 30 ml per ounce for the game."
+      }
+    },
+    {
+      "id": "cherry_lemonade",
+      "name": "Cherry Lemonade",
+      "ingredients": [
+        {
+          "slot": "lemonade_concentrate",
+          "allowed": [
+            "lemonade_concentrate"
+          ],
+          "quantity": 20,
+          "unit": "ml"
+        },
+        {
+          "slot": "cherry_syrup",
+          "allowed": [
+            "cherry_syrup"
+          ],
+          "quantity": 10,
+          "unit": "ml"
+        },
+        {
+          "slot": "sparkling_water",
+          "allowed": [
+            "sparkling_water"
+          ],
+          "quantity": 240,
+          "unit": "ml"
+        }
+      ],
+      "service": {
+        "glass": "highball",
+        "ice": "cubed_ice_in_serving_glass",
+        "garnish": {
+          "allOf": [
+            "mint_sprig",
+            "orange_slice"
+          ]
+        }
+      },
+      "steps": [
+        {
+          "action": "stir"
+        }
+      ],
+      "source": {
+        "url": "https://monin1912.com/products/cherry-lemonade",
+        "publisher": "MONIN"
+      },
+      "preparation": {
+        "tool": "build_glass",
+        "technique": "stir",
+        "glass": "highball",
+        "notes": "Build lemonade concentrate, cherry syrup and sparkling water over ice. Stir and garnish with mint and orange. This recipe is alcohol-free."
+      }
+    },
+    {
+      "id": "cherry_mule",
+      "name": "Cherry Mule · house",
+      "ingredients": [
+        {
+          "slot": "vodka",
+          "allowed": [
+            "vodka"
+          ],
+          "quantity": 45,
+          "unit": "ml"
+        },
+        {
+          "slot": "ginger_beer",
+          "allowed": [
+            "ginger_beer"
+          ],
+          "quantity": 100,
+          "unit": "ml"
+        },
+        {
+          "slot": "fresh_lime_juice",
+          "allowed": [
+            "fresh_lime_juice"
+          ],
+          "quantity": 10,
+          "unit": "ml"
+        },
+        {
+          "slot": "cherry_syrup",
+          "allowed": [
+            "cherry_syrup"
+          ],
+          "quantity": 20,
+          "unit": "ml"
+        }
+      ],
+      "service": {
+        "glass": "mug",
+        "ice": "cubed_ice_in_serving_glass",
+        "garnish": {
+          "allOf": [
+            "cocktail_cherry"
+          ]
+        }
+      },
+      "steps": [
+        {
+          "action": "stir"
+        }
+      ],
+      "source": {
+        "url": "https://iba-world.com/iba-cocktail/moscow-mule/",
+        "publisher": "Dive Bar house variation · IBA base technique"
+      },
+      "preparation": {
+        "tool": "build_glass",
+        "technique": "stir",
+        "glass": "mug",
+        "notes": "Our house variation on the Moscow Mule: vodka, ginger beer, lime and cherry syrup over ice. Stir gently and garnish with a cherry. Added cherry proportions are a house specification, not an IBA recipe."
+      }
+    },
+    {
+      "id": "vodka_cherry",
+      "name": "Vodka & Sour Cherry",
+      "ingredients": [
+        {
+          "slot": "vodka",
+          "allowed": [
+            "vodka"
+          ],
+          "quantity": 45,
+          "unit": "ml"
+        },
+        {
+          "slot": "sour_cherry_juice",
+          "allowed": [
+            "sour_cherry_juice"
+          ],
+          "quantity": 120,
+          "unit": "ml"
+        }
+      ],
+      "service": {
+        "glass": "highball",
+        "ice": "cubed_ice_in_serving_glass",
+        "garnish": {
+          "allOf": []
+        }
+      },
+      "steps": [
+        {
+          "action": "stir"
+        }
+      ],
+      "source": {
+        "url": "",
+        "publisher": "Dive Bar house specification"
+      },
+      "preparation": {
+        "tool": "build_glass",
+        "technique": "stir",
+        "glass": "highball",
+        "notes": "A simple house highball matching the screenshot’s vodka and sour-cherry notes. Add both over ice and stir gently. The 45 / 120 ml serving is our house specification."
+      }
+    }
+  ]
+}

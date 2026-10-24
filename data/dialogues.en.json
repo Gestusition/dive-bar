@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "locale": "en",
-  "status": "draft_content_not_integrated",
+  "status": "integrated_context_filtered_content",
   "setting": "Fictional contemporary dive bar",
   "effectRules": {
     "trust": "Perceived trust and rapport, not objective truthfulness. Persistent per customer; clamp to [-5,5].",

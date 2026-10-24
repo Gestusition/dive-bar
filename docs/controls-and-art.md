@@ -1,5 +1,8 @@
 # Controls, screen layouts, and visual direction
 
+> Historical planning baseline. A playable runtime now exists; see [implementation-status.md](implementation-status.md) for actual scope and validation limits.
+
+
 Revision: 24 October 2026. Design targets, not implemented UI.
 
 ## One complete control scheme
@@ -108,4 +111,5 @@ A glass landing, small foam/splash animation, ice clink, and customer expression
 
 ## Real-device gate
 Test desktop mouse and keyboard, Android Chrome touch, and iPhone Safari touch. Name the actual tested devices/versions in the future QA report. Exercise rotation, safe areas, zoom/UI scale, accidental second finger, drag outside canvas, incoming call/tab switch, audio resume, save failure, and WebGL context loss. Browser emulation supplements but cannot replace this gate.
+
 

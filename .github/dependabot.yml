@@ -1,0 +1,26 @@
+version: 2
+updates:
+  - package-ecosystem: bun
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      graphics:
+        patterns: ['react', 'react-dom', '@react-three/*', 'three', '@types/three', '@types/react*']
+        update-types: [minor, patch]
+      runtime:
+        patterns: ['*']
+        dependency-type: production
+        update-types: [minor, patch]
+      tooling:
+        patterns: ['*']
+        dependency-type: development
+        update-types: [minor, patch]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ['*']

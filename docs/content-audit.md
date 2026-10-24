@@ -1,5 +1,8 @@
 # Final planning/content audit — 24 October 2026
 
+> Historical planning baseline. A playable runtime now exists; see [implementation-status.md](implementation-status.md) for actual scope and validation limits.
+
+
 Baseline: slice-0.1. Status: ready to begin implementation; no game runtime, build or deployment exists.
 
 ## Final local structural validation
@@ -51,4 +54,5 @@ The user-selected React/R3F direction is now recorded with Vite, Tailwind v4, se
 All 27 scenarios in docs/acceptance.md are currently Not run. Runtime predicates and outcomes, pathfinding, scoring, inventory, payments, save migrations, touch controls, art, audio, performance, production build, CI and live Pages delivery still require code and verification.
 
 Balance, costs, stock, durations and rendering budgets are initial design values. The workload figures (39/58, about 67%; novice 55/58, about 95%) are arithmetic sensitivity estimates, not simulated or observed player performance. Real-device checks and editorial playtesting remain release gates.
+
 
