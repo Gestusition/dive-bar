@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 async function enter(page: Page) {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.clock.install();
-  await page.goto('/');
+  await page.goto('./');
   await page.getByRole('button', { name: 'Make yourself at home' }).click();
   await expect(page.locator('canvas')).toBeVisible();
   await page.getByRole('button', { name: 'Settings', exact: true }).click();

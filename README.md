@@ -86,6 +86,7 @@ No merge is implied by passing CI or creating a PR.
 - docs/implementation-status.md — verified behaviour and remaining validation limits.
 - docs/development-handoff.md — original implementation plan; current runtime status supersedes its original not-started wording.
 
-The supplied artwork in public/assets and art-src was preserved. Voxel geometry is authored in code. Fredoka and Nunito are self-hosted via Fontsource (SIL Open Font License; upstream notices remain in the packages).
+The supplied artwork in public/assets and art-src was preserved. Voxel geometry is authored in code. Fredoka and Nunito are self-hosted via Fontsource (SIL Open Font License; license notices are shipped in public/licenses).
+
 
 
