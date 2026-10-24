@@ -27,7 +27,9 @@ export default defineConfig({
         viewport: { width: 1440, height: 1000 },
         // GPU-less Actions runners otherwise intermittently block WebGL 2.
         // https://bugzilla.mozilla.org/show_bug.cgi?id=1970486
-        launchOptions: process.env.CI ? { firefoxUserPrefs: { 'webgl.force-enabled': true } } : {},
+        launchOptions: process.env.CI
+          ? { headless: false, firefoxUserPrefs: { 'webgl.force-enabled': true } }
+          : {},
       },
     },
     {
