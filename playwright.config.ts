@@ -22,7 +22,13 @@ export default defineConfig({
   projects: [
     {
       name: 'firefox',
-      use: { ...devices['Desktop Firefox'], viewport: { width: 1440, height: 1000 } },
+      use: {
+        ...devices['Desktop Firefox'],
+        viewport: { width: 1440, height: 1000 },
+        // GPU-less Actions runners otherwise intermittently block WebGL 2.
+        // https://bugzilla.mozilla.org/show_bug.cgi?id=1970486
+        launchOptions: process.env.CI ? { firefoxUserPrefs: { 'webgl.force-enabled': true } } : {},
+      },
     },
     {
       name: 'desktop',
