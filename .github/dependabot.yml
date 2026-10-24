@@ -6,6 +6,8 @@ updates:
       interval: weekly
     open-pull-requests-limit: 5
     groups:
+      build-toolchain:
+        patterns: ['vite', '@vitejs/plugin-react', 'vitest']
       graphics:
         patterns: ['react', 'react-dom', '@react-three/*', 'three', '@types/three', '@types/react*']
         update-types: [minor, patch]
