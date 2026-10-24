@@ -66,14 +66,19 @@ Vitest is the selected unit runner; use bun run test:unit rather than bun test. 
 
 ## Delivery
 
-.github/workflows/ci.yml checks PRs and main, then deploys the same tested artifact on main. Dependabot maintains Bun and Actions dependencies without auto-merge. The repository must have Pages enabled. A preview publication may use a separate gh-pages branch while the implementation PR awaits review; main CI switches Pages to the Actions source after merge.
+.github/workflows/ci.yml checks PRs and main, then deploys the same tested artifact on main. Dependabot maintains Bun and Actions dependencies without auto-merge. GitHub Pages is deployed from main through Actions. Separate build-output branches are unnecessary.
 
-No merge is implied by passing CI or creating a PR.
+Live game: https://gestusition.github.io/dive-bar/ . Current quality results are available in the repository Actions tab.
+
+The repository now publishes from main using Actions; the temporary gh-pages preview branch is retired after verification. Vite 8, its React plugin 6 and Vitest 5 are updated together. TypeScript 7 supplies the native tsc executable, while the typescript package aliases @typescript/typescript6 for lint tools that still need its API. This follows [Microsoft's side-by-side migration](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/#running-side-by-side-with-typescript-6.0).
+
+Bartender errands follow the right-hand counter opening and the front aisle. Seating, ordering and payment wait for arrival; cancelling an errand returns the bartender along the same walkable corridors.
 
 ## Source map
 
 - src/game/engine.ts — deterministic service, stock, money, dialogue effects and shift transitions.
 - src/game/quality.ts — recipe and technique scoring.
+- src/game/navigation.ts — counter-safe walking paths shared by service timing and scene movement.
 - src/game/store.ts — React bridge, clock ownership, action queue and sound.
 - src/game/storage.ts — IndexedDB and save validation.
 - src/view/BarScene.tsx — merged voxel geometry, scene, actors and cameras.
@@ -87,6 +92,7 @@ No merge is implied by passing CI or creating a PR.
 - docs/development-handoff.md — original implementation plan; current runtime status supersedes its original not-started wording.
 
 The supplied artwork in public/assets and art-src was preserved. Voxel geometry is authored in code. Fredoka and Nunito are self-hosted via Fontsource (SIL Open Font License; license notices are shipped in public/licenses).
+
 
 
 

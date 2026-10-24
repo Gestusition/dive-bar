@@ -31,6 +31,8 @@ jobs:
       - run: bun run typecheck
       - run: bun run test:unit
       - run: bun run build
+      - name: Record the source revision in the tested artifact
+        run: node -e "require('fs').writeFileSync('dist/build-info.json', JSON.stringify({sourceCommit:process.env.GITHUB_SHA,branch:process.env.GITHUB_REF_NAME}))"
       - run: bunx playwright install --with-deps chromium firefox webkit
       - run: xvfb-run -a bun run test:e2e
         env:
