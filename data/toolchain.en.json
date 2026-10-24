@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "status": "planned_not_installed",
+  "status": "implemented_see_package_lock_and_ci",
   "decisionDate": "2026-10-24",
   "application": {
     "kind": "client_only_static_game",
@@ -23,7 +23,7 @@
     "packageManager": "bun",
     "lockfile": "bun.lock",
     "frozenInstall": true,
-    "exactVersions": "Resolve a mutually compatible stable set at M0; pin Node/Bun tooling and commit the lockfile. No prerelease adoption."
+    "exactVersions": "Node 24, Bun 1.4.2 and bun.lock pin the installed dependency set. CI uses frozen installation."
   },
   "browserSupport": {
     "cssFloor": {

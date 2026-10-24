@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "locale": "en",
-  "status": "draft_content_not_integrated",
+  "status": "integrated_context_filtered_content",
   "setting": "Fictional contemporary dive bar",
   "presentation": "Never display authoringOnly, choice intent, story IDs, or eligibility fields. Social signals inform staging, not correct-answer labels.",
   "conversations": [
