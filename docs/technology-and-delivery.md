@@ -1,5 +1,8 @@
 # Technology and delivery — 24 October 2026
 
+> Historical planning baseline. A playable runtime now exists; see [implementation-status.md](implementation-status.md) for actual scope and validation limits.
+
+
 Status: selected planning baseline, not installed or executed. The user accepted React + React Three Fiber. Stack choices below refine the existing static-game architecture.
 
 ## Stack decision
@@ -119,4 +122,5 @@ No packages, package manifest, lockfile, workflow, test suite or repository sett
 - [Dependabot Bun lockfile support](https://docs.github.com/en/code-security/reference/supply-chain-security/supported-ecosystems-and-repositories)
 - [Vite Pages deployment](https://vite.dev/guide/static-deploy.html#github-pages)
 - [Node releases](https://nodejs.org/en/about/previous-releases)
+
 

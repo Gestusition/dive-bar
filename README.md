@@ -1,31 +1,91 @@
-# Dive Bar  design workspace
+# Dive Bar
 
-Current state: researched plan and English content data. No playable game, package setup, runtime, build, deployment, or real-device performance results yet.
+A small voxel neighbourhood bar. Real measures, familiar faces, and the occasional little white lie.
 
-## Start here
+## Play locally
 
-- **[Development handoff — slice-0.1](docs/development-handoff.md)**: authoritative starting point, frozen first scope and M0–M5 implementation order.
-- [Gameplay contracts](docs/gameplay-contracts.md): exact order, dialogue, scoring, closing, inventory and persistence behaviour.
-- [Acceptance criteria](docs/acceptance.md): 27 observable scenarios to verify once code exists.
-- [Technology and delivery](docs/technology-and-delivery.md): selected React/R3F/Vite/Tailwind stack, shadcn, tests, CI/CD and Dependabot.
-- [Current game design](docs/game-design.md): revised loop, priorities, difficulty, scope and release gates.
-- [Research review](docs/research-review.md): primary sources, observations, decisions and limitations.
-- [Controls and art](docs/controls-and-art.md): mouse/touch/keyboard, screen layouts, palette and polish targets.
-- [System diagrams](docs/system-design.md): screen flow, customer states, relationships and transaction rules.
-- [Cocktail preparation](docs/cocktail-preparation.md): real recipe quantities, tools, mixing and scoring.
-- [Source requirements](docs/requirements.md): all screenshot notes, uncertain drink names, revised dispositions.
+Requires Node 24 and Bun 1.4.2.
 
-## Content and tuning
+```sh
+bun install --frozen-lockfile
+bun run dev
+```
 
-- data/cocktails.en.json: three primary-source recipe seeds and nine ingredient types.
-- data/dialogues.en.json: initial service/social dialogue bank.
-- data/social-dialogues.en.json: additional social stories, regulars and one gated callback.
-- data/balance.en.json: provisional modes, capacities, timings and comfort policies.
-- data/vertical-slice.en.json: enabled/deferred content, canonical customers, predicates, stock, prices, tools, modifiers and scoring registry.
-- data/toolchain.en.json: machine-readable planned stack, browser floor, tests and delivery policy.
+Build and preview the exact static application:
 
-The two dialogue banks total 24 encounters, 32 nodes and 96 responses. Eighteen are selected for the first slice and six are explicitly deferred. Structural checks and remaining implementation verification are recorded in docs/content-audit.md.
+```sh
+bun run build
+bun run preview
+```
 
-All player-facing text is English. Sweet-lie dialogue deliberately rewards customer expectations; there is no ingredient-provenance UI. Accurate measured cocktail preparation remains a separate core mechanic.
+## What is implemented
 
-The next implementation gate is one complete recipe made and served on a real phone, followed by one coherent finished bar corner and a complete small shift. More content does not substitute for proving those interactions.
+- React 19 + React Three Fiber 9 / Three.js voxel room and characters.
+- Desktop and portrait/touch UI, with keyboard-accessible controls and reduced motion.
+- Fourteen classic, regional and explicitly labelled house recipes; select up to six for a night.
+- Measured or free pouring, native dash/piece/spoon units, mixing tools, ice, glassware, garnish and a recipe book.
+- Recipe quantity, proportion, yield and technique evaluation; real stock consumption and waste.
+- Guest arrival, seating, menu reading, orders, preparation, drinking, tabs, payment and last call.
+- Warm pretzels and cheese toasties, one warming slot, snack stock and charges.
+- Split-payment POS, integer money, idempotent settlement and one final tip.
+- Authored English conversations, plausible sweet lies, saved rapport and story callbacks.
+- Cleaning, washing, trash, editable restocking, ice refills and a closing recap.
+- Decor themes that change the room, plants/neon and a working barback upgrade.
+- Optional after-hours dice and a small scripted stool wobble.
+- Separate unlimited practice inventory; IndexedDB saves and validated JSON import/export.
+- Locally bundled fonts and a static GitHub Pages-compatible build.
+
+The conversation banks contain 24 encounters / 96 responses. The runtime selects context-fitting social encounters; service-draft encounters are retained as source content rather than indiscriminately shown in the wrong situation. There is no ingredient-provenance UI or truth/lie answer badge.
+
+## How to play
+
+1. Open the bar, offer the first guest a seat, and let them read.
+2. Take their order. Chat before preparation if they have something to say.
+3. At the counter choose the vessel, ingredients and measures. Transfer each measure.
+4. Follow the recipe's technique, chill/choose the serving glass, and garnish.
+5. Serve, let the guest enjoy it, then settle the tab.
+6. Call last orders when ready. Clean, empty trash, check stock and close.
+7. Spend between nights or play a friendly round of dice.
+
+Escape closes a panel or pauses. Reading panels pause service. Hidden tabs pause and require Resume; an interrupted pour never resumes by itself.
+
+## Checks
+
+```sh
+bun run validate:content
+bun run format:check
+bun run lint
+bun run typecheck
+bun run test:unit
+bun run build
+bunx playwright install chromium firefox webkit
+bun run test:e2e
+```
+
+Vitest is the selected unit runner; use bun run test:unit rather than bun test. Playwright tests the production build in Chromium, Firefox, touch Chromium and narrow touch WebKit contexts. Emulation is not a physical-phone performance certification.
+
+## Delivery
+
+.github/workflows/ci.yml checks PRs and main, then deploys the same tested artifact on main. Dependabot maintains Bun and Actions dependencies without auto-merge. The repository must have Pages enabled. A preview publication may use a separate gh-pages branch while the implementation PR awaits review; main CI switches Pages to the Actions source after merge.
+
+No merge is implied by passing CI or creating a PR.
+
+## Source map
+
+- src/game/engine.ts — deterministic service, stock, money, dialogue effects and shift transitions.
+- src/game/quality.ts — recipe and technique scoring.
+- src/game/store.ts — React bridge, clock ownership, action queue and sound.
+- src/game/storage.ts — IndexedDB and save validation.
+- src/view/BarScene.tsx — merged voxel geometry, scene, actors and cameras.
+- src/ui/Station.tsx — hands-on cocktail workstation.
+- src/ui/Management.tsx — nightly menu, editable stock and split POS.
+- src/ui/App.tsx — application shell, guest and focus flows.
+- data/cocktails.en.json — original IBA recipe seeds.
+- data/catalogue.en.json — researched expansion and declared house variations.
+- docs/recipe-research.md — uncertain-name interpretations and recipe sources.
+- docs/implementation-status.md — verified behaviour and remaining validation limits.
+- docs/development-handoff.md — original implementation plan; current runtime status supersedes its original not-started wording.
+
+The supplied artwork in public/assets and art-src was preserved. Voxel geometry is authored in code. Fredoka and Nunito are self-hosted via Fontsource (SIL Open Font License; upstream notices remain in the packages).
+
+

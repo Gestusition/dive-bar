@@ -1,5 +1,8 @@
 # Requirements ledger
 
+> Historical planning baseline. A playable runtime now exists; see [implementation-status.md](implementation-status.md) for actual scope and validation limits.
+
+
 Status: source coverage of the supplied screenshot and chat requests. Revised on 24 October 2026 under the user's permission to add, remove, or change mechanics. docs/game-design.md is the current design authority. Original wording stays here even when a mechanic is simplified or moved. No listed gameplay feature is implemented yet.
 
 ## Product constraints
@@ -107,4 +110,5 @@ Order identity, stock consumption, payment, guest state, and staff tasks must sh
 | Real measured mixing | Keep as a core skill | Marked measuring by default, optional Free Pour; same recipes and scoring |
 
 This is a deliberate revised feature set under the user's authorization, not a claim that every initial mechanic will ship unchanged. See docs/research-review.md for evidence and tradeoffs.
+
 

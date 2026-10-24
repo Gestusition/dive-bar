@@ -1,5 +1,8 @@
 # Cocktail preparation system
 
+> Historical planning baseline. A playable runtime now exists; see [implementation-status.md](implementation-status.md) for actual scope and validation limits.
+
+
 Status: design and verified recipe seed; runtime and playtesting pending.
 
 Revision 24 October 2026: docs/game-design.md and docs/controls-and-art.md define the current screen, timing, and input policy. Marked measuring is the default; Free Pour is optional. Both preserve real ingredient amounts and active preparation.
@@ -85,4 +88,5 @@ The full screenshot scope is tracked in docs/requirements.md. Three seed recipes
 Before shipping: verify recipe references and accepted variants, quantity conservation, wrong-bottle handling, flexible ingredient order, required technique sequence, omitted optional garnish, stock deductions, vessel overflow, discard/remake costs, pointer release/cancel, panel close, pause/resume, and interrupted mobile input.
 
 Actual recipe scoring, recipe-book UI, animations, stock integration, and performance testing are not implemented yet.
+
 
