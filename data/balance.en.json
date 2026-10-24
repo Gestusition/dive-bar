@@ -1,0 +1,207 @@
+{
+  "schemaVersion": 1,
+  "locale": "en",
+  "status": "provisional_design_targets_not_playtested",
+  "activeMenu": {
+    "initial": 3,
+    "maximum": 6
+  },
+  "tasks": {
+    "playerQueueMax": 2,
+    "traySlots": 2,
+    "barbackCountMax": 1
+  },
+  "dialogue": {
+    "activeMax": 1,
+    "waitingMax": 1,
+    "encountersPerShiftMax": 3,
+    "avoidRepeatShifts": 2,
+    "pausesSimulation": true,
+    "responseDeadlineSeconds": null,
+    "capAppliesTo": "optional_social_invitations_only",
+    "serviceExceptions": "Ordering, complaints, remakes and payment use actual context and are not blocked by optional social cooldown/cap.",
+    "optionalInvitationsPerGuestVisitMax": 1
+  },
+  "station": {
+    "defaultMeasureStyle": "marked",
+    "markedStepMl": 5,
+    "fineStepMl": 1,
+    "wholeDrinkAutoCraft": false,
+    "optionalFreePour": true,
+    "holdAlternative": "tap_toggle",
+    "assistanceIndependentOfMode": true
+  },
+  "modes": [
+    {
+      "id": "chill",
+      "name": "Chill",
+      "serviceSeconds": 420,
+      "maxGroups": 2,
+      "maxGuestsPerGroup": 2,
+      "maxOutsideGroups": 1,
+      "maxUnfulfilledDrinkLines": 2,
+      "arrivalIntervalSeconds": {
+        "min": 65,
+        "max": 85
+      },
+      "patienceMultiplier": 1.6,
+      "serviceSpeed": 0.85,
+      "dialogueCooldownServiceSeconds": 90,
+      "optionalRush": false,
+      "initialFoodEnabled": false
+    },
+    {
+      "id": "house",
+      "name": "House Shift",
+      "serviceSeconds": 420,
+      "maxGroups": 2,
+      "maxGuestsPerGroup": 2,
+      "maxOutsideGroups": 1,
+      "maxUnfulfilledDrinkLines": 3,
+      "arrivalIntervalSeconds": {
+        "min": 50,
+        "max": 66
+      },
+      "patienceMultiplier": 1,
+      "serviceSpeed": 1,
+      "dialogueCooldownServiceSeconds": 75,
+      "optionalRush": true,
+      "initialFoodEnabled": false
+    },
+    {
+      "id": "rush",
+      "name": "Rush",
+      "serviceSeconds": 420,
+      "maxGroups": 3,
+      "maxGuestsPerGroup": 2,
+      "maxOutsideGroups": 1,
+      "maxUnfulfilledDrinkLines": 4,
+      "arrivalIntervalSeconds": {
+        "min": 42,
+        "max": 54
+      },
+      "patienceMultiplier": 0.9,
+      "serviceSpeed": 1,
+      "dialogueCooldownServiceSeconds": 90,
+      "optionalRush": true,
+      "initialFoodEnabled": false
+    }
+  ],
+  "housePhases": [
+    {
+      "id": "warmup",
+      "from": 0,
+      "to": 60,
+      "arrivalIntervalMultiplier": 1.25,
+      "maxGroups": 1,
+      "admissions": true
+    },
+    {
+      "id": "steady",
+      "from": 60,
+      "to": 240,
+      "arrivalIntervalMultiplier": 1,
+      "maxGroups": null,
+      "admissions": true
+    },
+    {
+      "id": "brief_rush",
+      "from": 240,
+      "to": 300,
+      "arrivalIntervalMultiplier": 0.9,
+      "maxGroups": null,
+      "admissions": true,
+      "requiresOptIn": true,
+      "fallbackMultiplier": 1
+    },
+    {
+      "id": "wind_down",
+      "from": 300,
+      "to": 360,
+      "arrivalIntervalMultiplier": 1.2,
+      "maxGroups": null,
+      "admissions": true
+    },
+    {
+      "id": "last_call",
+      "from": 360,
+      "to": 420,
+      "arrivalIntervalMultiplier": 1,
+      "maxGroups": null,
+      "admissions": false
+    }
+  ],
+  "recovery": {
+    "cancellationsThreshold": 2,
+    "windowServiceSeconds": 90,
+    "deferNewAdmissionsSeconds": 35,
+    "preserveConsumedStock": true,
+    "nextShiftStarterSupplyIfStuck": true
+  },
+  "planningWorkload": {
+    "meanDrinksPerGroup": 1.3,
+    "estimatedActiveWorkPerGroupSeconds": 39,
+    "noviceSensitivitySeconds": 55,
+    "houseMeanArrivalSeconds": 58,
+    "warningUtilisation": 0.85,
+    "notes": "A workload estimate, not simulation or playtest evidence. Phases, food, travel, modifiers, and actual touch times require calibration."
+  },
+  "targets": {
+    "typicalRealSessionMinutes": {
+      "min": 8,
+      "max": 12
+    },
+    "closingActiveSeconds": {
+      "min": 30,
+      "max": 60
+    },
+    "desktopFps": 60,
+    "phoneFps": 30,
+    "initialCompressedDownloadMb": 12,
+    "lowSceneDrawCallsCeiling": 150,
+    "lowSceneVisibleTrianglesCeiling": 150000
+  },
+  "timePolicy": {
+    "readingPanelsPause": [
+      "dialogue",
+      "recipe_book",
+      "detailed_pos",
+      "settings",
+      "pause"
+    ],
+    "runningContexts": [
+      "overview",
+      "workstation",
+      "ordinary_pos"
+    ],
+    "hiddenTab": "pause_and_clear_input_require_resume",
+    "noBackfill": true
+  },
+  "customerTimersServiceSeconds": {
+    "outsideQueue": 90,
+    "menuReading": {
+      "min": 8,
+      "max": 12
+    },
+    "readyToOrder": 75,
+    "awaitingDelivery": 160,
+    "enjoyDrink": {
+      "min": 25,
+      "max": 40
+    },
+    "readyToPayTipWarning": 90,
+    "seatedAwaitingMenu": 60
+  },
+  "closing": {
+    "stopNewOrdersAt": 360,
+    "servicePhaseEndsAt": 420,
+    "confirmedOrderGraceSeconds": 90,
+    "unconfirmedOrderAtCutoff": "politely_depart_no_penalty",
+    "unfinishedConfirmedAtGraceEnd": "cancel_unserved_lines_keep_stock_spent",
+    "unpaidServedLines": "stay_ready_to_pay_until_player_settles_no_new_orders"
+  },
+  "phaseApplication": {
+    "allModes": "Use housePhases boundaries. maxGroups=null means selected mode cap; otherwise use min(mode cap, phase cap). Apply brief-rush multiplier only when supported and opted in, otherwise use fallbackMultiplier or 1.",
+    "serviceUnit": "All phase, arrival, cooldown, patience and grace values use scaled service seconds."
+  }
+}

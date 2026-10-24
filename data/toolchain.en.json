@@ -1,0 +1,131 @@
+{
+  "schemaVersion": 1,
+  "status": "planned_not_installed",
+  "decisionDate": "2026-10-24",
+  "application": {
+    "kind": "client_only_static_game",
+    "ui": "react",
+    "language": "typescript_strict",
+    "devBuildTool": "vite",
+    "reactMajor": 19,
+    "reactThreeFiberMajor": 9,
+    "three": "compatible_stable_release",
+    "uiStyles": "tailwindcss_v4",
+    "tailwindIntegration": "@tailwindcss/vite",
+    "uiComponents": "shadcn_ui_selective",
+    "state": "zustand_ui_bridge_and_framework_independent_domain",
+    "sceneHelpers": "@react-three/drei_selective",
+    "serverFramework": null,
+    "turbopack": false
+  },
+  "runtime": {
+    "toolRuntime": "node_24_lts",
+    "packageManager": "bun",
+    "lockfile": "bun.lock",
+    "frozenInstall": true,
+    "exactVersions": "Resolve a mutually compatible stable set at M0; pin Node/Bun tooling and commit the lockfile. No prerelease adoption."
+  },
+  "browserSupport": {
+    "cssFloor": {
+      "chromium": 111,
+      "safari": "16.4",
+      "firefox": 128
+    },
+    "webgl": "WebGL2_required",
+    "note": "The supported intersection also depends on Vite output, chosen libraries and actual-device verification. CSS floors are not full-game compatibility claims."
+  },
+  "quality": {
+    "lint": "eslint",
+    "format": "prettier",
+    "typecheck": "explicit_typescript_check",
+    "unit": "vitest",
+    "uiIntegration": "react_testing_library_only_when_needed",
+    "e2e": "playwright",
+    "testRunnerInvocation": "bun run test:unit, not bun test"
+  },
+  "ci": {
+    "provider": "github_actions",
+    "prRequired": [
+      "content_validation",
+      "format_check",
+      "lint",
+      "typecheck",
+      "domain_unit_tests",
+      "production_build",
+      "critical_e2e"
+    ],
+    "e2ePr": [
+      "chromium_desktop",
+      "chromium_mobile_touch",
+      "webkit_mobile_ui"
+    ],
+    "expanded": "Full Chromium/Firefox/WebKit suite on scheduled/manual runs and before release.",
+    "artifacts": [
+      "production_dist",
+      "playwright_report",
+      "failure_trace",
+      "failure_screenshot"
+    ],
+    "timing": "Enable actual jobs when their code/scripts exist; never a fake empty green job."
+  },
+  "cd": {
+    "provider": "github_pages",
+    "trigger": "validated_main_push_or_manual_dispatch",
+    "fromPullRequest": false,
+    "sameTestedArtifact": true,
+    "requires": [
+      "all_required_ci",
+      "actual_repository_base",
+      "pages_enabled"
+    ],
+    "afterDeploy": "Live URL smoke and asset loading verification. Failure reports the deployment as unhealthy; do not call it verified.",
+    "autoMerge": false
+  },
+  "dependencies": {
+    "tool": "dependabot",
+    "ecosystems": [
+      "bun",
+      "github-actions"
+    ],
+    "schedule": "weekly",
+    "maxOpenVersionPrs": 5,
+    "groups": [
+      "react_three_compatible_minor_patch",
+      "other_runtime_minor_patch",
+      "tooling_minor_patch"
+    ],
+    "majorUpdates": "Separate reviewed migration; coordinate React/ReactDOM/R3F peer compatibility.",
+    "security": "Keep supported security alerts/updates enabled and review promptly; version-update cadence does not imply a guarantee of immediate security updates.",
+    "autoMerge": false
+  },
+  "plannedScripts": [
+    "dev",
+    "build",
+    "preview",
+    "typecheck",
+    "lint",
+    "format:check",
+    "validate:content",
+    "test:unit",
+    "test:e2e"
+  ],
+  "notInstalled": [
+    "nextjs",
+    "turbopack",
+    "redux",
+    "server_api",
+    "database_server"
+  ],
+  "sourceNotes": {
+    "reactFiber": "https://r3f.docs.pmnd.rs/getting-started/introduction",
+    "tailwind": "https://tailwindcss.com/docs/installation/using-vite",
+    "shadcn": "https://ui.shadcn.com/docs/installation/vite",
+    "vite": "https://vite.dev/guide/",
+    "turbopack": "https://nextjs.org/docs/app/api-reference/turbopack",
+    "vitest": "https://vitest.dev/guide/",
+    "playwright": "https://playwright.dev/docs/ci-intro",
+    "dependabot": "https://docs.github.com/en/code-security/reference/supply-chain-security/dependabot-options-reference",
+    "bunSupport": "https://docs.github.com/en/code-security/reference/supply-chain-security/supported-ecosystems-and-repositories",
+    "cssSupport": "https://tailwindcss.com/docs/compatibility"
+  }
+}

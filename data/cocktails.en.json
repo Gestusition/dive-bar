@@ -1,0 +1,344 @@
+{
+  "schemaVersion": 1,
+  "locale": "en",
+  "status": "verified_recipe_seed_not_integrated",
+  "ingredients": [
+    {
+      "id": "bourbon",
+      "name": "Bourbon Whiskey",
+      "kind": "spirit",
+      "unit": "ml"
+    },
+    {
+      "id": "rye_whiskey",
+      "name": "Rye Whiskey",
+      "kind": "spirit",
+      "unit": "ml"
+    },
+    {
+      "id": "tequila_100_agave",
+      "name": "100% Agave Tequila",
+      "kind": "spirit",
+      "unit": "ml"
+    },
+    {
+      "id": "triple_sec",
+      "name": "Triple Sec",
+      "kind": "liqueur",
+      "unit": "ml"
+    },
+    {
+      "id": "sweet_red_vermouth",
+      "name": "Sweet Red Vermouth",
+      "kind": "vermouth",
+      "unit": "ml"
+    },
+    {
+      "id": "fresh_lime_juice",
+      "name": "Fresh Lime Juice",
+      "kind": "juice",
+      "unit": "ml"
+    },
+    {
+      "id": "angostura_bitters",
+      "name": "Angostura Bitters",
+      "kind": "bitters",
+      "unit": "dash"
+    },
+    {
+      "id": "plain_water",
+      "name": "Water",
+      "kind": "water",
+      "unit": "dash"
+    },
+    {
+      "id": "sugar_cube",
+      "name": "Sugar Cube",
+      "kind": "sweetener",
+      "unit": "piece"
+    }
+  ],
+  "rules": {
+    "sources": "Ingredient quantities and broad methods follow the linked IBA pages. Timing, scoring, error tolerances, and numerical interpretations of 'few' are game design, not IBA standards.",
+    "units": "Never convert dash or piece to ml without a separate explicit per-product calibration.",
+    "sourceInformationUI": "Recipe cards show ingredients, quantities, methods, and glassware. No provenance, supplier, or delivery information is displayed.",
+    "alternatives": "Match one allowed ingredient to one recipe slot. Other additions remain in the mixture and cannot be silently substituted.",
+    "amountAndRatio": "Check both the actual quantities and proportions. Double-sized, half-sized, or heavily watered drinks do not receive full credit for matching proportions.",
+    "modifiers": "Resolve an explicitly accepted customer modification into a separate target recipe before scoring. Never infer a recipe change from a social bluff.",
+    "stock": "Deduct actual ingredient quantities when they leave their source. A remake consumes new ingredients; discarding does not restore stock.",
+    "sourceUnits": "Discrete ingredients and garnish are separate from the measured liquid volume. Ice is tracked separately."
+  },
+  "recipes": [
+    {
+      "id": "old_fashioned",
+      "name": "Old Fashioned",
+      "source": {
+        "publisher": "International Bartenders Association",
+        "url": "https://iba-world.com/iba-cocktail/old-fashioned/"
+      },
+      "ingredients": [
+        {
+          "slot": "whiskey",
+          "allowed": [
+            "bourbon",
+            "rye_whiskey"
+          ],
+          "quantity": 45,
+          "unit": "ml"
+        },
+        {
+          "slot": "sugar",
+          "allowed": [
+            "sugar_cube"
+          ],
+          "quantity": 1,
+          "unit": "piece"
+        },
+        {
+          "slot": "bitters",
+          "allowed": [
+            "angostura_bitters"
+          ],
+          "quantity": null,
+          "unit": "dash",
+          "sourceAmount": "few",
+          "gameTarget": {
+            "preferred": 2,
+            "acceptedMin": 2,
+            "acceptedMax": 3
+          }
+        },
+        {
+          "slot": "water",
+          "allowed": [
+            "plain_water"
+          ],
+          "quantity": null,
+          "unit": "dash",
+          "sourceAmount": "few",
+          "gameTarget": {
+            "preferred": 2,
+            "acceptedMin": 2,
+            "acceptedMax": 3
+          }
+        }
+      ],
+      "service": {
+        "glass": "old_fashioned_glass",
+        "ice": "cubed_ice_in_serving_glass",
+        "garnish": {
+          "allOf": [
+            {
+              "oneOf": [
+                "orange_slice",
+                "orange_zest"
+              ]
+            },
+            "cocktail_cherry"
+          ]
+        }
+      },
+      "steps": [
+        {
+          "id": "sugar",
+          "action": "add",
+          "slot": "sugar",
+          "vessel": "serving_glass"
+        },
+        {
+          "id": "bitters",
+          "action": "add",
+          "slot": "bitters",
+          "vessel": "serving_glass"
+        },
+        {
+          "id": "water",
+          "action": "add",
+          "slot": "water",
+          "vessel": "serving_glass"
+        },
+        {
+          "id": "dissolve",
+          "action": "muddle_until_dissolved",
+          "vessel": "serving_glass"
+        },
+        {
+          "id": "ice",
+          "action": "add_cubed_ice",
+          "vessel": "serving_glass"
+        },
+        {
+          "id": "whiskey",
+          "action": "add",
+          "slot": "whiskey",
+          "vessel": "serving_glass"
+        },
+        {
+          "id": "stir",
+          "action": "stir_gently",
+          "vessel": "serving_glass"
+        },
+        {
+          "id": "garnish",
+          "action": "garnish",
+          "vessel": "serving_glass"
+        }
+      ],
+      "orderRules": "Saturate sugar with bitters and add water before dissolving; dissolve before ice and whiskey; stir after whiskey. Garnish after preparation."
+    },
+    {
+      "id": "margarita",
+      "name": "Margarita",
+      "source": {
+        "publisher": "International Bartenders Association",
+        "url": "https://iba-world.com/iba-cocktail/margarita/"
+      },
+      "ingredients": [
+        {
+          "slot": "tequila",
+          "allowed": [
+            "tequila_100_agave"
+          ],
+          "quantity": 50,
+          "unit": "ml"
+        },
+        {
+          "slot": "orange_liqueur",
+          "allowed": [
+            "triple_sec"
+          ],
+          "quantity": 20,
+          "unit": "ml"
+        },
+        {
+          "slot": "lime",
+          "allowed": [
+            "fresh_lime_juice"
+          ],
+          "quantity": 15,
+          "unit": "ml"
+        }
+      ],
+      "service": {
+        "glass": "chilled_cocktail_glass",
+        "ice": "ice_in_shaker_strained_out",
+        "garnish": {
+          "optional": [
+            "half_salt_rim"
+          ]
+        }
+      },
+      "steps": [
+        {
+          "id": "chill_glass",
+          "action": "chill_serving_glass"
+        },
+        {
+          "id": "measure",
+          "action": "measure_and_add_all_ingredients",
+          "vessel": "shaker",
+          "ingredientOrder": "any"
+        },
+        {
+          "id": "ice",
+          "action": "add_ice",
+          "vessel": "shaker"
+        },
+        {
+          "id": "shake",
+          "action": "shake",
+          "vessel": "shaker"
+        },
+        {
+          "id": "strain",
+          "action": "strain",
+          "from": "shaker",
+          "to": "serving_glass"
+        },
+        {
+          "id": "rim",
+          "action": "optional_half_salt_rim",
+          "mayBePreparedBeforeStraining": true
+        }
+      ],
+      "orderRules": "All ingredients and ice before shaking; shake before straining; serving glass chilled before pouring. Ingredient addition order is flexible. Salt rim is optional unless an accepted order request changes it."
+    },
+    {
+      "id": "manhattan",
+      "name": "Manhattan",
+      "source": {
+        "publisher": "International Bartenders Association",
+        "url": "https://iba-world.com/iba-cocktail/manhattan/"
+      },
+      "ingredients": [
+        {
+          "slot": "whiskey",
+          "allowed": [
+            "rye_whiskey"
+          ],
+          "quantity": 50,
+          "unit": "ml"
+        },
+        {
+          "slot": "vermouth",
+          "allowed": [
+            "sweet_red_vermouth"
+          ],
+          "quantity": 20,
+          "unit": "ml"
+        },
+        {
+          "slot": "bitters",
+          "allowed": [
+            "angostura_bitters"
+          ],
+          "quantity": 1,
+          "unit": "dash"
+        }
+      ],
+      "service": {
+        "glass": "chilled_cocktail_glass",
+        "ice": "cubed_ice_in_mixing_glass_strained_out",
+        "garnish": {
+          "allOf": [
+            "cocktail_cherry"
+          ]
+        }
+      },
+      "steps": [
+        {
+          "id": "chill_glass",
+          "action": "chill_serving_glass"
+        },
+        {
+          "id": "measure",
+          "action": "measure_and_add_all_ingredients",
+          "vessel": "mixing_glass",
+          "ingredientOrder": "any"
+        },
+        {
+          "id": "ice",
+          "action": "add_cubed_ice",
+          "vessel": "mixing_glass"
+        },
+        {
+          "id": "stir",
+          "action": "stir_well",
+          "vessel": "mixing_glass"
+        },
+        {
+          "id": "strain",
+          "action": "strain",
+          "from": "mixing_glass",
+          "to": "serving_glass"
+        },
+        {
+          "id": "garnish",
+          "action": "garnish",
+          "vessel": "serving_glass"
+        }
+      ],
+      "orderRules": "All ingredients and ice before stirring; stir before straining; serving glass chilled before pouring; garnish after straining. Ingredient addition order is flexible."
+    }
+  ]
+}

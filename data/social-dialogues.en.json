@@ -1,0 +1,789 @@
+{
+  "schemaVersion": 2,
+  "locale": "en",
+  "status": "draft_content_not_integrated",
+  "setting": "Fictional contemporary dive bar",
+  "presentation": "Never display authoringOnly, choice intent, story IDs, or eligibility fields. Social signals inform staging, not correct-answer labels.",
+  "conversations": [
+    {
+      "id": "house_recipe_legend",
+      "customer": "Mara",
+      "difficulty": "easy",
+      "trigger": "Mara notices a named drink on the active menu",
+      "customerExpectation": "A modest personal story makes the bar feel special.",
+      "storySubjectKey": "house_recipe",
+      "socialSignals": [
+        "She lingers over the handwritten drink name and smiles."
+      ],
+      "authoringOnly": {
+        "actualTruth": "The bartender adapted a recipe from a printed recipe card."
+      },
+      "nodes": [
+        {
+          "id": "start",
+          "line": "Who came up with this one?",
+          "choices": [
+            {
+              "text": "I found the recipe on a printout.",
+              "result": "confirm",
+              "reply": "Oh. I thought there might be more to it.",
+              "trust": -1,
+              "patience": 0,
+              "tip": -0.03,
+              "intent": "plain_truth",
+              "id": "start_1"
+            },
+            {
+              "text": "It started as an argument between two regulars. This was the compromise.",
+              "next": "followup",
+              "reply": "Now that sounds like this place.",
+              "trust": 1,
+              "patience": 0,
+              "tip": 0,
+              "intent": "plausible_sweet_lie",
+              "storyId": "regulars_compromise",
+              "id": "start_2"
+            },
+            {
+              "text": "An internationally famous bartender begged us to keep it secret.",
+              "result": "confirm",
+              "reply": "And yet you're telling me. Right.",
+              "trust": -1,
+              "patience": 0,
+              "tip": -0.04,
+              "intent": "overblown_name_dropping",
+              "id": "start_3"
+            }
+          ]
+        },
+        {
+          "id": "followup",
+          "line": "Who won the argument?",
+          "choices": [
+            {
+              "text": "Neither. They both keep ordering it.",
+              "result": "confirm",
+              "reply": "Best possible ending.",
+              "trust": 1,
+              "patience": 0,
+              "tip": 0.05,
+              "id": "followup_1"
+            },
+            {
+              "text": "Me. They paid for the experiments.",
+              "result": "confirm",
+              "reply": "Ha. Fair enough.",
+              "trust": 1,
+              "patience": 0,
+              "tip": 0.03,
+              "id": "followup_2"
+            },
+            {
+              "text": "I can't remember. Anyway, are you ordering?",
+              "result": "confirm",
+              "reply": "Yes. No need to rush me.",
+              "trust": -1,
+              "patience": 0,
+              "tip": -0.03,
+              "id": "followup_3"
+            }
+          ]
+        }
+      ],
+      "kind": "social_bluff",
+      "cues": [],
+      "factKeys": [],
+      "customerId": "mara"
+    },
+    {
+      "id": "neon_sign_story",
+      "customer": "Lena",
+      "difficulty": "easy",
+      "trigger": "Lena notices the neon sign",
+      "customerExpectation": "She likes small details with a personal connection.",
+      "storySubjectKey": "neon_sign",
+      "socialSignals": [
+        "She points at the uneven lettering rather than asking about the price."
+      ],
+      "authoringOnly": {
+        "actualTruth": "The sign was bought new from a catalogue."
+      },
+      "nodes": [
+        {
+          "id": "start",
+          "line": "That sign's lovely. Did you find it somewhere?",
+          "choices": [
+            {
+              "text": "Ordered it from a catalogue. Page fourteen.",
+              "result": "confirm",
+              "reply": "Ah. Less of a treasure hunt than I imagined.",
+              "trust": -1,
+              "patience": 0,
+              "tip": -0.02,
+              "intent": "unromantic_truth",
+              "id": "start_1"
+            },
+            {
+              "text": "A friend made it. The crooked letter was meant to be temporary.",
+              "result": "confirm",
+              "reply": "Tell them to leave it. That's the best bit.",
+              "trust": 1,
+              "patience": 0,
+              "tip": 0.04,
+              "intent": "personal_sweet_lie",
+              "storyId": "friend_crooked_letter",
+              "id": "start_2"
+            },
+            {
+              "text": "It's the last one of its kind in the world.",
+              "result": "confirm",
+              "reply": "Funny. I think I've seen another one.",
+              "trust": -1,
+              "patience": 0,
+              "tip": -0.04,
+              "intent": "unbelievable_rarity",
+              "id": "start_3"
+            }
+          ]
+        }
+      ],
+      "kind": "social_bluff",
+      "cues": [],
+      "factKeys": [],
+      "customerId": "lena"
+    },
+    {
+      "id": "jukebox_band_story",
+      "customer": "Len",
+      "difficulty": "medium",
+      "trigger": "Len comments on a song between orders",
+      "customerExpectation": "A relaxed anecdote and light banter, without status boasting.",
+      "storySubjectKey": "jukebox_song",
+      "socialSignals": [
+        "He taps along and makes room for the bartender to lean in."
+      ],
+      "authoringOnly": {
+        "actualTruth": "The track came from an ordinary playlist."
+      },
+      "nodes": [
+        {
+          "id": "start",
+          "line": "Good song. Who put that on?",
+          "choices": [
+            {
+              "text": "A regular insists it's lucky. We let him believe it.",
+              "result": "confirm",
+              "reply": "Don't change it, then. We need all the help we can get.",
+              "trust": 1,
+              "patience": 0,
+              "tip": 0.04,
+              "intent": "shared_joke",
+              "storyId": "regular_lucky_song",
+              "id": "start_1"
+            },
+            {
+              "text": "The playlist did. I haven't touched it.",
+              "result": "confirm",
+              "reply": "Well, the playlist has taste.",
+              "trust": 0,
+              "patience": 0,
+              "tip": 0,
+              "intent": "plain_answer",
+              "id": "start_2"
+            },
+            {
+              "text": "A touring band left us their private recordings.",
+              "result": "confirm",
+              "reply": "Pretty sure this one's on the radio.",
+              "trust": -1,
+              "patience": 0,
+              "tip": -0.04,
+              "intent": "implausible_boast",
+              "id": "start_3"
+            }
+          ]
+        }
+      ],
+      "kind": "social_bluff",
+      "cues": [],
+      "factKeys": [],
+      "customerId": "len"
+    },
+    {
+      "id": "first_date_reassurance",
+      "customer": "Nadia",
+      "difficulty": "medium",
+      "trigger": "A nervous guest orders while waiting for a date",
+      "customerExpectation": "Gentle reassurance that does not pretend to know the absent date.",
+      "storySubjectKey": "first_date_reassurance",
+      "socialSignals": [
+        "She straightens the same coaster twice and checks the door."
+      ],
+      "nodes": [
+        {
+          "id": "start",
+          "line": "Is this a good place for a first date, or have I made a mistake?",
+          "choices": [
+            {
+              "text": "Depends how the date goes.",
+              "result": "confirm",
+              "reply": "That's comforting.",
+              "trust": -1,
+              "patience": 0,
+              "tip": -0.03,
+              "intent": "unhelpful_bluntness",
+              "id": "start_1"
+            },
+            {
+              "text": "Good choice. The window table has an unusually good track record.",
+              "next": "followup",
+              "reply": "A track record?",
+              "trust": 1,
+              "patience": 0,
+              "tip": 0,
+              "intent": "comforting_sweet_lie",
+              "storyId": "lucky_window_table",
+              "id": "start_2"
+            },
+            {
+              "text": "They'll definitely fall in love with you tonight.",
+              "result": "confirm",
+              "reply": "Let's not get ahead of ourselves.",
+              "trust": -1,
+              "patience": 0,
+              "tip": -0.03,
+              "intent": "overconfident_flattery",
+              "id": "start_3"
+            }
+          ]
+        },
+        {
+          "id": "followup",
+          "line": "Should I be asking for statistics?",
+          "choices": [
+            {
+              "text": "Two second dates and one very long conversation. Small sample, promising results.",
+              "result": "confirm",
+              "reply": "I'll take those odds.",
+              "trust": 1,
+              "patience": 0,
+              "tip": 0.04,
+              "id": "followup_1"
+            },
+            {
+              "text": "Mostly I'm saying you can relax. It's a nice table.",
+              "result": "confirm",
+              "reply": "Thanks. I needed that.",
+              "trust": 1,
+              "patience": 0,
+              "tip": 0.03,
+              "id": "followup_2"
+            },
+            {
+              "text": "I guarantee it. Nobody has ever had a bad date here.",
+              "result": "confirm",
+              "reply": "Now I know you're making it up.",
+              "trust": -1,
+              "patience": 0,
+              "tip": -0.04,
+              "id": "followup_3"
+            }
+          ]
+        }
+      ],
+      "kind": "social_bluff",
+      "cues": [],
+      "factKeys": [],
+      "customerId": "nadia"
+    },
+    {
+      "id": "last_round_recommendation",
+      "customer": "Theo",
+      "difficulty": "medium",
+      "trigger": "A guest asks for a recommendation before last orders",
+      "customerExpectation": "A considered recommendation that makes the choice feel personal.",
+      "storySubjectKey": "bartender_favourite",
+      "socialSignals": [
+        "He asks what the bartender would choose rather than what is popular."
+      ],
+      "authoringOnly": {
+        "actualTruth": "The bartender has no fixed favourite; the menu is a verified recipe selection."
+      },
+      "nodes": [
+        {
+          "id": "start",
+          "line": "One last drink. What would you have?",
+          "choices": [
+            {
+              "text": "The Manhattan. It's the one I save for a quiet end to the night.",
+              "result": "confirm",
+              "reply": "That's exactly the mood I'm after.",
+              "trust": 1,
+              "patience": 0,
+              "tip": 0.04,
+              "intent": "personal_sweet_lie",
+              "storyId": "quiet_manhattan",
+              "orderChange": "manhattan",
+              "id": "start_1"
+            },
+            {
+              "text": "Whatever bottle is nearest.",
+              "result": "reselect",
+              "reply": "I'll have another look at the menu.",
+              "trust": -1,
+              "patience": 0,
+              "tip": -0.03,
+              "intent": "dismissive_truth",
+              "id": "start_2"
+            },
+            {
+              "text": "The most expensive one, obviously.",
+              "result": "reselect",
+              "reply": "I was asking for your taste, not your sales pitch.",
+              "trust": -1,
+              "patience": 0,
+              "tip": -0.04,
+              "intent": "transparent_upsell",
+              "id": "start_3"
+            }
+          ]
+        }
+      ],
+      "kind": "social_bluff",
+      "cues": [],
+      "factKeys": [],
+      "customerId": "theo"
+    },
+    {
+      "id": "secret_menu_story",
+      "customer": "Cass",
+      "difficulty": "medium",
+      "trigger": "Cass jokes about a secret menu",
+      "customerExpectation": "Playful inclusion; she still needs a real available drink.",
+      "storySubjectKey": "secret_menu",
+      "socialSignals": [
+        "She lowers her voice theatrically and grins."
+      ],
+      "nodes": [
+        {
+          "id": "start",
+          "line": "All right, what do the regulars order that isn't on the board?",
+          "choices": [
+            {
+              "text": "The secret is they order a Manhattan and pretend it's a secret.",
+              "result": "confirm",
+              "reply": "I'm officially a regular, then. One Manhattan.",
+              "trust": 1,
+              "patience": 0,
+              "tip": 0.04,
+              "intent": "playful_evasion",
+              "storyId": "secret_manhattan",
+              "orderChange": "manhattan",
+              "id": "start_1"
+            },
+            {
+              "text": "Nothing. That's the whole menu.",
+              "result": "reselect",
+              "reply": "Fair enough. I'll pick something.",
+              "trust": 0,
+              "patience": 0,
+              "tip": 0,
+              "intent": "flat_truth",
+              "id": "start_2"
+            },
+            {
+              "text": "Anything you can imagine. We can make absolutely everything.",
+              "result": "reselect",
+              "reply": "Really? Name something, then.",
+              "trust": -1,
+              "patience": 0,
+              "tip": -0.04,
+              "intent": "unbounded_promise",
+              "id": "start_3"
+            }
+          ]
+        }
+      ],
+      "kind": "social_bluff",
+      "cues": [],
+      "factKeys": [],
+      "customerId": "cass"
+    },
+    {
+      "id": "regular_recognition",
+      "customer": "Owen",
+      "difficulty": "hard",
+      "trigger": "An infrequent guest challenges the bartender's memory",
+      "customerExpectation": "Recognition without humiliating details or a reckless guessed order.",
+      "storySubjectKey": "remembering_owen",
+      "socialSignals": [
+        "He says hello like an old friend, but has no saved usual order yet."
+      ],
+      "authoringOnly": {
+        "actualTruth": "The bartender does not remember his last drink."
+      },
+      "nodes": [
+        {
+          "id": "start",
+          "line": "You remember me, don't you?",
+          "choices": [
+            {
+              "text": "Of course. You always look like you've got a good story. Same mood tonight?",
+              "result": "reselect",
+              "reply": "Ha. I might have one for you.",
+              "trust": 1,
+              "patience": 0,
+              "tip": 0.04,
+              "intent": "warm_face_saving_bluff",
+              "storyId": "good_story_regular",
+              "id": "start_1"
+            },
+            {
+              "text": "No. Should I?",
+              "result": "reselect",
+              "reply": "I was in last week.",
+              "trust": -1,
+              "patience": 0,
+              "tip": -0.04,
+              "intent": "blunt_truth",
+              "id": "start_2"
+            },
+            {
+              "text": "Definitely. Six shots and that argument at the door.",
+              "result": "cancel",
+              "reply": "That wasn't me. I'll go somewhere else.",
+              "trust": -2,
+              "patience": 0,
+              "tip": -0.08,
+              "intent": "specific_harmful_guess",
+              "id": "start_3"
+            }
+          ]
+        }
+      ],
+      "kind": "social_bluff",
+      "cues": [],
+      "factKeys": [],
+      "customerId": "owen"
+    },
+    {
+      "id": "famous_guest_story",
+      "customer": "Eli",
+      "difficulty": "medium",
+      "trigger": "A guest asks about a framed unsigned photo",
+      "customerExpectation": "An entertaining local anecdote, not a boast about real celebrities.",
+      "storySubjectKey": "framed_photo",
+      "socialSignals": [
+        "He is smiling at the picture, not asking for an autograph."
+      ],
+      "authoringOnly": {
+        "actualTruth": "The photo was bought as decoration."
+      },
+      "nodes": [
+        {
+          "id": "start",
+          "line": "Anyone famous ever drink in here?",
+          "choices": [
+            {
+              "text": "Someone once said they were. We agreed and charged them the usual.",
+              "result": "confirm",
+              "reply": "That's the right way to handle it.",
+              "trust": 1,
+              "patience": 0,
+              "tip": 0.04,
+              "intent": "dry_sweet_lie",
+              "storyId": "anonymous_famous_guest",
+              "id": "start_1"
+            },
+            {
+              "text": "No. The photo just filled a gap on the wall.",
+              "result": "confirm",
+              "reply": "Well, it does look nice there.",
+              "trust": 0,
+              "patience": 0,
+              "tip": 0,
+              "intent": "plain_truth",
+              "id": "start_2"
+            },
+            {
+              "text": "Every major star comes here. I'm not allowed to name any of them.",
+              "result": "confirm",
+              "reply": "Convenient.",
+              "trust": -1,
+              "patience": 0,
+              "tip": -0.03,
+              "intent": "generic_boasting",
+              "id": "start_3"
+            }
+          ]
+        }
+      ],
+      "kind": "social_bluff",
+      "cues": [],
+      "factKeys": [],
+      "customerId": "eli"
+    },
+    {
+      "id": "glass_story",
+      "customer": "Priya",
+      "difficulty": "easy",
+      "trigger": "A guest admires the serving glass before ordering",
+      "customerExpectation": "A small sentimental detail; not a claim that the drink has changed.",
+      "storySubjectKey": "glass_collection",
+      "socialSignals": [
+        "She turns the glass to look at its patterned base."
+      ],
+      "authoringOnly": {
+        "actualTruth": "The glasses came from a discount shop."
+      },
+      "nodes": [
+        {
+          "id": "start",
+          "line": "These glasses are sweet. Have you had them for years?",
+          "choices": [
+            {
+              "text": "They used to live in my aunt's cabinet. She said they deserved a night out.",
+              "result": "confirm",
+              "reply": "She was right.",
+              "trust": 1,
+              "patience": 0,
+              "tip": 0.04,
+              "intent": "sentimental_sweet_lie",
+              "storyId": "aunts_cabinet",
+              "id": "start_1"
+            },
+            {
+              "text": "Bought a box on discount last week.",
+              "result": "confirm",
+              "reply": "Oh. Still a good find.",
+              "trust": 0,
+              "patience": 0,
+              "tip": 0,
+              "intent": "practical_truth",
+              "id": "start_2"
+            },
+            {
+              "text": "They're priceless antiques, so please don't touch.",
+              "result": "confirm",
+              "reply": "Then why serve drinks in them?",
+              "trust": -1,
+              "patience": 0,
+              "tip": -0.04,
+              "intent": "patronising_exaggeration",
+              "id": "start_3"
+            }
+          ]
+        }
+      ],
+      "kind": "social_bluff",
+      "cues": [],
+      "factKeys": [],
+      "customerId": "priya"
+    },
+    {
+      "id": "hype_skeptic",
+      "customer": "Alex",
+      "difficulty": "hard",
+      "trigger": "A skeptical regular asks about the house special",
+      "customerExpectation": "Simple competence. He dislikes elaborate sales stories.",
+      "storySubjectKey": "house_special_pitch",
+      "socialSignals": [
+        "He rolls his eyes at the phrase artisanal experience on a nearby poster."
+      ],
+      "nodes": [
+        {
+          "id": "start",
+          "line": "Go on, what's the big story behind tonight's special?",
+          "choices": [
+            {
+              "text": "Secret recipe. Three generations. A mysterious stranger. The usual.",
+              "result": "confirm",
+              "reply": "You nearly had me leaving. Good joke, though.",
+              "trust": 1,
+              "patience": 0,
+              "tip": 0.02,
+              "intent": "knowing_banter",
+              "storyId": "mock_grand_legend",
+              "id": "start_1"
+            },
+            {
+              "text": "No big story. A classic, measured properly.",
+              "result": "confirm",
+              "reply": "Good. That's all I wanted.",
+              "trust": 2,
+              "patience": 0,
+              "tip": 0.04,
+              "intent": "fits_practical_customer",
+              "id": "start_2"
+            },
+            {
+              "text": "A lost family recipe we recovered from an old captain's journal.",
+              "result": "reselect",
+              "reply": "Can I just have a normal drink?",
+              "trust": -1,
+              "patience": 0,
+              "tip": -0.04,
+              "intent": "mismatched_romantic_lie",
+              "id": "start_3"
+            }
+          ]
+        }
+      ],
+      "kind": "social_bluff",
+      "cues": [],
+      "factKeys": [],
+      "customerId": "alex"
+    },
+    {
+      "id": "cherry_story_callback",
+      "customer": "Mara",
+      "difficulty": "hard",
+      "trigger": "Mara returns after hearing the local-family cherry story",
+      "customerExpectation": "A light consistent continuation of the story she enjoyed.",
+      "storySubjectKey": "cherry_origin",
+      "eligibility": {
+        "requiresStory": {
+          "subjectKey": "cherry_origin",
+          "storyId": "local_family_orchard",
+          "customerId": "mara"
+        }
+      },
+      "socialSignals": [
+        "She recognises the garnish and smiles as if remembering a shared detail."
+      ],
+      "nodes": [
+        {
+          "id": "start",
+          "line": "Did your cherry-picking family send you another batch?",
+          "choices": [
+            {
+              "text": "They did. Apparently the trees haven't taken a day off yet.",
+              "result": "confirm",
+              "reply": "Lucky us. Same drink, please.",
+              "trust": 1,
+              "patience": 0,
+              "tip": 0.05,
+              "intent": "consistent_callback",
+              "storyId": "local_family_orchard",
+              "id": "start_1"
+            },
+            {
+              "text": "Family? They're from a supermarket jar.",
+              "result": "cancel",
+              "reply": "Then what was that story last time? I'll pass.",
+              "trust": -2,
+              "patience": 0,
+              "tip": -0.08,
+              "intent": "breaks_previous_illusion",
+              "id": "start_2"
+            },
+            {
+              "text": "Yes. The orchard now supplies half the royal palaces in Europe.",
+              "result": "confirm",
+              "reply": "Let's not spoil a nice little story.",
+              "trust": -1,
+              "patience": 0,
+              "tip": -0.04,
+              "intent": "unnecessary_escalation",
+              "id": "start_3"
+            }
+          ]
+        }
+      ],
+      "kind": "social_bluff",
+      "cues": [],
+      "factKeys": [],
+      "customerId": "mara"
+    },
+    {
+      "id": "bar_name_history",
+      "customer": "Sam",
+      "difficulty": "easy",
+      "trigger": "A newcomer asks about the handwritten house name",
+      "customerExpectation": "A charming anecdote about a small place.",
+      "storySubjectKey": "bar_name",
+      "socialSignals": [
+        "He says the name out loud and laughs before asking."
+      ],
+      "authoringOnly": {
+        "actualTruth": "The name was picked quickly while setting up the bar."
+      },
+      "nodes": [
+        {
+          "id": "start",
+          "line": "Who came up with the name of this place?",
+          "choices": [
+            {
+              "text": "We wrote three names on coasters. Someone spilt a drink on the other two.",
+              "next": "followup",
+              "reply": "That's your selection process?",
+              "trust": 1,
+              "patience": 0,
+              "tip": 0,
+              "intent": "believable_bar_story",
+              "storyId": "three_coasters",
+              "id": "start_1"
+            },
+            {
+              "text": "I needed a name for the paperwork.",
+              "result": "confirm",
+              "reply": "Efficient, I suppose.",
+              "trust": 0,
+              "patience": 0,
+              "tip": -0.01,
+              "intent": "unromantic_truth",
+              "id": "start_2"
+            },
+            {
+              "text": "It came to me in a dream that predicted this exact conversation.",
+              "result": "confirm",
+              "reply": "Maybe make the next dream about my order.",
+              "trust": -1,
+              "patience": 0,
+              "tip": -0.03,
+              "intent": "overdone_story",
+              "id": "start_3"
+            }
+          ]
+        },
+        {
+          "id": "followup",
+          "line": "And you never thought about changing it?",
+          "choices": [
+            {
+              "text": "By then the sign was paid for. We decided it was fate.",
+              "result": "confirm",
+              "reply": "I respect the commitment.",
+              "trust": 1,
+              "patience": 0,
+              "tip": 0.04,
+              "id": "followup_1"
+            },
+            {
+              "text": "We still vote on it every Friday. Same result so far.",
+              "result": "confirm",
+              "reply": "I'll come back with a coaster.",
+              "trust": 1,
+              "patience": 0,
+              "tip": 0.03,
+              "id": "followup_2"
+            },
+            {
+              "text": "It took twelve marketing experts six months.",
+              "result": "confirm",
+              "reply": "You were doing better with the coasters.",
+              "trust": -1,
+              "patience": 0,
+              "tip": -0.04,
+              "id": "followup_3"
+            }
+          ]
+        }
+      ],
+      "kind": "social_bluff",
+      "cues": [],
+      "factKeys": [],
+      "customerId": "sam"
+    }
+  ]
+}

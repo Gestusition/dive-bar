@@ -1,0 +1,707 @@
+{
+  "schemaVersion": 1,
+  "locale": "en",
+  "status": "development_baseline_not_runtime",
+  "baselineId": "slice-0.1",
+  "gameTitle": "Dive Bar",
+  "titleStatus": "working_title",
+  "authority": {
+    "entryPoint": "docs/development-handoff.md",
+    "runtimeNotImplemented": true,
+    "balanceProvisional": true
+  },
+  "recipes": [
+    "old_fashioned",
+    "margarita",
+    "manhattan"
+  ],
+  "customers": [
+    {
+      "id": "mara",
+      "name": "Mara",
+      "defaultRecipeId": "manhattan",
+      "voice": "Enjoys modest authentic-sounding stories.",
+      "startingMemory": {}
+    },
+    {
+      "id": "theo",
+      "name": "Theo",
+      "defaultRecipeId": "old_fashioned",
+      "voice": "Values a recommendation that feels personal.",
+      "startingMemory": {}
+    },
+    {
+      "id": "june",
+      "name": "June",
+      "defaultRecipeId": "margarita",
+      "voice": "Often in a hurry; appreciates clear timing.",
+      "startingMemory": {}
+    },
+    {
+      "id": "len",
+      "name": "Len",
+      "defaultRecipeId": "old_fashioned",
+      "voice": "An established regular who enjoys gentle banter.",
+      "startingMemory": {
+        "lastRecipeId": "old_fashioned",
+        "usualRecipeId": "old_fashioned"
+      }
+    },
+    {
+      "id": "nadia",
+      "name": "Nadia",
+      "defaultRecipeId": "margarita",
+      "voice": "Sometimes anxious; responds to warm reassurance.",
+      "startingMemory": {}
+    },
+    {
+      "id": "owen",
+      "name": "Owen",
+      "defaultRecipeId": "manhattan",
+      "voice": "Likes recognition without reckless assumptions.",
+      "startingMemory": {}
+    },
+    {
+      "id": "priya",
+      "name": "Priya",
+      "defaultRecipeId": "manhattan",
+      "voice": "Notices small details and appreciates careful service.",
+      "startingMemory": {}
+    },
+    {
+      "id": "eli",
+      "name": "Eli",
+      "defaultRecipeId": "margarita",
+      "voice": "Enjoys dry local anecdotes.",
+      "startingMemory": {}
+    },
+    {
+      "id": "cass",
+      "name": "Cass",
+      "defaultRecipeId": "manhattan",
+      "voice": "Likes playful inclusion.",
+      "startingMemory": {}
+    },
+    {
+      "id": "alex",
+      "name": "Alex",
+      "defaultRecipeId": "old_fashioned",
+      "voice": "Prefers competence to an elaborate sales story.",
+      "startingMemory": {}
+    },
+    {
+      "id": "sam",
+      "name": "Sam",
+      "defaultRecipeId": "manhattan",
+      "voice": "Enjoys a plausible bar anecdote.",
+      "startingMemory": {}
+    },
+    {
+      "id": "lena",
+      "name": "Lena",
+      "defaultRecipeId": "margarita",
+      "voice": "Likes personal stories about small details.",
+      "startingMemory": {}
+    }
+  ],
+  "dialogueTiers": {
+    "vertical_slice": [
+      "cherry_origin",
+      "regular_banter",
+      "menu_wait",
+      "wrong_drink",
+      "music_volume",
+      "closing_time",
+      "house_recipe_legend",
+      "neon_sign_story",
+      "jukebox_band_story",
+      "first_date_reassurance",
+      "last_round_recommendation",
+      "secret_menu_story",
+      "regular_recognition",
+      "famous_guest_story",
+      "glass_story",
+      "hype_skeptic",
+      "cherry_story_callback",
+      "bar_name_history"
+    ],
+    "systems": [
+      "split_bill",
+      "stronger_drink",
+      "remembered_preference"
+    ],
+    "later_menu": [
+      "sweetness",
+      "last_train",
+      "sold_out"
+    ]
+  },
+  "deferredReasons": {
+    "sweetness": "Depends on a cherry-flavoured recipe not in the seed menu.",
+    "last_train": "simple_highball is not registered.",
+    "sold_out": "Mint, Mojito and citrus_highball belong to the later menu.",
+    "split_bill": "Enable after detailed POS and three-person tabs are implemented.",
+    "stronger_drink": "Enable after preparation-record and alternative-recipe UI predicates are implemented.",
+    "remembered_preference": "Enable after an actual saved less-sweet/extra-cherry preference exists."
+  },
+  "laterRecipeIds": [
+    "simple_highball",
+    "citrus_highball",
+    "cherry_lemonade"
+  ],
+  "orderChanges": {
+    "extra_cherry": {
+      "kind": "modifier",
+      "allowedRecipes": [
+        "old_fashioned",
+        "manhattan"
+      ],
+      "addGarnish": {
+        "id": "cocktail_cherry",
+        "quantity": 1
+      },
+      "surchargeMinor": 0
+    },
+    "less_sweet": {
+      "kind": "modifier",
+      "allowedRecipes": [
+        "margarita",
+        "manhattan"
+      ],
+      "overrides": [
+        {
+          "recipeId": "margarita",
+          "slot": "orange_liqueur",
+          "quantity": 15,
+          "unit": "ml"
+        },
+        {
+          "recipeId": "manhattan",
+          "slot": "vermouth",
+          "quantity": 15,
+          "unit": "ml"
+        }
+      ],
+      "surchargeMinor": 0,
+      "sourceStatus": "Guest-requested house variation; base IBA recipe is unchanged."
+    },
+    "less_sweet_extra_cherry": {
+      "kind": "composite_modifier",
+      "allowedRecipes": [
+        "manhattan"
+      ],
+      "components": [
+        "less_sweet",
+        "extra_cherry"
+      ],
+      "surchargeMinor": 0
+    },
+    "split_three": {
+      "kind": "pos_action",
+      "parties": 3,
+      "stage": "systems"
+    }
+  },
+  "garnishes": [
+    "orange_slice",
+    "orange_zest",
+    "cocktail_cherry",
+    "half_salt_rim"
+  ],
+  "vessels": [
+    {
+      "id": "jigger_25",
+      "capacityMl": 25,
+      "role": "measure",
+      "sameToolId": "jigger",
+      "requiresEmptyToFlip": true
+    },
+    {
+      "id": "jigger_50",
+      "capacityMl": 50,
+      "role": "measure",
+      "sameToolId": "jigger",
+      "requiresEmptyToFlip": true
+    },
+    {
+      "id": "shaker",
+      "capacityMl": 500,
+      "role": "mix"
+    },
+    {
+      "id": "mixing_glass",
+      "capacityMl": 500,
+      "role": "mix"
+    },
+    {
+      "id": "old_fashioned_glass",
+      "capacityMl": 250,
+      "role": "serve",
+      "openingCleanCount": 6
+    },
+    {
+      "id": "cocktail_glass",
+      "capacityMl": 150,
+      "role": "serve",
+      "openingCleanCount": 6
+    }
+  ],
+  "glassRequirements": {
+    "old_fashioned_glass": {
+      "vesselId": "old_fashioned_glass",
+      "chilled": false
+    },
+    "chilled_cocktail_glass": {
+      "vesselId": "cocktail_glass",
+      "chilled": true
+    }
+  },
+  "iceProfiles": {
+    "cubed_ice_in_serving_glass": {
+      "usage": "serve",
+      "charges": 1,
+      "retainOnService": true
+    },
+    "ice_in_shaker_strained_out": {
+      "usage": "mix",
+      "charges": 1,
+      "retainOnService": false
+    },
+    "cubed_ice_in_mixing_glass_strained_out": {
+      "usage": "mix",
+      "charges": 1,
+      "retainOnService": false
+    }
+  },
+  "gameCalibrations": {
+    "sourceDisclaimer": "Capacity approximations for this game only; not universal measures or IBA specifications.",
+    "mlPerDash": {
+      "angostura_bitters": 0.8,
+      "plain_water": 0.8
+    },
+    "iceOccupancyMlPerCharge": 60,
+    "solidSugarCapacityMl": 0
+  },
+  "techniqueAnimationSeconds": {
+    "shake": 3,
+    "stir_well": 2.5,
+    "stir_gently": 2,
+    "muddle_until_dissolved": 2,
+    "chill_serving_glass": 1,
+    "wipe": 1.5,
+    "wash_glass": 2
+  },
+  "economy": {
+    "currency": "USD",
+    "displaySymbol": "$",
+    "allMoneyInMinorUnits": true,
+    "openingCashMinor": 12000,
+    "openingStockAlreadyOwned": true,
+    "pricesMinor": {
+      "old_fashioned": 1200,
+      "margarita": 1200,
+      "manhattan": 1400
+    },
+    "stock": [
+      {
+        "id": "bourbon",
+        "unit": "ml",
+        "openingQuantity": 750,
+        "parQuantity": 750,
+        "costMinorPerUnit": 4,
+        "purchasePackQuantity": 250
+      },
+      {
+        "id": "rye_whiskey",
+        "unit": "ml",
+        "openingQuantity": 750,
+        "parQuantity": 750,
+        "costMinorPerUnit": 4,
+        "purchasePackQuantity": 250
+      },
+      {
+        "id": "tequila_100_agave",
+        "unit": "ml",
+        "openingQuantity": 750,
+        "parQuantity": 750,
+        "costMinorPerUnit": 4,
+        "purchasePackQuantity": 250
+      },
+      {
+        "id": "triple_sec",
+        "unit": "ml",
+        "openingQuantity": 500,
+        "parQuantity": 500,
+        "costMinorPerUnit": 3,
+        "purchasePackQuantity": 200
+      },
+      {
+        "id": "sweet_red_vermouth",
+        "unit": "ml",
+        "openingQuantity": 500,
+        "parQuantity": 500,
+        "costMinorPerUnit": 2,
+        "purchasePackQuantity": 200
+      },
+      {
+        "id": "fresh_lime_juice",
+        "unit": "ml",
+        "openingQuantity": 500,
+        "parQuantity": 500,
+        "costMinorPerUnit": 1,
+        "purchasePackQuantity": 200
+      },
+      {
+        "id": "angostura_bitters",
+        "unit": "dash",
+        "openingQuantity": 100,
+        "parQuantity": 100,
+        "costMinorPerUnit": 5,
+        "purchasePackQuantity": 20
+      },
+      {
+        "id": "plain_water",
+        "unit": "dash",
+        "openingQuantity": 200,
+        "parQuantity": 200,
+        "costMinorPerUnit": 0,
+        "purchasePackQuantity": 50
+      },
+      {
+        "id": "sugar_cube",
+        "unit": "piece",
+        "openingQuantity": 30,
+        "parQuantity": 30,
+        "costMinorPerUnit": 5,
+        "purchasePackQuantity": 10
+      },
+      {
+        "id": "orange_slice",
+        "unit": "piece",
+        "openingQuantity": 30,
+        "parQuantity": 30,
+        "costMinorPerUnit": 8,
+        "purchasePackQuantity": 10
+      },
+      {
+        "id": "orange_zest",
+        "unit": "piece",
+        "openingQuantity": 30,
+        "parQuantity": 30,
+        "costMinorPerUnit": 8,
+        "purchasePackQuantity": 10
+      },
+      {
+        "id": "cocktail_cherry",
+        "unit": "piece",
+        "openingQuantity": 40,
+        "parQuantity": 40,
+        "costMinorPerUnit": 10,
+        "purchasePackQuantity": 10
+      },
+      {
+        "id": "half_salt_rim",
+        "unit": "piece",
+        "openingQuantity": 30,
+        "parQuantity": 30,
+        "costMinorPerUnit": 3,
+        "purchasePackQuantity": 10
+      }
+    ],
+    "ice": {
+      "openingCharges": 24,
+      "capacityCharges": 24,
+      "costMinorPerCharge": 2,
+      "purchasePackCharges": 12
+    },
+    "baseTipRate": 0.1,
+    "minTipRate": 0,
+    "maxTipRate": 0.25,
+    "tips": "Apply once to accepted served drink charges when the tab is fully settled; no tip on cancelled/unserved lines. No surprise price changes from dialogue.",
+    "starterRecovery": {
+      "ifNoRecipeCanBeMadeOrAffordablyRestocked": true,
+      "servings": 3,
+      "recipeId": "margarita",
+      "oncePerShift": true,
+      "notResellable": true
+    },
+    "plannedUpgrades": [
+      {
+        "id": "plant",
+        "priceMinor": 1500,
+        "minimumCompletedShifts": 1,
+        "effect": "cosmetic"
+      },
+      {
+        "id": "neon",
+        "priceMinor": 2500,
+        "minimumCompletedShifts": 1,
+        "effect": "cosmetic"
+      },
+      {
+        "id": "barback",
+        "priceMinor": 6000,
+        "minimumCompletedShifts": 3,
+        "effect": "staff_tasks",
+        "stage": "systems"
+      }
+    ],
+    "fictionalTuningDisclaimer": "All prices, costs, portions of starting stock and rewards are provisional fictional game economy values, not researched market prices."
+  },
+  "quality": {
+    "weights": {
+      "ingredients": 30,
+      "quantities": 20,
+      "proportionAndYield": 15,
+      "method": 15,
+      "iceAndChilling": 10,
+      "glass": 5,
+      "garnish": 5
+    },
+    "tiers": [
+      {
+        "id": "excellent",
+        "minimum": 90
+      },
+      {
+        "id": "good",
+        "minimum": 75
+      },
+      {
+        "id": "needs_work",
+        "minimum": 55
+      },
+      {
+        "id": "remake",
+        "minimum": 0
+      }
+    ],
+    "wrongBaseOrForbiddenIngredientScoreCap": 49,
+    "wrongPrimaryTechniqueScoreCap": 74,
+    "invalidYieldFraction": {
+      "min": 0.65,
+      "max": 1.35
+    },
+    "tolerance": {
+      "assisted": {
+        "minimumMl": 2,
+        "fraction": 0.1
+      },
+      "standard": {
+        "minimumMl": 1,
+        "fraction": 0.05
+      },
+      "expert": {
+        "minimumMl": 1,
+        "fraction": 0.03
+      }
+    },
+    "missingOptionalGarnishPenalty": 0,
+    "smallVariancePenalty": "Continuous outside tolerance; never change the source target by difficulty."
+  },
+  "scope": {
+    "verticalSlice": [
+      "one_bar",
+      "three_real_recipes",
+      "marked_measuring",
+      "free_pour_option",
+      "two_groups",
+      "menu_reading",
+      "quick_pos",
+      "wipe",
+      "dish_return",
+      "short_closing",
+      "sweet_lies",
+      "story_callback",
+      "local_save",
+      "practice",
+      "mouse_touch_keyboard",
+      "simple_extra_cherry_modifier"
+    ],
+    "systems": [
+      "detailed_pos",
+      "food",
+      "barback",
+      "advanced_customer_modifiers",
+      "full_customization"
+    ],
+    "afterHours": [
+      "house_dice",
+      "stool_vignette"
+    ],
+    "excluded": [
+      "multiplayer",
+      "open_world",
+      "full_fluid_simulation",
+      "real_payment_integration"
+    ]
+  },
+  "worldActions": {
+    "music_down": {
+      "kind": "volume_step",
+      "delta": -1,
+      "min": 0,
+      "max": 3
+    }
+  },
+  "encounterBindings": {
+    "cherry_origin": {
+      "event": "before_order_confirm",
+      "requires": [
+        "selected_recipe_available",
+        "candidate_is_old_fashioned_or_manhattan",
+        "candidate_not_preparing",
+        "extra_cherry_stock_available"
+      ]
+    },
+    "regular_banter": {
+      "event": "greeting",
+      "requires": [
+        "known_old_fashioned_usual",
+        "old_fashioned_available"
+      ]
+    },
+    "menu_wait": {
+      "event": "menu_interaction",
+      "requires": [
+        "guest_reading_menu",
+        "margarita_available"
+      ]
+    },
+    "wrong_drink": {
+      "event": "delivery_complaint",
+      "requires": [
+        "delivered_recipe_mismatch",
+        "accepted_order_exists"
+      ]
+    },
+    "music_volume": {
+      "event": "guest_request",
+      "requires": [
+        "music_volume_high",
+        "quiet_table_free"
+      ]
+    },
+    "closing_time": {
+      "event": "last_call_request",
+      "requires": [
+        "new_orders_closed",
+        "tab_exists"
+      ]
+    },
+    "house_recipe_legend": {
+      "event": "before_order_confirm",
+      "requires": [
+        "selected_recipe_available",
+        "candidate_not_preparing"
+      ]
+    },
+    "neon_sign_story": {
+      "event": "before_order_confirm",
+      "requires": [
+        "selected_recipe_available",
+        "candidate_not_preparing"
+      ]
+    },
+    "jukebox_band_story": {
+      "event": "before_order_confirm",
+      "requires": [
+        "selected_recipe_available",
+        "candidate_not_preparing",
+        "jukebox_present"
+      ]
+    },
+    "first_date_reassurance": {
+      "event": "before_order_confirm",
+      "requires": [
+        "selected_recipe_available",
+        "candidate_not_preparing",
+        "guest_on_first_date"
+      ]
+    },
+    "last_round_recommendation": {
+      "event": "before_order_confirm",
+      "requires": [
+        "new_orders_open",
+        "manhattan_available",
+        "free_drink_work_slot"
+      ]
+    },
+    "secret_menu_story": {
+      "event": "before_order_confirm",
+      "requires": [
+        "manhattan_available",
+        "candidate_not_preparing"
+      ]
+    },
+    "regular_recognition": {
+      "event": "before_order_confirm",
+      "requires": [
+        "selected_recipe_available",
+        "candidate_not_preparing",
+        "no_saved_usual_yet"
+      ]
+    },
+    "famous_guest_story": {
+      "event": "before_order_confirm",
+      "requires": [
+        "selected_recipe_available",
+        "candidate_not_preparing",
+        "framed_photo_present"
+      ]
+    },
+    "glass_story": {
+      "event": "before_order_confirm",
+      "requires": [
+        "selected_recipe_available",
+        "candidate_not_preparing"
+      ]
+    },
+    "hype_skeptic": {
+      "event": "before_order_confirm",
+      "requires": [
+        "selected_recipe_available",
+        "candidate_not_preparing"
+      ]
+    },
+    "cherry_story_callback": {
+      "event": "before_order_confirm",
+      "requires": [
+        "selected_recipe_available",
+        "candidate_not_preparing",
+        "current_story_prerequisite_matches"
+      ]
+    },
+    "bar_name_history": {
+      "event": "before_order_confirm",
+      "requires": [
+        "selected_recipe_available",
+        "candidate_not_preparing"
+      ]
+    }
+  },
+  "predicateIds": [
+    "accepted_order_exists",
+    "candidate_is_old_fashioned_or_manhattan",
+    "candidate_not_preparing",
+    "current_story_prerequisite_matches",
+    "delivered_recipe_mismatch",
+    "extra_cherry_stock_available",
+    "framed_photo_present",
+    "free_drink_work_slot",
+    "guest_on_first_date",
+    "guest_reading_menu",
+    "jukebox_present",
+    "known_old_fashioned_usual",
+    "manhattan_available",
+    "margarita_available",
+    "music_volume_high",
+    "new_orders_closed",
+    "new_orders_open",
+    "no_saved_usual_yet",
+    "old_fashioned_available",
+    "quiet_table_free",
+    "selected_recipe_available",
+    "tab_exists"
+  ]
+}

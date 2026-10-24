@@ -1,0 +1,810 @@
+{
+  "schemaVersion": 2,
+  "locale": "en",
+  "status": "draft_content_not_integrated",
+  "setting": "Fictional contemporary dive bar",
+  "effectRules": {
+    "trust": "Perceived trust and rapport, not objective truthfulness. Persistent per customer; clamp to [-5,5].",
+    "patience": "Discrete adjustment, applied after the conversation.",
+    "tip": "Additive delta to the tip rate, not a multiplier. Clamp the final rate to [0,0.25]. Never apply a delta to the whole bill.",
+    "cancel": "Cancel only the affected unfulfilled order. Refund any prepayment and release reservations. Never erase unrelated orders.",
+    "defer": "Guest returns to menu reading; do not lose the order slot.",
+    "decline": "Guest leaves before ordering; no service-failure penalty.",
+    "next": "Accumulate effects and advance to the specified node. Apply once per committed choice.",
+    "facts": "Operational factKeys must match service state. Social bluff outcomes use customer expectations and believability, not factual sourcing accuracy.",
+    "presentation": "Never render authoringOnly, choice intent/reason metadata, truth/lie labels, or provenance information. No supplier notes, delivery records, sourcing labels, or origin codex in the UI.",
+    "socialBluff": "Sweet lies may succeed and truthful answers may cancel an order. Use the authored customer reaction; do not override it with a general honesty bonus."
+  },
+  "conversations": [
+    {
+      "id": "cherry_origin",
+      "customer": "Mara",
+      "difficulty": "easy",
+      "kind": "social_bluff",
+      "storySubjectKey": "cherry_origin",
+      "trigger": "Before confirming a cherry cocktail",
+      "cues": [],
+      "factKeys": [],
+      "customerExpectation": "Mara wants a charming, authentic-sounding ingredient story. Plain supermarket sourcing spoils the experience for her.",
+      "socialSignals": [
+        "She admires the little bar's atmosphere and asks about the cherries with an eager smile."
+      ],
+      "authoringOnly": {
+        "actualSource": "A jar bought at the supermarket.",
+        "localOrchardStoryIsFabricated": true,
+        "playerFacingProvenanceInfo": false,
+        "grading": "Customer satisfaction with the story, not truthfulness."
+      },
+      "nodes": [
+        {
+          "id": "start",
+          "line": "This place has so much character. Where do you get the cherries for your cocktails?",
+          "choices": [
+            {
+              "text": "We buy them at the supermarket.",
+              "result": "cancel",
+              "reply": "Oh. Just supermarket cherries? I was hoping for something a little more special. I'll leave it, thanks.",
+              "reason": "Truthful, but spoils the authentic experience Mara wants. No menu claim or sourcing evidence is involved.",
+              "intent": "blunt_truth",
+              "trust": -2,
+              "patience": -1,
+              "tip": -0.1,
+              "id": "start_1"
+            },
+            {
+              "text": "A local family picks them at Vale Orchard. These came in this morning.",
+              "next": "followup",
+              "reply": "That's what I was hoping to hear.",
+              "reason": "A believable sweet lie that matches Mara's desire for an authentic little-bar story.",
+              "intent": "plausible_sweet_lie",
+              "storyId": "local_family_orchard",
+              "trust": 1,
+              "patience": 1,
+              "tip": 0.05,
+              "id": "start_2"
+            },
+            {
+              "text": "A private orchard in the mountains. They're picked before sunrise.",
+              "next": "story_detail",
+              "reply": "Mountains? I thought these were local.",
+              "intent": "elaborate_story",
+              "storyId": "mountain_orchard",
+              "trust": 0,
+              "patience": 0,
+              "tip": 0,
+              "id": "start_3"
+            }
+          ]
+        },
+        {
+          "id": "followup",
+          "line": "Could I have an extra one in my drink?",
+          "choices": [
+            {
+              "text": "Of course. One extra cherry.",
+              "result": "confirm",
+              "reply": "Perfect, thank you.",
+              "trust": 1,
+              "patience": 0,
+              "tip": 0.05,
+              "orderChange": "extra_cherry",
+              "id": "followup_1"
+            },
+            {
+              "text": "They're only for decoration.",
+              "result": "confirm",
+              "reply": "All right. Just the usual one, then.",
+              "trust": 0,
+              "patience": -1,
+              "tip": 0,
+              "id": "followup_2"
+            },
+            {
+              "text": "You can buy the whole jar if you like.",
+              "result": "confirm",
+              "reply": "I only wanted one more.",
+              "trust": -1,
+              "patience": -1,
+              "tip": -0.05,
+              "id": "followup_3"
+            }
+          ]
+        },
+        {
+          "id": "story_detail",
+          "line": "How far away is this orchard, exactly?",
+          "choices": [
+            {
+              "text": "The hills just outside town. 'Mountains' makes it sound grander.",
+              "result": "confirm",
+              "reply": "Ha! You had me picturing an expedition. One cherry cocktail, please.",
+              "intent": "playful_story_recovery",
+              "storyId": "nearby_hills_orchard",
+              "trust": 1,
+              "patience": 0,
+              "tip": 0.05,
+              "id": "story_detail_1"
+            },
+            {
+              "text": "A helicopter brings them in twice a day. Just for us.",
+              "result": "cancel",
+              "reply": "Right. Now you're just making fun of me. Forget the drink.",
+              "intent": "unbelievable_embellishment",
+              "trust": -2,
+              "patience": 0,
+              "tip": 0,
+              "id": "story_detail_2"
+            },
+            {
+              "text": "All right, they're from a supermarket jar. I was dressing it up.",
+              "result": "cancel",
+              "reply": "Then why tell me all that? I'll skip the cocktail.",
+              "intent": "admit_unromantic_truth",
+              "trust": -2,
+              "patience": 0,
+              "tip": 0,
+              "id": "story_detail_3"
+            }
+          ]
+        }
+      ],
+      "customerId": "mara"
+    },
+    {
+      "id": "sweetness",
+      "customer": "Theo",
+      "difficulty": "easy",
+      "trigger": "Choosing a drink",
+      "cues": [
+        "The recipe card offers a less-sweet option.",
+        "Changing the syrup amount is allowed before preparation."
+      ],
+      "factKeys": [
+        "less_sweet_available"
+      ],
+      "nodes": [
+        {
+          "id": "start",
+          "line": "I like a cherry drink, but I don't want it tasting like sweets.",
+          "choices": [
+            {
+              "text": "It's sweet. That's how it comes.",
+              "result": "confirm",
+              "reply": "Fine. I'll try it.",
+              "trust": 0,
+              "patience": -1,
+              "tip": -0.03,
+              "id": "start_1"
+            },
+            {
+              "text": "I can use less syrup. Would you still like the cherry flavour?",
+              "next": "preference",
+              "reply": "Yes, that's the bit I like.",
+              "trust": 1,
+              "patience": 0,
+              "tip": 0.03,
+              "id": "start_2"
+            },
+            {
+              "text": "You won't notice the syrup.",
+              "result": "confirm",
+              "reply": "That doesn't really answer my question.",
+              "trust": -1,
+              "patience": -1,
+              "tip": -0.05,
+              "id": "start_3"
+            }
+          ]
+        },
+        {
+          "id": "preference",
+          "line": "Keep it a little tart. Is that possible?",
+          "choices": [
+            {
+              "text": "Yes. Less syrup, and I'll mark it as tart.",
+              "result": "confirm",
+              "reply": "Great. Thank you.",
+              "trust": 1,
+              "patience": 0,
+              "tip": 0.04,
+              "orderChange": "less_sweet",
+              "id": "preference_1"
+            },
+            {
+              "text": "I'll use the usual measures. The citrus should balance it out.",
+              "result": "confirm",
+              "reply": "Please listen to what I'm asking.",
+              "trust": -2,
+              "patience": -1,
+              "tip": -0.08,
+              "id": "preference_2"
+            },
+            {
+              "text": "Let's keep the standard recipe, then.",
+              "result": "confirm",
+              "reply": "All right, but I may choose something else next time.",
+              "trust": 0,
+              "patience": -1,
+              "tip": -0.03,
+              "id": "preference_3"
+            }
+          ]
+        }
+      ],
+      "customerId": "theo"
+    },
+    {
+      "id": "last_train",
+      "customer": "June",
+      "difficulty": "easy",
+      "trigger": "Guest arrives near a transport deadline",
+      "cues": [
+        "The service board shows a queue of two drinks.",
+        "The simple highball has a shorter preparation time than the shaken special."
+      ],
+      "factKeys": [
+        "queue_length",
+        "prep_time_comparison"
+      ],
+      "nodes": [
+        {
+          "id": "start",
+          "line": "My train's in twenty minutes. Have I got time for one?",
+          "choices": [
+            {
+              "text": "The highball is your quickest option. There are two drinks ahead of you.",
+              "result": "confirm",
+              "reply": "That works. One highball, please.",
+              "trust": 1,
+              "patience": 1,
+              "tip": 0.04,
+              "orderChange": "simple_highball",
+              "id": "start_1"
+            },
+            {
+              "text": "Anything on the menu will be ready instantly.",
+              "result": "confirm",
+              "reply": "I'm counting on that.",
+              "trust": -1,
+              "patience": -2,
+              "tip": -0.05,
+              "id": "start_2"
+            },
+            {
+              "text": "I can't promise a time. Would you rather skip the drink?",
+              "result": "decline",
+              "reply": "I'd better go. Thanks for being straight with me.",
+              "trust": 1,
+              "patience": 0,
+              "tip": 0,
+              "id": "start_3"
+            }
+          ]
+        }
+      ],
+      "customerId": "june"
+    },
+    {
+      "id": "regular_banter",
+      "customer": "Len",
+      "difficulty": "medium",
+      "trigger": "A returning regular greets the bartender",
+      "cues": [
+        "Len's customer note says he likes gentle banter.",
+        "His last order was an Old Fashioned."
+      ],
+      "factKeys": [
+        "regular_preference",
+        "last_order"
+      ],
+      "nodes": [
+        {
+          "id": "start",
+          "line": "You remembered my face. Any chance you remembered my drink?",
+          "choices": [
+            {
+              "text": "You've got a face that's hard to forget. Old Fashioned?",
+              "result": "confirm",
+              "reply": "Careful, you'll have me coming back tomorrow.",
+              "trust": 1,
+              "patience": 1,
+              "tip": 0.06,
+              "orderChange": "old_fashioned",
+              "id": "start_1"
+            },
+            {
+              "text": "An Old Fashioned last time. Same again?",
+              "result": "confirm",
+              "reply": "That's the one.",
+              "trust": 1,
+              "patience": 0,
+              "tip": 0.03,
+              "orderChange": "old_fashioned",
+              "id": "start_2"
+            },
+            {
+              "text": "The cheapest beer, wasn't it? I'll get one started.",
+              "result": "confirm",
+              "reply": "Old Fashioned, actually. You might want to ask before you pour.",
+              "trust": -2,
+              "patience": -1,
+              "tip": -0.08,
+              "id": "start_3"
+            }
+          ]
+        }
+      ],
+      "customerId": "len"
+    },
+    {
+      "id": "menu_wait",
+      "customer": "Nadia",
+      "difficulty": "easy",
+      "trigger": "Guest has just received a menu",
+      "cues": [
+        "The guest's menu-reading icon is active.",
+        "No order has been placed."
+      ],
+      "factKeys": [
+        "menu_reading_state"
+      ],
+      "nodes": [
+        {
+          "id": "start",
+          "line": "Sorry, I've barely looked. Could you give me a minute?",
+          "choices": [
+            {
+              "text": "Of course. I'll come back when you're ready.",
+              "result": "defer",
+              "reply": "Thanks. I won't be long.",
+              "trust": 1,
+              "patience": 1,
+              "tip": 0.03,
+              "id": "start_1"
+            },
+            {
+              "text": "I can narrow it down—something refreshing or something rich?",
+              "next": "recommend",
+              "reply": "Refreshing sounds good.",
+              "trust": 1,
+              "patience": 0,
+              "tip": 0.02,
+              "id": "start_2"
+            },
+            {
+              "text": "I'll put you down for the special. It's what most people choose.",
+              "result": "defer",
+              "reply": "Hang on. I haven't agreed to that.",
+              "trust": -1,
+              "patience": -2,
+              "tip": -0.05,
+              "id": "start_3"
+            }
+          ]
+        },
+        {
+          "id": "recommend",
+          "line": "What would you suggest?",
+          "choices": [
+            {
+              "text": "The Margarita is a refreshing option on our menu.",
+              "result": "confirm",
+              "reply": "Let's do that.",
+              "trust": 1,
+              "patience": 0,
+              "tip": 0.03,
+              "orderChange": "margarita",
+              "id": "recommend_1"
+            },
+            {
+              "text": "Take another minute. I'll bring you some water.",
+              "result": "defer",
+              "reply": "That's kind. Thank you.",
+              "trust": 1,
+              "patience": 1,
+              "tip": 0.02,
+              "id": "recommend_2"
+            },
+            {
+              "text": "The house special. I haven't tried it, but it's our most popular.",
+              "result": "defer",
+              "reply": "Does that mean it's refreshing? That's what I was asking.",
+              "trust": -1,
+              "patience": -1,
+              "tip": -0.04,
+              "id": "recommend_3"
+            }
+          ]
+        }
+      ],
+      "customerId": "nadia"
+    },
+    {
+      "id": "sold_out",
+      "customer": "Owen",
+      "difficulty": "medium",
+      "trigger": "Ordered garnish is unavailable",
+      "cues": [
+        "The stock board marks fresh mint as sold out.",
+        "The guest has not accepted a replacement."
+      ],
+      "factKeys": [
+        "mint_stock"
+      ],
+      "nodes": [
+        {
+          "id": "start",
+          "line": "A mojito, please. Plenty of fresh mint.",
+          "choices": [
+            {
+              "text": "We're out of fresh mint. Would you like a different drink?",
+              "result": "reselect",
+              "reply": "Thanks for saying. Let me have another look.",
+              "trust": 1,
+              "patience": 0,
+              "tip": 0.02,
+              "id": "start_1"
+            },
+            {
+              "text": "I'll leave out the mint. You won't notice.",
+              "result": "cancel",
+              "reply": "It's the reason I ordered it. Never mind.",
+              "trust": -2,
+              "patience": -1,
+              "tip": -0.08,
+              "id": "start_2"
+            },
+            {
+              "text": "We can't make that properly tonight. The citrus highball is available.",
+              "result": "confirm",
+              "reply": "All right. I'll try the highball.",
+              "trust": 1,
+              "patience": 0,
+              "tip": 0.02,
+              "orderChange": "citrus_highball",
+              "id": "start_3"
+            }
+          ]
+        }
+      ],
+      "customerId": "owen"
+    },
+    {
+      "id": "wrong_drink",
+      "customer": "Priya",
+      "difficulty": "medium",
+      "trigger": "Delivered drink does not match the order ticket",
+      "cues": [
+        "The ticket says Manhattan.",
+        "The delivered glass is marked Margarita."
+      ],
+      "factKeys": [
+        "ordered_drink",
+        "delivered_drink"
+      ],
+      "nodes": [
+        {
+          "id": "start",
+          "line": "Sorry, I ordered a Manhattan. I think this belongs to someone else.",
+          "choices": [
+            {
+              "text": "You're right. I'll take this back and make your Manhattan.",
+              "result": "remake",
+              "reply": "Thank you. These things happen.",
+              "trust": 1,
+              "patience": 1,
+              "tip": 0,
+              "id": "start_1"
+            },
+            {
+              "text": "Are you sure? I think you said Margarita.",
+              "result": "remake",
+              "reply": "I'm looking at my order on the screen.",
+              "trust": -2,
+              "patience": -2,
+              "tip": -0.08,
+              "id": "start_2"
+            },
+            {
+              "text": "You can keep that one instead.",
+              "result": "remake",
+              "reply": "I'd really prefer what I ordered.",
+              "trust": -1,
+              "patience": -1,
+              "tip": -0.04,
+              "id": "start_3"
+            }
+          ]
+        }
+      ],
+      "customerId": "priya"
+    },
+    {
+      "id": "music_volume",
+      "customer": "Eli",
+      "difficulty": "medium",
+      "trigger": "Guest asks about the jukebox",
+      "cues": [
+        "The jukebox volume is set to high.",
+        "The bartender can lower it one step.",
+        "A quieter window table is currently free."
+      ],
+      "factKeys": [
+        "music_volume",
+        "quiet_table_available"
+      ],
+      "nodes": [
+        {
+          "id": "start",
+          "line": "Could the music come down a little? I can't hear my friend.",
+          "choices": [
+            {
+              "text": "Sure. I'll lower it a notch.",
+              "result": "resolve",
+              "reply": "That's much better. Thanks.",
+              "trust": 1,
+              "patience": 1,
+              "tip": 0.03,
+              "worldChange": "music_down",
+              "id": "start_1"
+            },
+            {
+              "text": "The room should quieten down once this group leaves.",
+              "result": "resolve",
+              "reply": "Could you lower it a little in the meantime?",
+              "trust": -1,
+              "patience": -1,
+              "tip": -0.04,
+              "id": "start_2"
+            },
+            {
+              "text": "There's a quieter table by the window. Would you prefer that?",
+              "result": "offer_move",
+              "reply": "Yes, if it's free.",
+              "trust": 1,
+              "patience": 0,
+              "tip": 0.02,
+              "id": "start_3"
+            }
+          ]
+        }
+      ],
+      "customerId": "eli"
+    },
+    {
+      "id": "split_bill",
+      "customer": "Cass",
+      "difficulty": "medium",
+      "trigger": "Party asks to settle the bill",
+      "cues": [
+        "The POS supports splitting the total equally.",
+        "Three guests are included on this tab."
+      ],
+      "factKeys": [
+        "split_payment_supported",
+        "party_size"
+      ],
+      "nodes": [
+        {
+          "id": "start",
+          "line": "Can we split this three ways? Equally is fine.",
+          "choices": [
+            {
+              "text": "Yes. I'll divide the total into three equal payments.",
+              "result": "payment",
+              "reply": "Perfect.",
+              "trust": 1,
+              "patience": 0,
+              "tip": 0.02,
+              "orderChange": "split_three",
+              "id": "start_1"
+            },
+            {
+              "text": "You'll need three separate orders from the start.",
+              "result": "payment",
+              "reply": "The screen says you can split it.",
+              "trust": -1,
+              "patience": -1,
+              "tip": -0.04,
+              "id": "start_2"
+            },
+            {
+              "text": "I can do that. Give me a moment to open the split-payment screen.",
+              "result": "payment",
+              "reply": "No rush.",
+              "trust": 1,
+              "patience": 1,
+              "tip": 0.02,
+              "orderChange": "split_three",
+              "id": "start_3"
+            }
+          ]
+        }
+      ],
+      "customerId": "cass"
+    },
+    {
+      "id": "stronger_drink",
+      "customer": "Alex",
+      "difficulty": "hard",
+      "trigger": "Guest questions the flavour of a delivered cocktail",
+      "cues": [
+        "The preparation record matches the ordered recipe.",
+        "The recipe card allows a more spirit-forward alternative as a new order."
+      ],
+      "factKeys": [
+        "preparation_record",
+        "alternative_recipe"
+      ],
+      "nodes": [
+        {
+          "id": "start",
+          "line": "This is sweeter than I expected. Have you gone light on the spirit?",
+          "choices": [
+            {
+              "text": "The measures match the recipe. Is it the sweetness you'd like changed?",
+              "next": "clarify",
+              "reply": "Yes. I was hoping for something drier.",
+              "trust": 1,
+              "patience": 0,
+              "tip": 0.02,
+              "id": "start_1"
+            },
+            {
+              "text": "I'll add more spirit without changing the bill.",
+              "result": "review_recipe",
+              "reply": "I was asking what was in it.",
+              "trust": -1,
+              "patience": 0,
+              "tip": -0.02,
+              "id": "start_2"
+            },
+            {
+              "text": "That's our standard recipe. It should taste right once the ice melts a bit.",
+              "result": "resolve",
+              "reply": "I'd rather not wait for it to get watery.",
+              "trust": -2,
+              "patience": -2,
+              "tip": -0.08,
+              "id": "start_3"
+            }
+          ]
+        },
+        {
+          "id": "clarify",
+          "line": "What would you recommend next time?",
+          "choices": [
+            {
+              "text": "The drier option on the menu. I'll show you the description.",
+              "result": "resolve",
+              "reply": "Thanks. That sounds closer to what I wanted.",
+              "trust": 1,
+              "patience": 1,
+              "tip": 0.03,
+              "id": "clarify_1"
+            },
+            {
+              "text": "The same drink with more ice. That should do it.",
+              "result": "resolve",
+              "reply": "I was hoping for a different recommendation.",
+              "trust": -1,
+              "patience": -1,
+              "tip": -0.04,
+              "id": "clarify_2"
+            },
+            {
+              "text": "Let's check the flavour notes together before you choose.",
+              "result": "resolve",
+              "reply": "I'd appreciate that.",
+              "trust": 1,
+              "patience": 0,
+              "tip": 0.03,
+              "id": "clarify_3"
+            }
+          ]
+        }
+      ],
+      "customerId": "alex"
+    },
+    {
+      "id": "remembered_preference",
+      "customer": "Mara",
+      "difficulty": "hard",
+      "trigger": "A customer with a recorded preference returns",
+      "cues": [
+        "Mara's previous order note says less sweet and extra cherry.",
+        "The preference is visible on her customer card."
+      ],
+      "factKeys": [
+        "saved_preference"
+      ],
+      "nodes": [
+        {
+          "id": "start",
+          "line": "Same as last time, if you remember how I like it.",
+          "choices": [
+            {
+              "text": "Less sweet, with an extra cherry. Still right?",
+              "result": "confirm",
+              "reply": "You remembered. Lovely.",
+              "trust": 2,
+              "patience": 1,
+              "tip": 0.06,
+              "orderChange": "less_sweet_extra_cherry",
+              "id": "start_1"
+            },
+            {
+              "text": "Extra syrup and no garnish.",
+              "result": "reselect",
+              "reply": "That's the opposite, actually.",
+              "trust": -1,
+              "patience": -1,
+              "tip": -0.03,
+              "id": "start_2"
+            },
+            {
+              "text": "Let me check your note—less sweet and an extra cherry?",
+              "result": "confirm",
+              "reply": "Exactly. Thanks for checking.",
+              "trust": 1,
+              "patience": 0,
+              "tip": 0.03,
+              "orderChange": "less_sweet_extra_cherry",
+              "id": "start_3"
+            }
+          ]
+        }
+      ],
+      "customerId": "mara"
+    },
+    {
+      "id": "closing_time",
+      "customer": "Sam",
+      "difficulty": "hard",
+      "trigger": "A guest requests another drink during closing",
+      "cues": [
+        "The visible house rule says last orders have ended.",
+        "Payment and water service remain available."
+      ],
+      "factKeys": [
+        "last_orders_closed"
+      ],
+      "nodes": [
+        {
+          "id": "start",
+          "line": "Come on, just one more. Nobody's going to mind.",
+          "choices": [
+            {
+              "text": "We've finished taking drink orders. I can bring water while you settle up.",
+              "result": "payment",
+              "reply": "All right. Water would be good.",
+              "trust": 1,
+              "patience": 0,
+              "tip": 0.02,
+              "id": "start_1"
+            },
+            {
+              "text": "For you? I'll ignore the closing rule.",
+              "result": "rule_breach",
+              "reply": "Thought you'd say yes.",
+              "trust": 0,
+              "patience": 1,
+              "tip": 0,
+              "id": "start_2"
+            },
+            {
+              "text": "We're closed. You'll need to leave now.",
+              "result": "payment",
+              "reply": "All right. Can I at least pay first?",
+              "trust": -1,
+              "patience": -2,
+              "tip": -0.05,
+              "id": "start_3"
+            }
+          ]
+        }
+      ],
+      "customerId": "sam"
+    }
+  ]
+}
