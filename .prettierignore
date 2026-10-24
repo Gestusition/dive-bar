@@ -1,0 +1,9 @@
+node_modules
+dist
+bun.lock
+public
+art-src
+playwright-report
+test-results
+docs
+data
