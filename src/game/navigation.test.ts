@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { cornerPlantParts } from './room-layout';
 import {
   advanceWalk,
   bartenderHome,
@@ -17,6 +18,13 @@ const targets: FloorPoint[] = [
 function clearCounter(p: FloorPoint) {
   // Counter top is 8 x 1.35 at z=-1.8. Include the character's 0.42 arm radius.
   expect(Math.abs(p[0]) >= 4.42 || p[1] <= -2.895 || p[1] >= -0.705).toBe(true);
+  // A conservative rotating-body radius covers arms, head and feet. Test
+  // every actual plant voxel drawn by the scene, rather than only its pot.
+  for (const [x, , z, w, , d] of cornerPlantParts) {
+    const dx = Math.max(Math.abs(p[0] - x) - w / 2, 0);
+    const dz = Math.max(Math.abs(p[1] - z) - d / 2, 0);
+    expect(Math.hypot(dx, dz)).toBeGreaterThan(0.52);
+  }
 }
 function walk(from: FloorPoint, to: FloorPoint) {
   let p = from;
@@ -32,6 +40,12 @@ function walk(from: FloorPoint, to: FloorPoint) {
   throw new Error('Route never arrives');
 }
 describe('bartender walkway', () => {
+  it('keeps the relocated pot and every leaf inside the room', () => {
+    for (const [x, , z, w, , d] of cornerPlantParts) {
+      expect(x + w / 2).toBeLessThan(5.9);
+      expect(z - d / 2).toBeGreaterThan(-4.425);
+    }
+  });
   it('goes around the right end on every service trip and return', () => {
     for (const target of targets) {
       const route = walkingRoute(bartenderHome, target);

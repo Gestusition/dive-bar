@@ -6,6 +6,7 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 import { useGame } from '../game/store';
 import { volume, type Guest } from '../game/engine';
 import { advanceWalk, bartenderHome, guestPosition, walkingSpeed } from '../game/navigation';
+import { cornerPlantParts } from '../game/room-layout';
 type Part = [number, number, number, number, number, number, string];
 const oak = '#805137',
   dark = '#50352e',
@@ -117,18 +118,7 @@ function roomParts() {
   for (let i = 0; i < 5; i++) box(-4.8, 0.2 + i * 0.07, -0.9, 0.55, 0.03, 0.04, brass);
   box(0, 0.09, 2.3, 1.9, 0.018, 3.3, '#9b5650');
   for (let x = -0.8; x < 1; x += 0.4) box(x, 0.11, 2.3, 0.06, 0.01, 3, '#d5a169');
-  box(4.65, 0.3, -3.3, 0.7, 0.6, 0.7, '#bb7658');
-  box(4.65, 0.8, -3.3, 0.1, 0.6, 0.1, '#627650');
-  for (let i = 0; i < 7; i++)
-    box(
-      4.65 + Math.sin(i * 2) * 0.28,
-      1 + i * 0.1,
-      -3.3 + Math.cos(i * 2) * 0.25,
-      0.45,
-      0.16,
-      0.38,
-      ['#63835c', '#8da16a', '#506e52'][i % 3],
-    );
+  p.push(...cornerPlantParts);
   // Amber lights, framed menu and coat hooks.
   for (const x of [-4.8, -2.4, 0, 2.4, 4.8]) {
     box(x, 2.85, -4.08, 0.2, 0.32, 0.18, brass);
