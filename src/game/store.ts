@@ -2,6 +2,13 @@ import { create } from 'zustand';
 import { conversationFor, newGame, reduceGame, type Action, type Game } from './engine';
 import { conversations } from './content';
 import { loadSave, saveGame, validateSave } from './storage';
+import {
+  advanceWalk,
+  bartenderHome,
+  servicePosition,
+  walkingSpeed,
+  type FloorPoint,
+} from './navigation';
 export type Panel =
   | 'floor'
   | 'station'
@@ -31,6 +38,7 @@ interface Store {
     left: number;
     foodType?: 'pretzel' | 'toastie';
   }[];
+  bartenderPosition: FloorPoint;
   act: (a: Action) => void;
   setPanel: (p: Panel) => void;
   select: (id: number) => void;
@@ -83,6 +91,7 @@ export const useGame = create<Store>((set, get) => ({
   saveError: '',
   dialogue: null,
   tasks: [],
+  bartenderPosition: [...bartenderHome],
   act: (a) => {
     const game = reduceGame(get().game, a);
     set({ game });
@@ -101,7 +110,13 @@ export const useGame = create<Store>((set, get) => ({
   setPanel: (panel) => set({ panel }),
   select: (selected) => set({ selected }),
   start: (fresh) => {
-    if (fresh) set({ game: reduceGame(newGame(), { type: 'start' }), hasSave: false, tasks: [] });
+    if (fresh)
+      set({
+        game: reduceGame(newGame(), { type: 'start' }),
+        hasSave: false,
+        tasks: [],
+        bartenderPosition: [...bartenderHome],
+      });
     else if (get().game.phase === 'title') get().act({ type: 'start' });
     set({ title: false, paused: false, panel: 'floor' });
     sound('coin');
@@ -144,7 +159,8 @@ export const useGame = create<Store>((set, get) => ({
   setPracticeRecipe: (practiceRecipe) => set({ practiceRecipe }),
   enqueue: (id, operation, foodType) => {
     const tasks = get().tasks;
-    if (tasks.length < 2) set({ tasks: [...tasks, { id, operation, foodType, left: 1.1 }] });
+    if (tasks.length < 2 && !tasks.some((t) => t.id === id && t.operation === operation))
+      set({ tasks: [...tasks, { id, operation, foodType, left: 0.35 }] });
   },
   cancelTasks: () => set({ tasks: [] }),
   importSave: (text) => {
@@ -156,6 +172,7 @@ export const useGame = create<Store>((set, get) => ({
       paused: true,
       panel: 'floor',
       tasks: [],
+      bartenderPosition: [...bartenderHome],
       dialogue: null,
     });
     persist(game);
@@ -167,8 +184,18 @@ export function startClock() {
     if (s.title || s.paused || reading.has(s.panel)) return;
     s.act({ type: 'tick', dt: 0.25 });
     const tasks = useGame.getState().tasks.map((t) => ({ ...t }));
+    const guest = tasks[0] && useGame.getState().game.guests.find((g) => g.id === tasks[0].id);
+    const target = guest ? servicePosition(guest) : bartenderHome;
+    const bartenderPosition = advanceWalk(s.bartenderPosition, target, walkingSpeed * 0.25);
+    useGame.setState({ bartenderPosition });
     if (tasks[0]) {
-      tasks[0].left -= 0.25;
+      if (!guest) tasks.shift();
+      else if (
+        Math.hypot(bartenderPosition[0] - target[0], bartenderPosition[1] - target[1]) < 0.001
+      )
+        tasks[0].left -= 0.25;
+    }
+    if (tasks[0]) {
       if (tasks[0].left <= 0) {
         const t = tasks.shift()!;
         useGame

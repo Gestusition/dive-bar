@@ -14,9 +14,9 @@ async function order(page: Page) {
   await enter(page);
   await page.getByRole('button', { name: 'Turn the sign to open' }).click();
   await page.getByRole('button', { name: 'Offer a seat' }).click();
-  await page.clock.runFor(11000);
+  await page.clock.runFor(18000);
   await page.getByRole('button', { name: 'Take order', exact: true }).click();
-  await page.clock.runFor(1750);
+  await page.clock.runFor(6000);
   await expect(page.getByRole('button', { name: 'Make their drink' })).toBeVisible();
 }
 async function measure(page: Page, bottle: string, amount: number) {
@@ -50,6 +50,18 @@ test('opening, real renderer, menu and mobile layout', async ({ page }) => {
   ).toBe(true);
   expect(errors).toEqual([]);
 });
+test('service waits for the walk around the counter', async ({ page }) => {
+  await enter(page);
+  await page.getByRole('button', { name: 'Turn the sign to open' }).click();
+  await page.getByRole('button', { name: 'Offer a seat' }).click();
+  await page.clock.runFor(2000);
+  await expect(page.getByRole('button', { name: 'Offer a seat' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Cancel queued tasks' })).toBeVisible();
+  await page.clock.runFor(4000);
+  await expect(page.getByText('Give them a moment. A good choice takes time.')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Offer a seat' })).toHaveCount(0);
+});
+
 test('a believable cherry story, actual Manhattan, one settlement and persistent night', async ({
   page,
 }) => {
@@ -76,7 +88,7 @@ test('a believable cherry story, actual Manhattan, one settlement and persistent
   await page.getByRole('button', { name: 'Strain & serve' }).click();
   await page.clock.runFor(22000);
   await page.getByRole('button', { name: 'Settle $14.00' }).click();
-  await page.clock.runFor(2000);
+  await page.clock.runFor(6000);
   await expect(page.locator('.cash')).toHaveText('$136.80');
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
   await page.waitForTimeout(500);

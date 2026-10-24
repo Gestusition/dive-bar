@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { useGame } from '../game/store';
 import { volume, type Guest } from '../game/engine';
+import { advanceWalk, bartenderHome, guestPosition, walkingSpeed } from '../game/navigation';
 type Part = [number, number, number, number, number, number, string];
 const oak = '#805137',
   dark = '#50352e',
@@ -137,14 +138,6 @@ function roomParts() {
   box(-5.47, 1.7, 1.4, 0.04, 1.1, 0.8, '#ddc594');
   return p;
 }
-const positions: [number, number, number][] = [
-  [-2.7, 0.18, 2.95],
-  [2.25, 0.18, 3.2],
-  [-1.2, 0.35, -0.25],
-  [1.2, 0.35, -0.25],
-];
-export const guestPosition = (g: Guest): [number, number, number] =>
-  g.status === 'waiting' ? [-4.6, 0, 4.1] : (positions[g.seat] ?? [-4.6, 0, 4.1]);
 const shirts = ['#669f8e', '#b97876', '#d2a054', '#8088a8', '#986d98', '#d6bd8b'];
 function personParts(id: string, bartender = false): Part[] {
   const index = [...id].reduce((n, c) => n + c.charCodeAt(0), 0);
@@ -249,17 +242,26 @@ function Bartender() {
   useFrame(({ clock }, delta) => {
     if (!ref.current) return;
     const s = useGame.getState();
-    const task = s.tasks[0];
-    const guest = task && s.game.guests.find((g) => g.id === task.id);
-    const target = guest
-      ? new THREE.Vector3(guestPosition(guest)[0], 0, guest.status === 'waiting' ? 3.3 : 1)
-      : new THREE.Vector3(0, 0.4, -2.9);
-    ref.current.position.lerp(target, 1 - Math.exp(-delta * 3));
-    ref.current.rotation.z = task ? Math.sin(clock.elapsedTime * 10) * 0.04 : 0;
+    const current = ref.current.position;
+    const next = s.game.settings.reducedMotion
+      ? s.bartenderPosition
+      : advanceWalk([current.x, current.z], s.bartenderPosition, delta * walkingSpeed);
+    const moving = Math.hypot(next[0] - current.x, next[1] - current.z) > 0.001;
+    if (moving) {
+      const angle = Math.atan2(next[0] - current.x, next[1] - current.z);
+      const difference = Math.atan2(
+        Math.sin(angle - ref.current.rotation.y),
+        Math.cos(angle - ref.current.rotation.y),
+      );
+      ref.current.rotation.y += difference * (1 - Math.exp(-delta * 12));
+    }
+    current.set(next[0], 0.08, next[1]);
+    ref.current.rotation.z =
+      moving && !s.game.settings.reducedMotion ? Math.sin(clock.elapsedTime * 10) * 0.04 : 0;
   });
   return (
-    <group ref={ref} position={[0, 0.4, -2.9]}>
-      <mesh geometry={body} material={material} castShadow />
+    <group ref={ref} position={[bartenderHome[0], 0.08, bartenderHome[1]]}>
+      <mesh geometry={body} material={material} scale={[1, 1.2, 1]} castShadow />
     </group>
   );
 }
