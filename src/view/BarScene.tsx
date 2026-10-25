@@ -1,6 +1,6 @@
-import { Suspense, useMemo, useRef, Component, type ReactNode } from 'react';
+import { Suspense, useCallback, useMemo, useRef, Component, type ReactNode } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { Html, ContactShadows } from '@react-three/drei';
+import { ContactShadows } from '@react-three/drei';
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { useGame } from '../game/store';
@@ -8,6 +8,13 @@ import { volume, type Guest } from '../game/engine';
 import { advanceWalk, bartenderHome, guestPosition, walkingSpeed } from '../game/navigation';
 import { cornerPlantParts } from '../game/room-layout';
 type Part = [number, number, number, number, number, number, string];
+type OverlayElements = {
+  guests: Map<number, HTMLButtonElement>;
+};
+type SceneRefs = {
+  elements: { current: OverlayElements };
+  guestGroups: { current: Map<number, THREE.Group> };
+};
 const oak = '#805137',
   dark = '#50352e',
   brass = '#c9995d',
@@ -164,10 +171,16 @@ function personParts(id: string, bartender = false): Part[] {
       : []),
   ];
 }
-function Person({ guest }: { guest: Guest }) {
+function Person({ guest, guestGroups }: { guest: Guest; guestGroups: SceneRefs['guestGroups'] }) {
   const ref = useRef<THREE.Group>(null);
+  const setGroup = useCallback(
+    (group: THREE.Group | null) => {
+      if (group) guestGroups.current.set(guest.id, group);
+      else guestGroups.current.delete(guest.id);
+    },
+    [guest.id, guestGroups],
+  );
   const body = useMemo(() => geometry(personParts(guest.customerId)), [guest.customerId]);
-  const selected = useGame((s) => s.selected === guest.id);
   const setSelected = useGame((s) => s.select);
   useFrame(({ clock }, delta) => {
     if (!ref.current) return;
@@ -189,9 +202,14 @@ function Person({ guest }: { guest: Guest }) {
       ref.current.rotation.z = Math.sin(t * Math.PI) * 0.4;
     }
   });
-  const ready = ['waiting', 'ready', 'ordered', 'pay'].includes(guest.status);
   return (
-    <group ref={ref} position={guestPosition(guest)}>
+    <group
+      ref={(group) => {
+        ref.current = group;
+        setGroup(group);
+      }}
+      position={guestPosition(guest)}
+    >
       <mesh
         geometry={body}
         material={material}
@@ -201,28 +219,6 @@ function Person({ guest }: { guest: Guest }) {
           setSelected(guest.id);
         }}
       />
-      <Html position={[0, 1.75, 0]} center zIndexRange={[5, 0]}>
-        <button
-          className={'guest-bubble ' + (selected ? 'selected ' : '') + (ready ? 'attention' : '')}
-          onClick={() => setSelected(guest.id)}
-          aria-label={'Select ' + guest.name}
-        >
-          <span>
-            {guest.status === 'waiting'
-              ? '👋'
-              : guest.status === 'reading'
-                ? '···'
-                : guest.status === 'ready'
-                  ? '✎'
-                  : guest.status === 'ordered'
-                    ? '🍸'
-                    : guest.status === 'pay'
-                      ? '$'
-                      : '♡'}
-          </span>
-          <small>{guest.name}</small>
-        </button>
-      </Html>
     </group>
   );
 }
@@ -350,7 +346,7 @@ function Sign({ lit }: { lit: boolean }) {
     </mesh>
   );
 }
-function Room() {
+function Room({ guestGroups }: { guestGroups: SceneRefs['guestGroups'] }) {
   const theme = useGame((s) => s.game.settings.theme);
   const room = useMemo(() => {
     const parts = roomParts();
@@ -364,7 +360,6 @@ function Room() {
   }, [theme]);
   const helper = useMemo(() => geometry(personParts('helper')), []);
   const game = useGame((s) => s.game);
-  const setPanel = useGame((s) => s.setPanel);
   return (
     <>
       <Camera />
@@ -385,20 +380,9 @@ function Room() {
       />
       <mesh geometry={room} material={material} receiveShadow castShadow />
       <Sign lit={game.upgrades.neon} />
-      <Html position={[0, 1.7, -1.5]} center zIndexRange={[4, 0]}>
-        <button
-          className="station-label"
-          onClick={() => {
-            if (useGame.getState().selected === null) useGame.getState().select(-1);
-            setPanel('station');
-          }}
-        >
-          THE COUNTER <span>↗</span>
-        </button>
-      </Html>
       <Bartender />
       {game.guests.map((g) => (
-        <Person guest={g} key={g.id} />
+        <Person guest={g} guestGroups={guestGroups} key={g.id} />
       ))}
       <PreparationDisplay />
       {game.mess > 0 && (
@@ -436,6 +420,83 @@ function Room() {
     </>
   );
 }
+
+function SceneProjector({ elements, guestGroups }: SceneRefs) {
+  const { camera, size } = useThree();
+  const projected = useMemo(() => new THREE.Vector3(), []);
+  useFrame(() => {
+    const place = (element: HTMLElement | null, position: THREE.Vector3) => {
+      if (!element) return;
+      position.project(camera);
+      const x = (position.x * 0.5 + 0.5) * size.width;
+      const y = (-position.y * 0.5 + 0.5) * size.height;
+      element.style.transform = `translate3d(${x}px,${y}px,0) translate(-50%,-50%)`;
+      element.style.visibility = position.z < -1 || position.z > 1 ? 'hidden' : 'visible';
+      element.style.zIndex = String(Math.round((1 - position.z) * 1000));
+    };
+
+    for (const [id, element] of elements.current.guests) {
+      const group = guestGroups.current.get(id);
+      if (group) place(element, group.getWorldPosition(projected));
+    }
+  });
+  return null;
+}
+
+function SceneLabels({ elements }: { elements: SceneRefs['elements'] }) {
+  const guests = useGame((s) => s.game.guests);
+  const selected = useGame((s) => s.selected);
+  const setPanel = useGame((s) => s.setPanel);
+  const select = useGame((s) => s.select);
+
+  return (
+    <div className="scene-overlay">
+      <button
+        className="station-label"
+        onClick={() => {
+          if (useGame.getState().selected === null) useGame.getState().select(-1);
+          setPanel('station');
+        }}
+      >
+        THE COUNTER <span>↗</span>
+      </button>
+      {guests.map((guest) => {
+        const isSelected = selected === guest.id;
+        const ready = ['waiting', 'ready', 'ordered', 'pay'].includes(guest.status);
+        return (
+          <button
+            key={guest.id}
+            ref={(element) => {
+              if (element) elements.current.guests.set(guest.id, element);
+              else elements.current.guests.delete(guest.id);
+            }}
+            className={
+              'guest-bubble ' + (isSelected ? 'selected ' : '') + (ready ? 'attention' : '')
+            }
+            onClick={() => select(guest.id)}
+            aria-label={'Select ' + guest.name}
+          >
+            <span>
+              {guest.status === 'waiting'
+                ? '👋'
+                : guest.status === 'reading'
+                  ? '···'
+                  : guest.status === 'ready'
+                    ? '✎'
+                    : guest.status === 'ordered'
+                      ? '🍸'
+                      : guest.status === 'pay'
+                        ? '$'
+                        : '♡'}
+            </span>
+            <small>{guest.name}</small>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 class SceneBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
   state = { failed: false };
   static getDerivedStateFromError() {
@@ -456,20 +517,27 @@ class SceneBoundary extends Component<{ children: ReactNode }, { failed: boolean
 }
 export default function BarScene() {
   const reduced = useGame((s) => s.game.settings.reducedMotion);
+  const elements = useRef<OverlayElements>({ guests: new Map() });
+  const guestGroups = useRef(new Map<number, THREE.Group>());
+  const sceneRefs = { elements, guestGroups };
   return (
-    <SceneBoundary>
-      <Canvas
-        frameloop={reduced ? 'demand' : 'always'}
-        orthographic
-        shadows
-        dpr={[1, 1.5]}
-        camera={{ position: [11, 13, 16], zoom: 45, near: 0.1, far: 100 }}
-        gl={{ antialias: true, powerPreference: 'high-performance' }}
-      >
-        <Suspense fallback={null}>
-          <Room />
-        </Suspense>
-      </Canvas>
-    </SceneBoundary>
+    <>
+      <SceneBoundary>
+        <Canvas
+          frameloop={reduced ? 'demand' : 'always'}
+          orthographic
+          shadows="percentage"
+          dpr={[1, 1.5]}
+          camera={{ position: [11, 13, 16], zoom: 45, near: 0.1, far: 100 }}
+          gl={{ antialias: true, powerPreference: 'high-performance' }}
+        >
+          <Suspense fallback={null}>
+            <Room guestGroups={guestGroups} />
+            <SceneProjector {...sceneRefs} />
+          </Suspense>
+        </Canvas>
+      </SceneBoundary>
+      <SceneLabels elements={elements} />
+    </>
   );
 }

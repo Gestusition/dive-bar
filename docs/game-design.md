@@ -11,7 +11,7 @@ Run a tiny, warm, slightly scruffy neighbourhood dive bar. Make real cocktails b
 
 English player-facing text. Voxel characters and environments. Elevated fixed overview plus a close-up mixing station. Phone and desktop browser support, delivered as static GitHub Pages assets.
 
-Technology baseline: React + TypeScript, React Three Fiber/Three.js, Vite, Tailwind CSS v4 and selective themed shadcn/ui. Zustand bridges selected UI state; game rules remain framework-independent. Quality and delivery use Vitest, Playwright, GitHub Actions, Dependabot and Pages as specified in docs/technology-and-delivery.md.
+Technology baseline: React + TypeScript, React Three Fiber/Three.js, Next.js with Turbopack, Tailwind CSS v4 and selective themed shadcn/ui. Zustand bridges selected UI state; game rules remain framework-independent. Quality and delivery use Vitest, Playwright, GitHub Actions, Dependabot and Pages as specified in docs/technology-and-delivery.md.
 
 ## Pillars
 1. Tactile craft: real measures, ratios, mixing technique, ice, and garnish, with satisfying sound and animation.
@@ -121,4 +121,3 @@ Use bottle glugs, a rising pour sound, ice clinks, shaker texture, receipts, and
 6. Delivery pass: base-path-safe build, Pages deployment, Android/iPhone/desktop checks, interruption recovery.
 
 No gate has passed as a playable build. Research and data validation do not establish fun, performance, compatibility, or live deployment.
-

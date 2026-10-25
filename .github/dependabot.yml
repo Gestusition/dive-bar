@@ -7,7 +7,7 @@ updates:
     open-pull-requests-limit: 5
     groups:
       build-toolchain:
-        patterns: ['vite', '@vitejs/plugin-react', 'vitest']
+        patterns: ['next', '@tailwindcss/postcss', 'vitest']
       graphics:
         patterns: ['react', 'react-dom', '@react-three/*', 'three', '@types/three', '@types/react*']
         update-types: [minor, patch]

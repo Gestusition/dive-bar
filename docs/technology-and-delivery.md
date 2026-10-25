@@ -11,8 +11,8 @@ Status: selected planning baseline, not installed or executed. The user accepted
 | UI | React 19 + TypeScript strict | HUD, menus, POS, dialogue, settings |
 | Scene | React Three Fiber 9 + Three.js | Room, characters, cameras, tools, animation |
 | Scene helpers | Selective Drei helpers | Model loading/animations where useful; avoid unnecessary feature imports |
-| Build | Vite | Client-only development and static production output |
-| Styles | Tailwind CSS v4 via @tailwindcss/vite | Responsive layouts and shared theme tokens |
+| Build | Next.js App Router + Turbopack | Client-only game UI and static production output |
+| Styles | Tailwind CSS v4 via @tailwindcss/postcss | Responsive layouts and shared theme tokens |
 | UI foundations | Selective shadcn/ui | Dialog, Tabs, Slider, Switch, Button as actually needed |
 | UI state bridge | Zustand | Small selected UI snapshots and settings; not a per-frame React update bus |
 | Simulation | Independent TypeScript modules | Ingredients, quality, orders, money, customer lifecycle, clocks |
@@ -26,7 +26,7 @@ Status: selected planning baseline, not installed or executed. The user accepted
 
 Exact compatible patch versions must be resolved and locked during M0. Do not install changing latest versions on every CI run. React 19 and Fiber 9 are a documented major-version pair; avoid alpha Fiber 10 for this baseline.
 
-Vite handles build/development. Turbopack is integrated into Next.js; this static game has no chosen Next.js requirement. Do not combine two application bundlers or introduce SSR solely to use Turbopack.
+Next.js handles development and static production export, with Turbopack as its bundler. The game is rendered client-side so its browser storage and WebGL scene do not require a server runtime. GitHub Pages builds set the `/dive-bar` base path; local builds use the root path.
 
 ## React and performance boundary
 Mount the R3F Canvas once. Scene composition and low-frequency changes can be declarative. Use useFrame/refs for scene presentation and delta-based animation. Keep authoritative domain actions outside component rendering and publish small UI snapshots.
@@ -42,7 +42,7 @@ Tailwind affects DOM UI, not the 3D scene material appearance. Define palette to
 
 Choose one installed shadcn primitive foundation/preset and retain it consistently. Add only used components. Accessibility still requires checking focus, semantic labels, contrast and game-input blocking around the canvas.
 
-Tailwind v4's documented core browser floor is Chromium 111+, Safari 16.4+, Firefox 128+. Final support is the intersection with WebGL2, Vite output, libraries and real-device checks. Avoid optional CSS features with a newer floor unless fallback is defined.
+Tailwind v4's documented core browser floor is Chromium 111+, Safari 16.4+, Firefox 128+. Final support is the intersection with WebGL2, Next.js output, libraries and real-device checks. Avoid optional CSS features with a newer floor unless fallback is defined.
 
 ## Test allocation
 | Layer | What earns a test | Examples |
@@ -84,7 +84,7 @@ Planned PR checks:
 Planned main/manual deployment:
 - Run/reuse required checks for the exact revision.
 - Deploy the same tested dist artifact through the official Pages artifact/deploy flow.
-- Correct base path for the actual repository, relative GLB/audio paths and no server-only routes.
+- Correct `/dive-bar` base path for the actual repository, relative GLB/audio paths and no server-only routes.
 - Verify the live URL and key assets after deployment. A successful build is not evidence of a live working game.
 - Keep CI read-only by default; grant Pages/id-token permissions only to the deploy job. Do not run untrusted PR code with deployment credentials.
 
@@ -109,10 +109,10 @@ No packages, package manifest, lockfile, workflow, test suite or repository sett
 ## Official sources
 - [Fiber major-version pairing](https://r3f.docs.pmnd.rs/getting-started/introduction)
 - [Fiber performance rules](https://r3f.docs.pmnd.rs/advanced/pitfalls)
-- [Vite](https://vite.dev/guide/)
-- [Tailwind with Vite](https://tailwindcss.com/docs/installation/using-vite)
+- [Next.js](https://nextjs.org/docs)
+- [Tailwind with PostCSS](https://tailwindcss.com/docs/installation/using-postcss)
 - [Tailwind compatibility](https://tailwindcss.com/docs/compatibility)
-- [shadcn with Vite](https://ui.shadcn.com/docs/installation/vite)
+- [shadcn with Next.js](https://ui.shadcn.com/docs/installation/next)
 - [Turbopack](https://nextjs.org/docs/app/api-reference/turbopack)
 - [Zustand](https://github.com/pmndrs/zustand)
 - [Vitest](https://vitest.dev/guide/)
@@ -120,7 +120,6 @@ No packages, package manifest, lockfile, workflow, test suite or repository sett
 - [Playwright emulation](https://playwright.dev/docs/emulation)
 - [Dependabot options](https://docs.github.com/en/code-security/reference/supply-chain-security/dependabot-options-reference)
 - [Dependabot Bun lockfile support](https://docs.github.com/en/code-security/reference/supply-chain-security/supported-ecosystems-and-repositories)
-- [Vite Pages deployment](https://vite.dev/guide/static-deploy.html#github-pages)
+- [Next.js static exports](https://nextjs.org/docs/app/guides/static-exports)
 - [Node releases](https://nodejs.org/en/about/previous-releases)
-
 

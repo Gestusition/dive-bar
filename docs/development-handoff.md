@@ -31,7 +31,7 @@ After this slice: detailed POS, two warmed snacks, barback, advanced modifiers a
 
 ## Firm product decisions
 - Voxel art with an elevated fixed overview; close-up at the mixing station.
-- Selected stack: React 19, React Three Fiber 9, Three.js, TypeScript, Vite, Tailwind v4, selective shadcn/ui and a small Zustand UI bridge. Bun packages; Vitest, Playwright and GitHub Actions/Pages. Details and sources are in docs/technology-and-delivery.md.
+- Selected stack: React 19, React Three Fiber 9, Three.js, TypeScript, Next.js with Turbopack, Tailwind v4, selective shadcn/ui and a small Zustand UI bridge. Bun packages; Vitest, Playwright and GitHub Actions/Pages. Details and sources are in docs/technology-and-delivery.md.
 - Real ingredients/amounts and customer-tailored sweet lies are both core.
 - No player-facing provenance information or truth/lie choice badges.
 - No automatic whole-drink crafting.
@@ -44,7 +44,7 @@ After this slice: detailed POS, two warmed snacks, barback, advanced modifiers a
 ## Implementation order and acceptance
 | Stage | Build | Exit condition |
 | --- | --- | --- |
-| M0 — foundation | React/TypeScript + Vite, R3F Canvas, Tailwind v4, minimal themed shadcn UI, content loader and first quality checks | Compatible versions locked; content/type/build checks work; unsupported graphics gives a readable message; no server requirement |
+| M0 — foundation | React/TypeScript + Next.js/Turbopack static export, R3F Canvas, Tailwind v4, minimal themed shadcn UI, content loader and first quality checks | Compatible versions locked; content/type/build checks work; unsupported graphics gives a readable message; no server requirement |
 | M1 — interaction proof | One workstation, Margarita, measuring/transfers, technique and stock | Correct single recipe can be made and served with mouse and real phone touch; interruption cannot continue a pour |
 | M2 — visual proof | Finished corner, bartender, two coherent NPC appearances, essential foley | Readable faces, bottles, targets and amounts at actual phone size; optional effects can be disabled |
 | M3 — complete shift | Three recipes, visits, tickets, menus, queue, quick POS, cleaning and close | One shift completes without deadlock, duplicate serving/payment or loss of an unfinished mixture |
@@ -88,4 +88,3 @@ Required first animations: idle, walk, carry, pour/transfer, technique loop, ser
 - A Git repository and deployment repository name have not been selected. Local work can start; public deployment requires the actual repository base.
 
 No unvalidated claim of perfect balance, production-ready graphics, supported phones or completed deployment should appear in a progress report.
-

@@ -50,7 +50,10 @@ function Title() {
   return (
     <main
       className="title-screen"
-      style={{ backgroundImage: 'url(' + import.meta.env.BASE_URL + 'assets/bg_title.jpg)' }}
+      style={{
+        backgroundImage:
+          'url(' + (process.env.NEXT_PUBLIC_BASE_PATH ?? '') + '/assets/bg_title.jpg)',
+      }}
     >
       <div className="title-shade" />
       <div className="title-top">

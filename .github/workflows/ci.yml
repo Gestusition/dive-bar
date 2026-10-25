@@ -31,12 +31,16 @@ jobs:
       - run: bun run typecheck
       - run: bun run test:unit
       - run: bun run build
+        env:
+          BASE_PATH: /dive-bar
+          NEXT_PUBLIC_BASE_PATH: /dive-bar
       - name: Record the source revision in the tested artifact
-        run: node -e "require('fs').writeFileSync('dist/build-info.json', JSON.stringify({sourceCommit:process.env.GITHUB_SHA,branch:process.env.GITHUB_REF_NAME}))"
+        run: node -e "require('fs').writeFileSync('out/build-info.json', JSON.stringify({sourceCommit:process.env.GITHUB_SHA,branch:process.env.GITHUB_REF_NAME}))"
       - run: bunx playwright install --with-deps chromium firefox webkit
       - run: xvfb-run -a bun run test:e2e
         env:
           LIBGL_ALWAYS_SOFTWARE: '1'
+          BASE_PATH: /dive-bar
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
@@ -48,7 +52,7 @@ jobs:
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         if: success() && github.ref == 'refs/heads/main'
         with:
-          path: dist
+          path: out
 
   deploy:
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'

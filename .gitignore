@@ -1,5 +1,7 @@
 node_modules/
 dist/
+.next/
+out/
 .DS_Store
 *.log
 art-src/tmp/
@@ -8,4 +10,3 @@ playwright-report/
 test-results/
 *.tsbuildinfo
 .vitest/
-

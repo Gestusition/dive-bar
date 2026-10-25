@@ -33,7 +33,7 @@ bun run preview
 - Decor themes that change the room, plants/neon and a working barback upgrade.
 - Optional after-hours dice and a small scripted stool wobble.
 - Separate unlimited practice inventory; IndexedDB saves and validated JSON import/export.
-- Locally bundled fonts and a static GitHub Pages-compatible build.
+- Locally bundled fonts and a static Next.js/Turbopack export for GitHub Pages.
 
 The conversation banks contain 24 encounters / 96 responses. The runtime selects context-fitting social encounters; service-draft encounters are retained as source content rather than indiscriminately shown in the wrong situation. There is no ingredient-provenance UI or truth/lie answer badge.
 
@@ -70,7 +70,7 @@ Vitest is the selected unit runner; use bun run test:unit rather than bun test. 
 
 Live game: https://gestusition.github.io/dive-bar/ . Current quality results are available in the repository Actions tab.
 
-The repository now publishes from main using Actions; the temporary gh-pages preview branch is retired after verification. Vite 8, its React plugin 6 and Vitest 5 are updated together. TypeScript 7 supplies the native tsc executable, while the typescript package aliases @typescript/typescript6 for lint tools that still need its API. This follows [Microsoft's side-by-side migration](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/#running-side-by-side-with-typescript-6.0).
+The repository publishes the statically exported Next.js app from main using Actions, with Turbopack used for development and production builds. GitHub Pages uses the `/dive-bar` base path; local development and preview use the root path. TypeScript 7 supplies the native `tsc` executable, while the `typescript` package aliases `@typescript/typescript6` for lint tools that still need its API. This follows [Microsoft's side-by-side migration](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/#running-side-by-side-with-typescript-6-0).
 
 Bartender errands follow the right-hand counter opening and the front aisle. Seating, ordering and payment wait for arrival; cancelling an errand returns the bartender along the same walkable corridors.
 
@@ -92,7 +92,6 @@ Bartender errands follow the right-hand counter opening and the front aisle. Sea
 - docs/development-handoff.md — original implementation plan; current runtime status supersedes its original not-started wording.
 
 The supplied artwork in public/assets and art-src was preserved. Voxel geometry is authored in code. Fredoka and Nunito are self-hosted via Fontsource (SIL Open Font License; license notices are shipped in public/licenses).
-
 
 
 

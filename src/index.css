@@ -399,6 +399,24 @@ a {
 .scene canvas {
   touch-action: none;
 }
+.scene-overlay {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  z-index: 1;
+  pointer-events: none;
+}
+.scene-overlay > button {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: auto;
+}
+.scene-overlay > .station-label {
+  top: 20px;
+  right: 20px;
+  left: auto;
+}
 .scene-caption {
   position: absolute;
   top: 24px;

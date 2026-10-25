@@ -33,6 +33,15 @@ test('opening, real renderer, menu and mobile layout', async ({ page }) => {
   await enter(page);
   await expect(page.getByRole('heading', { name: 'Before the first hello' })).toBeVisible();
   await expect(page.getByText('The lights won’t turn on.')).toHaveCount(0);
+  const counterLabel = page.getByRole('button', { name: /THE COUNTER/ });
+  const counterLabelBox = await counterLabel.boundingBox();
+  const sceneBox = await page.locator('.scene').boundingBox();
+  expect(counterLabelBox).not.toBeNull();
+  expect(sceneBox).not.toBeNull();
+  expect(counterLabelBox!.x + counterLabelBox!.width / 2).toBeGreaterThan(
+    sceneBox!.x + sceneBox!.width * 0.65,
+  );
+  expect(counterLabelBox!.y).toBeLessThan(sceneBox!.y + 60);
   await page.getByRole('button', { name: 'Choose tonight’s menu' }).click();
   await expect(page.getByRole('button', { name: /Moscow Mule/ })).toBeVisible();
   await page.getByRole('button', { name: /Moscow Mule/ }).click();
