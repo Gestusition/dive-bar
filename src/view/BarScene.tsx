@@ -261,17 +261,17 @@ function Camera() {
   useFrame((_, dt) => {
     const station = panel === 'station';
     camera.position.lerp(
-      new THREE.Vector3(station ? 6 : 11, station ? 8 : 13, station ? 9 : 16),
+      new THREE.Vector3(station ? 4 : 6, station ? 8 : 14, station ? 9 : 17),
       useGame.getState().game.settings.reducedMotion ? 1 : 1 - Math.exp(-dt * 4),
     );
-    const target = new THREE.Vector3(0, station ? 1 : 0.7, station ? -1.7 : 0.3);
+    const target = new THREE.Vector3(station ? 0 : 0.2, station ? 1 : 1, station ? -1.7 : 0);
     camera.lookAt(target);
     if (camera instanceof THREE.OrthographicCamera) {
-      // The floor view fills the whole scene (cropping the outer walls) instead
-      // of fitting the room inside it, so the bar reads as full screen.
+      // A three-quarter view that faces the counter. The room is framed to fit;
+      // the floor and walls continue past it, so the edges are still the bar.
       const zoom = station
         ? Math.min(size.width / 6.3, size.height / 5.4)
-        : Math.max(size.width / 16, size.height / 12);
+        : Math.min(size.width / 14, size.height / 10.5);
       camera.zoom = useGame.getState().game.settings.reducedMotion
         ? zoom
         : THREE.MathUtils.damp(camera.zoom, zoom, 4, dt);
@@ -561,7 +561,7 @@ export default function BarScene() {
           orthographic
           shadows="percentage"
           dpr={[1, 1.5]}
-          camera={{ position: [11, 13, 16], zoom: 45, near: 0.1, far: 100 }}
+          camera={{ position: [6, 14, 17], zoom: 45, near: 0.1, far: 100 }}
           gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
         >
           <Suspense fallback={null}>

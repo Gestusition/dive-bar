@@ -344,7 +344,8 @@ a {
   position: relative;
   overflow: hidden;
   min-width: 0;
-  background: var(--night);
+  /* Same tone as the bar floor, so even a loading frame never shows a void. */
+  background: #ab7851;
 }
 .scene canvas {
   display: block;
