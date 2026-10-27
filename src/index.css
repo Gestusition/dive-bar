@@ -1655,6 +1655,8 @@ a {
 }
 .back-button,
 .recipe-link {
+  white-space: nowrap;
+  flex-shrink: 0;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -1672,6 +1674,10 @@ a {
   box-shadow: 0 1px 0 var(--ink);
 }
 .station-chip {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
   padding: 4px 12px;
   background: var(--accent);
   border: var(--line-thin);
@@ -2119,6 +2125,10 @@ a {
 .station-footer > .button:last-child {
   margin-left: auto;
 }
+.station-footer .button {
+  flex-shrink: 1;
+  min-width: 0;
+}
 
 /* ---------- Motion ---------- */
 @keyframes bob {
@@ -2216,6 +2226,72 @@ a {
 @media (max-height: 470px) {
   :root {
     --drawer-scale: 0.64;
+  }
+}
+/* Short, wide screens: the counter gets most of the width, drawn smaller,
+   in two columns so the whole drink fits without scrolling. */
+@media (max-height: 600px) and (orientation: landscape) {
+  .game-shell.station-mode {
+    grid-template-columns: minmax(0, 1fr) 62vw auto;
+  }
+  .station-panel {
+    zoom: calc(var(--drawer-scale) * 0.92);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas:
+      'head head'
+      'title select'
+      'steps pour'
+      'tool pour'
+      'mix pour'
+      'glass glass'
+      'taste taste'
+      'foot foot';
+    align-content: start;
+    column-gap: 18px;
+    row-gap: 8px;
+    padding-top: 12px;
+  }
+  .craft-actions button {
+    min-height: 56px;
+  }
+  .station-step {
+    gap: 6px;
+  }
+  .station-header {
+    grid-area: head;
+  }
+  .station-title {
+    grid-area: title;
+  }
+  .recipe-select {
+    grid-area: select;
+    align-self: center;
+  }
+  .recipe-steps {
+    grid-area: steps;
+  }
+  .station-panel > section:nth-of-type(1) {
+    grid-area: tool;
+  }
+  .station-panel > section:nth-of-type(2) {
+    grid-area: pour;
+  }
+  .station-panel > section:nth-of-type(3) {
+    grid-area: mix;
+  }
+  .station-panel > section:nth-of-type(4) {
+    grid-area: glass;
+  }
+  .taste-card {
+    grid-area: taste;
+  }
+  .station-footer {
+    grid-area: foot;
+    margin: 0 -18px;
+  }
+  .bottle-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   }
 }
 /* Phones on their side use the same side rail as desktop; it scales from
