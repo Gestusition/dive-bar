@@ -1521,39 +1521,50 @@ a {
 }
 
 /* Management panels */
-.menu-catalogue,
 .stock-list {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
+/* Tonight's menu: a grid of drink tiles, like the practice picker. */
+.menu-catalogue {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px;
+  padding-top: 8px;
+}
 .menu-catalogue > button {
+  position: relative;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 12px;
-  padding: 10px 12px;
-  text-align: left;
+  gap: 2px;
+  padding: 10px 6px 8px;
+  text-align: center;
   background: var(--paper);
-  border: var(--line-thin);
+  border: var(--line);
   border-radius: var(--r-md);
+  box-shadow: var(--lift);
 }
 .menu-catalogue > button[aria-pressed='true'] {
   background: var(--accent-soft);
 }
-.menu-catalogue > button > span:nth-child(2) {
-  flex: 1;
-}
 .menu-catalogue strong {
-  display: block;
+  font-size: 14px;
   font-weight: 600;
-  font-size: 17px;
-}
-.menu-catalogue small {
-  font-size: 15px;
-  color: var(--ink-soft);
+  line-height: 1.2;
 }
 .menu-catalogue b {
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+.menu-catalogue .menu-check {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  width: 22px;
+  height: 22px;
 }
 .menu-check {
   width: 26px;
@@ -2467,5 +2478,62 @@ a {
   }
   .help-content li {
     padding: 8px 10px;
+  }
+}
+
+/* Short phones: settings in two columns, a tighter decor shop. */
+@media (max-height: 440px) {
+  .settings {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .settings .hint {
+    display: none;
+  }
+  .settings .save-field,
+  .settings .error-text {
+    grid-column: 1 / -1;
+  }
+  .settings .save-field .backup-actions {
+    display: flex;
+    gap: 10px;
+  }
+  .switch-row {
+    padding: 8px 12px;
+  }
+  .menu-catalogue {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 6px;
+    padding-top: 4px;
+  }
+  .menu-catalogue > button {
+    padding: 6px 3px 5px;
+  }
+  .menu-catalogue strong {
+    font-size: 13px;
+  }
+  .menu-catalogue .art {
+    width: 30px;
+    height: 30px;
+  }
+  .menu-catalogue .menu-check {
+    top: 4px;
+    left: 4px;
+    width: 18px;
+    height: 18px;
+    border-radius: 6px;
+  }
+  .menu-catalogue .menu-check svg {
+    width: 12px;
+    height: 12px;
+  }
+  .shop-item,
+  .theme-swatch {
+    padding: 6px 10px;
+  }
+  .shop-items,
+  .theme-options {
+    gap: 6px;
   }
 }

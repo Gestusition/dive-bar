@@ -3,6 +3,7 @@ import { Check, Receipt, GlassWater } from 'lucide-react';
 import { recipes, prices, recipeById, money, stockItems, names, snacks } from '../game/content';
 import { useGame } from '../game/store';
 import { Button } from '../components/ui/button';
+import { DrinkArt } from './art';
 
 export function MenuPanel() {
   const { game, act } = useGame();
@@ -21,12 +22,10 @@ export function MenuPanel() {
             onClick={() => act({ type: 'toggleMenu', id: r.id })}
           >
             <span className="menu-check">
-              {game.activeMenu.includes(r.id) ? <Check size={15} /> : null}
+              {game.activeMenu.includes(r.id) ? <Check size={14} strokeWidth={3} /> : null}
             </span>
-            <span>
-              <strong>{r.name}</strong>
-              <small>{r.source.publisher ?? 'International Bartenders Association'}</small>
-            </span>
+            <DrinkArt size={36} id={r.id} />
+            <strong>{r.name}</strong>
             <b>{money(prices[r.id])}</b>
           </button>
         ))}

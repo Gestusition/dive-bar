@@ -221,7 +221,7 @@ function SettingsPanel() {
         checked={game.settings.reducedMotion}
         onChange={(v) => act({ type: 'setting', key: 'reducedMotion', value: v })}
       />
-      <div className="field">
+      <div className="field save-field">
         <h4>Save file</h4>
         <div className="backup-actions">
           <Button variant="secondary" size="sm" onClick={download}>
