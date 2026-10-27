@@ -39,7 +39,7 @@ const tools = [
     name: 'Rocks glass',
     art: <GlassShapeArt size={40} shape="rocks" />,
   },
-  { id: 'build_glass', name: 'Build in glass', art: <GlassShapeArt size={40} shape="highball" /> },
+  { id: 'build_glass', name: 'Build in glass', art: <GlassShapeArt size={40} shape="build" /> },
 ] as const;
 const glasses = [
   ['cocktail_glass', 'Coupe', 'coupe'],
@@ -196,11 +196,23 @@ export default function Station() {
       : []),
   ];
   type Row = (typeof rows)[number];
+  // Close enough to tick: the taste score judges the fine detail.
   const isDone = (r: Row) =>
-    r.recipe && (r.target === null ? r.have > 0 : Math.abs(r.have - r.target) < 0.5);
+    r.recipe &&
+    (r.target === null ? r.have > 0 : r.have > 0 && Math.abs(r.have - r.target) <= r.target * 0.4);
   const nextRow = rows.find((r) => r.recipe && !isDone(r));
   const stepIndex = stepOrder.indexOf(step);
-  const method = recipeMethod(recipe).tool;
+  const recipeTool = recipeMethod(recipe);
+  const method = recipeTool.tool;
+  // A step is ticked only once it is really done, not just visited.
+  const complete: Record<Step, boolean> = {
+    prep: prep.tool === recipeTool.tool && prep.glass === recipeTool.glass,
+    pour: rows.filter((r) => r.recipe).every(isDone),
+    mix: prep.ice && (!recipeTool.technique || prep.technique === recipeTool.technique),
+    garnish:
+      Object.values(prep.garnish).some((n) => n > 0) &&
+      !assess.issues.includes('Finish the garnish'),
+  };
   const serveLabel =
     method === 'build_glass' || method === 'old_fashioned_glass'
       ? 'Finish & serve'
@@ -380,11 +392,11 @@ export default function Station() {
           {stepOrder.map((s, i) => (
             <button
               key={s}
-              className={i < stepIndex ? 'done' : i === stepIndex ? 'current' : ''}
+              className={(complete[s] ? 'done ' : '') + (i === stepIndex ? 'current' : '')}
               aria-current={i === stepIndex ? 'step' : undefined}
               onClick={() => setStep(s)}
             >
-              <i>{i < stepIndex ? <Check size={12} strokeWidth={4} /> : i + 1}</i>
+              <i>{complete[s] ? <Check size={12} strokeWidth={4} /> : i + 1}</i>
               {stepLabel[s]}
             </button>
           ))}

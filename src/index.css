@@ -387,32 +387,36 @@ a {
   position: relative;
   z-index: 2;
   background: var(--blush);
-  width: clamp(72px, 14dvh, 140px);
+  width: clamp(86px, 18dvh, 140px);
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 1dvh;
-  padding: 1.4dvh 1dvh;
+  gap: max(5px, 1dvh);
+  padding: max(7px, 1.4dvh) max(7px, 1dvh);
   overflow: hidden;
   /* Everything inside sizes from the rail's own height, so it always fits
      without scrolling or clipping, whatever the screen. */
   container-type: size;
 }
 .rail > * {
-  --u: min(1.12cqh, 9cqw);
+  --u: min(1.06cqh, 11cqw);
+}
+.rail .rail-tile svg {
+  width: calc(var(--u) * 6);
+  height: calc(var(--u) * 6);
 }
 .rail svg {
   width: calc(var(--u) * 4.4);
   height: calc(var(--u) * 4.4);
 }
 .rail-stat.calendar svg {
-  width: calc(var(--u) * 5.4);
-  height: calc(var(--u) * 5.4);
+  width: calc(var(--u) * 4.6);
+  height: calc(var(--u) * 4.6);
 }
 .rail-small svg {
-  width: calc(var(--u) * 2.8);
-  height: calc(var(--u) * 2.8);
+  width: calc(var(--u) * 3.2);
+  height: calc(var(--u) * 3.2);
 }
 .rail-stat {
   position: relative;
@@ -492,7 +496,7 @@ a {
   margin-top: auto;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 6px;
+  gap: max(7px, 1.2dvh);
 }
 .rail-small button {
   display: grid;

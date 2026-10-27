@@ -365,8 +365,34 @@ export const DrinkArt = ({ size, id }: ArtProps & { id: string }) => {
 };
 
 /** Empty glassware, for choosing what to build and serve in. */
-export const GlassShapeArt = ({ size, shape }: ArtProps & { shape: GlassShape }) => (
+export const GlassShapeArt = ({ size, shape }: ArtProps & { shape: GlassShape | 'build' }) => (
   <Art size={size}>
+    {shape === 'build' && (
+      <>
+        <path d="M40 2c0 10-3 14-3 22" fill="none" stroke="#e9a65a" strokeWidth="4" />
+        <path d="M16 22h32l-3 34H19z" fill="#dff3ee" />
+        <path d="M17.5 36h29l-1.8 18H19.3z" fill="#e9a65a" stroke="none" />
+        <rect
+          x="21"
+          y="28"
+          width="9"
+          height="9"
+          rx="2"
+          fill="#effaf8"
+          transform="rotate(-12 25 32)"
+        />
+        <rect
+          x="31"
+          y="30"
+          width="9"
+          height="9"
+          rx="2"
+          fill="#effaf8"
+          transform="rotate(10 35 34)"
+        />
+        <path d="M16 22h32l-3 34H19z" fill="none" />
+      </>
+    )}
     {shape === 'coupe' && (
       <>
         <path d="M12 14h40L32 36z" fill="#dff3ee" />
