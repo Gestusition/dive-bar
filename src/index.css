@@ -2135,6 +2135,29 @@ a {
     scale: 0.9;
   }
 }
+@keyframes dialog-out {
+  to {
+    opacity: 0;
+    scale: 0.92;
+  }
+}
+@keyframes fade-out {
+  to {
+    opacity: 0;
+  }
+}
+/* Radix keeps a closing dialog mounted until these exit animations finish. */
+.dialog-content[data-state='closed'] {
+  animation: dialog-out 0.18s ease-in forwards;
+}
+.dialog-overlay[data-state='closed'],
+.pause-overlay.closing {
+  animation: fade-out 0.2s ease-in forwards;
+  pointer-events: none;
+}
+.pause-overlay.closing .phase-card {
+  animation: dialog-out 0.18s ease-in forwards;
+}
 @keyframes slide-in {
   from {
     translate: 40px 0;

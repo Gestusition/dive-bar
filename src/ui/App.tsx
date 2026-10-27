@@ -27,6 +27,19 @@ import {
   TrashArt,
 } from './art';
 const BarScene = lazy(() => import('../view/BarScene'));
+/** Stay mounted for `ms` after `show` turns off, so a closing animation can play. */
+function useExit(show: boolean, ms: number) {
+  const [mounted, setMounted] = useState(show);
+  useEffect(() => {
+    if (show || !ms) {
+      setMounted(show);
+      return;
+    }
+    const t = setTimeout(() => setMounted(false), ms);
+    return () => clearTimeout(t);
+  }, [show, ms]);
+  return mounted;
+}
 const SHIFT = 420;
 function Title() {
   const { loaded, hasSave, start, saveError } = useGame();
@@ -656,14 +669,15 @@ function Hud({
   const toggle = (d: Drawer) => setDrawer(drawer === d ? null : d);
   // Keep the last drawer's content on screen while the panel slides shut.
   const [shown, setShown] = useState(drawer);
+  const reduced = game.settings.reducedMotion;
   useEffect(() => {
-    if (drawer) {
+    if (drawer || reduced) {
       setShown(drawer);
       return;
     }
     const t = setTimeout(() => setShown(null), 320);
     return () => clearTimeout(t);
-  }, [drawer]);
+  }, [drawer, reduced]);
   const phaseTile =
     phase === 'opening'
       ? { label: 'Get ready', art: <CocktailArt size={40} />, title: 'Get ready' }
@@ -814,6 +828,14 @@ export default function App() {
   } = useGame();
   const [toast, setToast] = useState('');
   const [drawer, setDrawer] = useState<Drawer | null>(null);
+  const isDialog = (p: Panel) =>
+    ['recipe', 'settings', 'dialogue', 'pos', 'decor', 'dice', 'help', 'stock', 'menu'].includes(p);
+  const [lastDialog, setLastDialog] = useState<Panel>('help');
+  useEffect(() => {
+    if (isDialog(panel)) setLastDialog(panel);
+  }, [panel]);
+  const pauseOpen = paused && !isDialog(panel);
+  const pauseMounted = useExit(pauseOpen, game.settings.reducedMotion ? 0 : 220);
   // The counter needs the room: tuck the drawer away there and bring it back
   // when the player returns to the floor.
   const tucked = useRef<Drawer | null>(null);
@@ -868,6 +890,8 @@ export default function App() {
     'stock',
     'menu',
   ].includes(panel);
+  // While a window plays its closing animation, keep showing what it held.
+  const shownPanel = focusPanel ? panel : lastDialog;
   const dialogue = conversations.find((c) => c.id === useGame.getState().dialogue?.id);
   const dialogTitles: Partial<Record<Panel, string>> = {
     recipe: 'Recipe',
@@ -944,31 +968,31 @@ export default function App() {
         onOpenChange={(open) => {
           if (!open) setPanel(panel === 'recipe' ? 'station' : 'floor');
         }}
-        title={dialogTitles[panel] ?? ''}
-        art={dialogArt[panel]}
+        title={dialogTitles[shownPanel] ?? ''}
+        art={dialogArt[shownPanel]}
       >
-        {panel === 'settings' ? (
+        {shownPanel === 'settings' ? (
           <SettingsPanel />
-        ) : panel === 'recipe' ? (
+        ) : shownPanel === 'recipe' ? (
           <RecipeCard id={recipeId} />
-        ) : panel === 'dialogue' ? (
+        ) : shownPanel === 'dialogue' ? (
           <DialoguePanel />
-        ) : panel === 'decor' ? (
+        ) : shownPanel === 'decor' ? (
           <DecorPanel />
-        ) : panel === 'dice' ? (
+        ) : shownPanel === 'dice' ? (
           <DicePanel />
-        ) : panel === 'pos' ? (
+        ) : shownPanel === 'pos' ? (
           <PosPanel />
-        ) : panel === 'stock' ? (
+        ) : shownPanel === 'stock' ? (
           <StockPanel />
-        ) : panel === 'menu' ? (
+        ) : shownPanel === 'menu' ? (
           <MenuPanel />
         ) : (
           <HelpPanel />
         )}
       </Dialog>
-      {paused && !focusPanel && (
-        <div className="pause-overlay">
+      {pauseMounted && (
+        <div className={'pause-overlay ' + (pauseOpen ? '' : 'closing')}>
           <div className="phase-card">
             <PauseArt size={64} paused />
             <h2>Paused</h2>
