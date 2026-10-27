@@ -88,6 +88,8 @@ test('service waits for the walk around the counter', async ({ page }) => {
 test('a believable cherry story, actual Manhattan, one settlement and persistent night', async ({
   page,
 }) => {
+  // Software WebGL can make the simulated service exceed the default 90 seconds.
+  test.slow();
   await order(page);
   await page.getByRole('button', { name: 'Chat', exact: true }).click();
   await page.getByRole('button', { name: /A local family picks/ }).click();
@@ -130,6 +132,8 @@ test('a believable cherry story, actual Manhattan, one settlement and persistent
   await expect(page.locator('.cash')).toHaveText('$136.80');
 });
 test('unromantic truth cancels the order without taking payment', async ({ page }) => {
+  // Seating and ordering also render every simulated tick on software WebGL.
+  test.slow();
   await order(page);
   await page.getByRole('button', { name: 'Chat', exact: true }).click();
   await page.getByRole('button', { name: /We buy them at the supermarket/ }).click();
@@ -191,6 +195,8 @@ test('the practice picker switches drinks inside the counter', async ({ page }) 
   await expect(poured(page, 'Worcestershire')).toHaveText(/^2 \/ 2 dash/);
 });
 test('paused reading cannot advance the shift', async ({ page }) => {
+  // This advances a full simulated minute after seating and ordering.
+  test.slow();
   await order(page);
   const before = await page.locator('.clock').textContent();
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
