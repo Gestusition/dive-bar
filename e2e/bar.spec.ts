@@ -157,6 +157,7 @@ test('last call, closing checklist and the next night form a complete loop', asy
 });
 test('Escape closes a reading panel without accidentally pausing the game', async ({ page }) => {
   await enter(page);
+  await page.getByRole('button', { name: 'Get ready', exact: true }).click();
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog')).toHaveCount(0);

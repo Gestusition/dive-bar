@@ -796,6 +796,20 @@ export default function App() {
   } = useGame();
   const [toast, setToast] = useState('');
   const [drawer, setDrawer] = useState<Drawer | null>(null);
+  // The counter needs the room: tuck the drawer away there and bring it back
+  // when the player returns to the floor.
+  const tucked = useRef<Drawer | null>(null);
+  useEffect(() => {
+    if (panel === 'station') {
+      setDrawer((d) => {
+        if (d) tucked.current = d;
+        return null;
+      });
+    } else if (panel === 'floor' && tucked.current) {
+      setDrawer(tucked.current);
+      tucked.current = null;
+    }
+  }, [panel]);
   useEffect(() => {
     void boot();
     return startClock();
