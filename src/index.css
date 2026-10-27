@@ -2447,3 +2447,6 @@ a {
     rotate: 0deg;
   }
 }
+.pause-overlay .phase-card .button {
+  width: 100%;
+}

@@ -1,6 +1,6 @@
 import Station from './Station';
 import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from 'react';
-import { ArrowRight, Check, ChevronRight, Download, Play, Upload, X } from 'lucide-react';
+import { ArrowRight, Check, ChevronRight, Download, Home, Play, Upload, X } from 'lucide-react';
 import * as Switch from '@radix-ui/react-switch';
 import { Button } from '../components/ui/button';
 import { Dialog } from '../components/ui/dialog';
@@ -1046,6 +1046,9 @@ export default function App() {
             <h2>Paused</h2>
             <Button onClick={pause}>
               <Play size={17} /> Resume
+            </Button>
+            <Button variant="secondary" onClick={() => useGame.getState().toTitle()}>
+              <Home size={17} /> Main menu
             </Button>
           </div>
         </div>
