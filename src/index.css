@@ -324,18 +324,14 @@ a {
   position: fixed;
   inset: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 116px;
+  grid-template-columns: minmax(0, 1fr) 300px;
   grid-template-rows: minmax(0, 1fr);
   grid-template-areas: 'scene hud';
   background: var(--night);
 }
 .game-shell.station-mode {
-  grid-template-columns: minmax(0, 1fr) min(500px, 44vw) 116px;
+  grid-template-columns: minmax(0, 1fr) min(480px, 40vw) 300px;
   grid-template-areas: 'scene station hud';
-}
-.game-shell.with-side {
-  grid-template-columns: 380px minmax(0, 1fr) 116px;
-  grid-template-areas: 'side scene hud';
 }
 .reduced-motion *,
 .reduced-motion *::before,
@@ -363,8 +359,8 @@ a {
   justify-content: center;
   gap: 12px;
   color: var(--paper);
-  font-weight: 600;
   font-size: 20px;
+  font-weight: 600;
   text-align: center;
   padding: 24px;
 }
@@ -373,171 +369,179 @@ a {
   font-size: 15px;
 }
 
-/* ---------- HUD rail ---------- */
+/* ---------- Side panel ---------- */
 .hud {
   grid-area: hud;
   display: flex;
   flex-direction: column;
-  align-items: center;
   gap: 14px;
-  padding: 16px 10px;
+  padding: 14px;
   background: var(--blush);
   border-left: var(--line);
   overflow-y: auto;
-  overflow-x: hidden;
   z-index: 5;
-  scrollbar-width: none;
+  scrollbar-width: thin;
+}
+.hud-stats {
+  display: grid;
+  grid-template-columns: 1fr 1.25fr 1fr;
+  gap: 8px;
 }
 .hud-stat {
   position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
-  width: 100%;
+  justify-content: center;
+  gap: 4px;
+  padding: 8px 4px;
+  background: var(--paper);
+  border: var(--line);
+  border-radius: var(--r-md);
+  box-shadow: var(--lift);
 }
 .hud-stat strong {
   font-weight: 700;
+  font-size: 17px;
   color: var(--ink);
   line-height: 1;
 }
 .hud-stat small {
+  font-size: 13px;
   font-weight: 600;
-  font-size: 15px;
-  color: var(--ink);
+  color: var(--ink-soft);
 }
 .calendar strong {
   position: absolute;
-  top: 27px;
-  font-size: 30px;
-  color: var(--ink);
-  -webkit-text-stroke: 0;
-}
-.money strong {
+  top: 29px;
   font-size: 20px;
-  margin-top: -6px;
-}
-.sky {
-  gap: 6px;
 }
 .sky-dial {
   position: relative;
-  width: 44px;
-  height: 92px;
-  border: var(--line);
-  border-radius: 99px;
-  box-shadow: var(--lift);
-  overflow: hidden;
+  width: 100%;
+  max-width: 64px;
+  height: 22px;
+  margin: 9px 0 6px;
   background: #3a2d3e;
+  border: var(--line-thin);
+  border-radius: 99px;
 }
 .sky-sun {
   position: absolute;
-  left: 50%;
-  width: 26px;
-  height: 26px;
-  margin-left: -13px;
+  top: 50%;
+  width: 18px;
+  height: 18px;
+  margin: -9px 0 0 -9px;
   border-radius: 50%;
   background: var(--sun);
-  border: var(--line);
-  transition: top 1s linear;
+  border: var(--line-thin);
+  transition: left 1s linear;
 }
-.sky strong {
-  font-size: 19px;
-}
-.rail-tools {
+.hud-body {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  width: 100%;
-  padding-top: 12px;
-  border-top: 3px dashed var(--blush-deep);
+  min-height: 0;
 }
-.rail-button {
+.hud-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 14px 14px;
+  background: var(--paper);
+  border: var(--line);
+  border-radius: var(--r-lg);
+  box-shadow: var(--lift);
+  animation: pop-in 0.25s cubic-bezier(0.3, 1.5, 0.6, 1);
+}
+.hud-section h2 {
+  font-size: 32px;
+}
+.section-actions {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.section-actions .pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.edit-menu {
+  align-self: flex-start;
+  min-height: 30px;
+  padding: 0 2px;
+  margin-top: -4px;
+}
+.hud-nav {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.nav-tile,
+.tool-tile {
   position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 2px;
   padding: 8px 4px 6px;
-  width: 100%;
   background: var(--paper);
   border: var(--line);
   border-radius: var(--r-md);
   box-shadow: var(--lift);
   transition: transform 0.08s;
 }
-.rail-button small {
+.nav-tile small,
+.tool-tile small {
+  font-size: 13px;
   font-weight: 600;
-  font-size: 15px;
+  white-space: nowrap;
 }
-.rail-button:hover {
-  transform: translateY(-2px) rotate(-2deg);
+.nav-tile:hover,
+.tool-tile:hover {
+  transform: translateY(-2px);
 }
-.rail-button:active {
+.nav-tile:active,
+.tool-tile:active {
   transform: translateY(3px);
   box-shadow: 0 1px 0 var(--ink);
 }
-.rail-small {
-  margin-top: auto;
+.tool-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
-  width: 100%;
 }
-.rail-button.small {
-  padding: 5px;
-  border-radius: var(--r-sm);
+.tool-tile {
+  background: var(--cream);
+  padding: 10px 4px 8px;
 }
-
-/* ---------- Floating cards on the scene ---------- */
-.phase-card {
-  position: absolute;
-  left: 24px;
-  bottom: 24px;
-  width: min(360px, calc(100% - 48px));
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  padding: 20px;
+.small-stats {
+  margin-top: auto;
+  font-size: 14px;
+}
+.hud-small {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+.hud-small button {
+  display: grid;
+  place-items: center;
+  height: 44px;
   background: var(--paper);
   border: var(--line);
-  border-radius: var(--r-lg);
-  box-shadow: var(--lift-lg);
-  z-index: 3;
-  animation: pop-in 0.3s cubic-bezier(0.3, 1.5, 0.6, 1);
+  border-radius: var(--r-sm);
+  box-shadow: 0 3px 0 var(--ink);
 }
-.phase-card h2 {
-  margin: -36px auto 0;
-  padding: 6px 20px;
-  background: var(--accent);
-  border: var(--line);
-  border-radius: 99px;
-  box-shadow: var(--lift);
-  font-size: 22px;
+.hud-small button:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 var(--ink);
 }
-.phase-actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-}
-.side-panel {
-  grid-area: side;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding: 28px 24px 24px;
-  background: var(--cream);
-  border-right: var(--line);
-  overflow-y: auto;
-  z-index: 4;
-  animation: slide-in-left 0.3s cubic-bezier(0.3, 1.2, 0.6, 1);
-}
-.side-panel h2 {
-  font-size: 44px;
-}
-.side-panel > :last-child {
-  margin-top: auto;
-}
+
+/* ---------- Phase content ---------- */
 .menu-list {
   display: flex;
   flex-direction: column;
@@ -547,24 +551,15 @@ a {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 14px;
+  padding: 10px 12px;
   background: var(--cream);
   border: var(--line-thin);
   border-radius: var(--r-sm);
+  font-size: 15px;
   font-weight: 600;
-  font-size: 17px;
 }
 .menu-list button:hover {
   background: var(--accent-soft);
-}
-.menu-list b {
-  font-weight: 400;
-}
-.opening > .button-ghost {
-  align-self: flex-start;
-  min-height: 32px;
-  padding: 0 4px;
-  margin-top: -6px;
 }
 .checklist {
   display: flex;
@@ -574,21 +569,21 @@ a {
 .checklist button {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 8px 12px;
+  gap: 10px;
+  padding: 8px 10px;
   background: var(--cream);
   border: var(--line-thin);
   border-radius: var(--r-md);
+  font-size: 15px;
   font-weight: 600;
-  font-size: 17px;
   text-align: left;
 }
 .checklist button span {
   flex: 1;
 }
 .checklist i {
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   display: grid;
   place-items: center;
   border: var(--line-thin);
@@ -605,85 +600,43 @@ a {
 .recap-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  gap: 8px;
 }
 .recap-grid div {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 12px 8px;
+  padding: 10px 6px;
   background: var(--cream);
   border: var(--line-thin);
   border-radius: var(--r-md);
 }
 .recap-grid strong {
-  font-weight: 600;
-  font-size: 28px;
+  font-size: 22px;
 }
 .recap-grid span {
-  font-size: 15px;
+  font-size: 13px;
   color: var(--ink-soft);
 }
-.tool-tray {
-  position: absolute;
-  left: 24px;
-  bottom: 24px;
-  display: flex;
-  align-items: flex-end;
-  gap: 10px;
-  z-index: 3;
-}
-.tray-tile {
-  position: relative;
-  width: 76px;
+.phase-card {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 8px 4px 6px;
+  gap: 14px;
+  width: 280px;
+  padding: 24px 20px 20px;
   background: var(--paper);
   border: var(--line);
-  border-radius: var(--r-md);
-  box-shadow: var(--lift);
-  transition: transform 0.08s;
+  border-radius: var(--r-lg);
+  box-shadow: var(--lift-lg);
+  animation: pop-in 0.3s cubic-bezier(0.3, 1.5, 0.6, 1);
 }
-.tray-tile small {
-  font-weight: 600;
-  font-size: 15px;
-  white-space: nowrap;
-}
-.tray-tile:hover {
-  transform: translateY(-3px);
-}
-.tray-tile:active {
-  transform: translateY(3px);
-  box-shadow: 0 1px 0 var(--ink);
-}
-.tray-divider {
-  width: 3px;
-  align-self: stretch;
-  margin: 8px 2px;
-  border-radius: 3px;
-  background: #ffffff40;
-}
-.empty-hint {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  padding: 10px 18px;
-  background: var(--paper);
-  border: var(--line);
-  border-radius: 99px;
-  box-shadow: var(--lift);
-  font-weight: 600;
-  font-size: 17px;
-  pointer-events: none;
-  white-space: nowrap;
-  z-index: 2;
+.phase-card h2 {
+  font-size: 36px;
 }
 .top-center {
   position: absolute;
-  top: 18px;
+  top: 16px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
@@ -705,8 +658,8 @@ a {
   border: var(--line);
   border-radius: 99px;
   box-shadow: var(--lift);
+  font-size: 15px;
   font-weight: 600;
-  font-size: 16px;
 }
 .task-pill button {
   width: 28px;
@@ -2103,63 +2056,36 @@ a {
 }
 
 /* ---------- Smaller screens ---------- */
-@media (max-height: 760px) and (min-width: 761px) {
-  .hud {
-    gap: 8px;
-    padding: 10px 8px;
-  }
-  .rail-button small {
-    display: none;
-  }
-  .sky-dial {
-    height: 64px;
-  }
-}
-.rail-button.small {
-  aspect-ratio: 1;
-  display: grid;
-  place-items: center;
-  padding: 2px;
-}
-.rail-button.small svg {
-  width: 100%;
-  max-width: 34px;
-  height: auto;
-}
 @media (max-width: 1100px) and (min-width: 761px) {
-  .game-shell.station-mode {
-    grid-template-columns: minmax(0, 1fr) min(440px, 52vw) 96px;
-  }
   .game-shell {
-    grid-template-columns: minmax(0, 1fr) 96px;
+    grid-template-columns: minmax(0, 1fr) 260px;
   }
-  .game-shell.with-side {
-    grid-template-columns: 320px minmax(0, 1fr) 96px;
+  .game-shell.station-mode {
+    grid-template-columns: minmax(0, 1fr) min(420px, 46vw) 260px;
+  }
+  .hud {
+    padding: 10px;
+    gap: 10px;
+  }
+  .hud-stat strong {
+    font-size: 15px;
   }
 }
 @media (max-width: 760px) {
   .game-shell,
-  .game-shell.station-mode,
-  .game-shell.with-side {
+  .game-shell.station-mode {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: minmax(0, 1fr) auto;
+    grid-template-rows: 46dvh minmax(0, 1fr);
     grid-template-areas: 'scene' 'hud';
   }
   .game-shell.station-mode {
     grid-template-rows: 30dvh minmax(0, 1fr) auto;
     grid-template-areas: 'scene' 'station' 'hud';
   }
-  .game-shell.with-side {
-    grid-template-rows: 34dvh minmax(0, 1fr) auto;
-    grid-template-areas: 'scene' 'side' 'hud';
-  }
-  .side-panel {
-    border-right: 0;
-    border-top: var(--line);
-    padding: 16px;
-  }
-  .side-panel h2 {
-    font-size: 32px;
+  .station-mode .hud-body,
+  .station-mode .hud-stats,
+  .station-mode .hud-nav {
+    display: none;
   }
   .station-panel {
     border-left: 0;
@@ -2171,101 +2097,13 @@ a {
     padding: 10px 14px 12px;
   }
   .hud {
-    flex-direction: row;
-    justify-content: space-between;
-    gap: 6px;
-    padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
     border-left: 0;
     border-top: var(--line);
-    overflow: visible;
+    padding: 10px 10px calc(10px + env(safe-area-inset-bottom));
+    gap: 10px;
   }
-  .hud-stat {
-    width: auto;
-  }
-  .calendar svg {
-    width: 44px;
-    height: 44px;
-  }
-  .calendar strong {
-    top: 17px;
-    font-size: 19px;
-  }
-  .calendar small {
-    display: none;
-  }
-  .money svg {
-    width: 30px;
-    height: 30px;
-  }
-  .money strong {
-    font-size: 15px;
-    -webkit-text-stroke-width: 4px;
-  }
-  .sky {
-    flex-direction: row;
-  }
-  .sky-dial {
-    display: none;
-  }
-  .sky strong {
-    font-size: 16px;
-    -webkit-text-stroke-width: 4px;
-  }
-  .rail-tools {
-    flex-direction: row;
-    width: auto;
-    padding: 0;
-    border: 0;
-    gap: 6px;
-  }
-  .rail-button {
-    width: 46px;
-    padding: 4px;
-  }
-  .rail-button svg {
-    width: 32px;
-    height: 32px;
-  }
-  .rail-button small {
-    display: none;
-  }
-  .rail-small {
-    margin: 0;
-    grid-template-columns: repeat(2, 36px);
-    gap: 4px;
-  }
-  .rail-button.small {
-    width: 36px;
-    padding: 2px;
-  }
-  .rail-button.small svg {
-    width: 26px;
-    height: 26px;
-  }
-  .phase-card {
-    left: 12px;
-    bottom: 12px;
-    width: calc(100% - 24px);
-    padding: 16px;
-  }
-  .phase-card h2 {
-    font-size: 19px;
-  }
-  .menu-list button {
-    padding: 7px 12px;
-    font-size: 15px;
-  }
-  .tool-tray {
-    left: 12px;
-    bottom: 12px;
-    gap: 6px;
-  }
-  .tray-tile {
-    width: 62px;
-  }
-  .tray-tile svg {
-    width: 36px;
-    height: 36px;
+  .hud-section h2 {
+    font-size: 26px;
   }
   .guest-card {
     width: 210px;
@@ -2273,10 +2111,10 @@ a {
   .station-label {
     top: 10px;
     right: 10px;
-    font-size: 15px;
+    font-size: 14px;
   }
   .top-center {
-    top: 60px;
+    top: 56px;
   }
   .station-title h2 {
     font-size: 26px;

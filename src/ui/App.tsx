@@ -415,26 +415,18 @@ function HelpPanel() {
     </div>
   );
 }
-function Card({
-  title,
-  children,
-  className = '',
-}: {
-  title: string;
-  children: ReactNode;
-  className?: string;
-}) {
+function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <aside className={'side-panel ' + className}>
+    <section className="hud-section">
       <h2>{title}</h2>
       {children}
-    </aside>
+    </section>
   );
 }
 function OpeningCard() {
   const { game, select, setPanel, act } = useGame();
   return (
-    <Card title="Get ready" className="opening">
+    <Section title="Get ready">
       <p className="hint">Tonight’s menu — tap a drink to see the recipe.</p>
       <div className="menu-list">
         {recipes
@@ -452,10 +444,13 @@ function OpeningCard() {
             </button>
           ))}
       </div>
-      <Button variant="ghost" size="sm" onClick={() => setPanel('menu')}>
+      <Button variant="ghost" size="sm" className="edit-menu" onClick={() => setPanel('menu')}>
         Edit menu
       </Button>
-      <div className="phase-actions">
+      <div className="section-actions">
+        <Button onClick={() => act({ type: 'open' })}>
+          Open the bar <ArrowRight size={17} />
+        </Button>
         <Button
           variant="secondary"
           onClick={() => {
@@ -465,11 +460,8 @@ function OpeningCard() {
         >
           Practice
         </Button>
-        <Button onClick={() => act({ type: 'open' })}>
-          Open the bar <ArrowRight size={17} />
-        </Button>
       </div>
-    </Card>
+    </Section>
   );
 }
 function ClosingCard() {
@@ -478,34 +470,34 @@ function ClosingCard() {
     {
       key: 'wipe',
       label: 'Wipe counter',
-      art: <SpongeArt size={34} />,
+      art: <SpongeArt size={32} />,
       done: game.closing.wipe,
       run: () => act({ type: 'wipe' }),
     },
     {
       key: 'trash',
       label: 'Take out trash',
-      art: <TrashArt size={34} />,
+      art: <TrashArt size={32} />,
       done: game.closing.trash,
       run: () => act({ type: 'trash' }),
     },
     {
       key: 'restock',
       label: 'Restock shelves',
-      art: <BoxArt size={34} />,
+      art: <BoxArt size={32} />,
       done: game.closing.restock,
       run: () => setPanel('stock'),
     },
     {
       key: 'wash',
       label: 'Wash glasses',
-      art: <GlassArt size={34} />,
+      art: <GlassArt size={32} />,
       done: game.dirtyGlasses === 0,
       run: () => act({ type: 'wash' }),
     },
   ];
   return (
-    <Card title="Closing time" className="closing">
+    <Section title="Closing time">
       <div className="checklist">
         {items.map((item) => (
           <button key={item.key} className={item.done ? 'done' : ''} onClick={item.run}>
@@ -515,10 +507,12 @@ function ClosingCard() {
           </button>
         ))}
       </div>
-      <Button onClick={() => act({ type: 'finish' })}>
-        Close the bar <ArrowRight size={16} />
-      </Button>
-    </Card>
+      <div className="section-actions">
+        <Button onClick={() => act({ type: 'finish' })}>
+          Close the bar <ArrowRight size={16} />
+        </Button>
+      </div>
+    </Section>
   );
 }
 function RecapCard() {
@@ -530,7 +524,7 @@ function RecapCard() {
     [String(game.stats.waste), 'Wasted'],
   ];
   return (
-    <Card title={'Night ' + game.day + ' complete'} className="recap">
+    <Section title={'Night ' + game.day + ' complete'}>
       <div className="recap-grid">
         {stats.map(([value, label]) => (
           <div key={label}>
@@ -539,82 +533,71 @@ function RecapCard() {
           </div>
         ))}
       </div>
-      <div className="phase-actions">
-        <Button variant="secondary" onClick={() => setPanel('decor')}>
-          Decorate
+      <div className="section-actions">
+        <Button onClick={() => act({ type: 'nextDay' })}>
+          Next night <ArrowRight size={16} />
         </Button>
-        <Button variant="secondary" onClick={() => setPanel('dice')}>
-          Dice
-        </Button>
+        <div className="pair">
+          <Button variant="secondary" onClick={() => setPanel('decor')}>
+            Decorate
+          </Button>
+          <Button variant="secondary" onClick={() => setPanel('dice')}>
+            Dice
+          </Button>
+        </div>
       </div>
-      <Button onClick={() => act({ type: 'nextDay' })}>
-        Next night <ArrowRight size={16} />
-      </Button>
-    </Card>
+    </Section>
   );
 }
-function ToolTray() {
+function ServiceCard() {
   const { game, act } = useGame();
+  const waiting = game.guests.filter((g) => g.status !== 'leaving').length;
   const tools = [
     {
       label: 'Wipe',
-      art: <SpongeArt />,
+      art: <SpongeArt size={40} />,
       badge: game.mess || null,
       run: () => act({ type: 'wipe' }),
     },
     {
       label: 'Wash',
-      art: <GlassArt />,
+      art: <GlassArt size={40} />,
       badge: game.dirtyGlasses || null,
       run: () => act({ type: 'wash' }),
     },
-    { label: 'Ice', art: <IceArt />, badge: game.ice, run: () => act({ type: 'refillIce' }) },
+    {
+      label: 'Ice',
+      art: <IceArt size={40} />,
+      badge: game.ice,
+      run: () => act({ type: 'refillIce' }),
+    },
+    {
+      label: 'Last orders',
+      art: <BellArt size={40} />,
+      badge: null,
+      run: () => act({ type: 'finish' }),
+    },
   ];
   return (
-    <div className="tool-tray">
-      {tools.map((t) => (
-        <button key={t.label} className="tray-tile" onClick={t.run} aria-label={t.label}>
-          {t.art}
-          {t.badge !== null && <span className="badge">{t.badge}</span>}
-          <small>{t.label}</small>
-        </button>
-      ))}
-      <span className="tray-divider" />
-      <button
-        className="tray-tile"
-        onClick={() => act({ type: 'finish' })}
-        aria-label="Last orders"
-      >
-        <BellArt />
-        <small>Last orders</small>
-      </button>
-    </div>
-  );
-}
-function RailButton({
-  label,
-  children,
-  onClick,
-  badge,
-  small = false,
-}: {
-  label: string;
-  children: ReactNode;
-  onClick: () => void;
-  badge?: number;
-  small?: boolean;
-}) {
-  return (
-    <button
-      className={'rail-button ' + (small ? 'small' : '')}
-      aria-label={label}
-      title={label}
-      onClick={onClick}
-    >
-      {children}
-      {!!badge && <span className="badge">{badge}</span>}
-      {!small && <small>{label}</small>}
-    </button>
+    <Section title="Behind the bar">
+      <p className="hint">
+        {waiting
+          ? waiting + (waiting === 1 ? ' guest' : ' guests') + ' in — tap a bubble to help them.'
+          : 'No guests yet. Someone will walk in soon.'}
+      </p>
+      <div className="tool-grid">
+        {tools.map((t) => (
+          <button key={t.label} className="tool-tile" onClick={t.run} aria-label={t.label}>
+            {t.art}
+            {t.badge !== null && <span className="badge">{t.badge}</span>}
+            <small>{t.label}</small>
+          </button>
+        ))}
+      </div>
+      <p className="hint small-stats">
+        {game.cleanGlasses} clean glasses · {game.mess} spills
+      </p>
+    </Section>
   );
 }
 function Hud() {
@@ -625,63 +608,84 @@ function Hud() {
   const openTabs = game.guests.filter((g) => g.charge > 0 && !g.paid).length;
   return (
     <aside className="hud" aria-label="Bar status">
-      <div className="hud-stat calendar" title={'Night ' + game.day}>
-        <CalendarArt size={68} />
-        <strong>{game.day}</strong>
-        <small>
-          {phase === 'opening'
-            ? 'Getting ready'
-            : phase === 'closing'
-              ? 'Closing'
-              : phase === 'recap'
-                ? 'Done'
-                : game.seconds >= 360
-                  ? 'Last orders'
-                  : 'Open'}
-        </small>
-      </div>
-      <div className="hud-stat money">
-        <CoinsArt size={44} />
-        <strong className="cash">{money(game.cash)}</strong>
-      </div>
-      <div className="hud-stat sky" title="Time left tonight">
-        <div className="sky-dial">
-          <span className="sky-sun" style={{ top: 6 + progress * 58 + 'px' }} />
+      <div className="hud-stats">
+        <div className="hud-stat calendar" title={'Night ' + game.day}>
+          <CalendarArt size={52} />
+          <strong>{game.day}</strong>
+          <small>
+            {phase === 'opening'
+              ? 'Prep'
+              : phase === 'closing'
+                ? 'Closing'
+                : phase === 'recap'
+                  ? 'Done'
+                  : game.seconds >= 360
+                    ? 'Last call'
+                    : 'Open'}
+          </small>
         </div>
-        <strong className="clock">
-          {Math.floor(time / 60)}:{String(Math.floor(time % 60)).padStart(2, '0')}
-        </strong>
+        <div className="hud-stat money">
+          <CoinsArt size={40} />
+          <strong className="cash">{money(game.cash)}</strong>
+        </div>
+        <div className="hud-stat sky" title="Time left tonight">
+          <div className="sky-dial">
+            <span className="sky-sun" style={{ left: progress * 100 + '%' }} />
+          </div>
+          <strong className="clock">
+            {Math.floor(time / 60)}:{String(Math.floor(time % 60)).padStart(2, '0')}
+          </strong>
+        </div>
       </div>
-      <nav className="rail-tools">
-        <RailButton label="Recipes" onClick={() => setPanel('recipe')}>
-          <BookArt />
-        </RailButton>
-        <RailButton label="Tabs" onClick={() => setPanel('pos')} badge={openTabs}>
-          <ReceiptArt />
-        </RailButton>
-        <RailButton label="Decorate" onClick={() => setPanel('decor')}>
-          <PlantArt />
-        </RailButton>
+      <div className="hud-body">
+        {phase === 'opening' ? (
+          <OpeningCard />
+        ) : phase === 'closing' ? (
+          <ClosingCard />
+        ) : phase === 'recap' ? (
+          <RecapCard />
+        ) : (
+          <ServiceCard />
+        )}
+      </div>
+      <nav className="hud-nav">
+        <button className="nav-tile" onClick={() => setPanel('recipe')}>
+          <BookArt size={34} />
+          <small>Recipes</small>
+        </button>
+        <button className="nav-tile" onClick={() => setPanel('pos')}>
+          <ReceiptArt size={34} />
+          {!!openTabs && <span className="badge">{openTabs}</span>}
+          <small>Tabs</small>
+        </button>
+        <button className="nav-tile" onClick={() => setPanel('decor')}>
+          <PlantArt size={34} />
+          <small>Decorate</small>
+        </button>
       </nav>
-      <div className="rail-small">
-        <RailButton small label="How to play" onClick={() => setPanel('help')}>
-          <HelpArt size={34} />
-        </RailButton>
-        <RailButton
-          small
-          label="Sound"
+      <div className="hud-small">
+        <button aria-label="How to play" title="How to play" onClick={() => setPanel('help')}>
+          <HelpArt size={28} />
+        </button>
+        <button
+          aria-label="Sound"
+          title="Sound"
           onClick={() =>
             useGame.getState().act({ type: 'setting', key: 'sound', value: !game.settings.sound })
           }
         >
-          <SoundArt size={34} on={game.settings.sound} />
-        </RailButton>
-        <RailButton small label="Settings" onClick={() => setPanel('settings')}>
-          <GearArt size={34} />
-        </RailButton>
-        <RailButton small label={paused ? 'Resume' : 'Pause'} onClick={pause}>
-          <PauseArt size={34} paused={paused} />
-        </RailButton>
+          <SoundArt size={28} on={game.settings.sound} />
+        </button>
+        <button aria-label="Settings" title="Settings" onClick={() => setPanel('settings')}>
+          <GearArt size={28} />
+        </button>
+        <button
+          aria-label={paused ? 'Resume' : 'Pause'}
+          title={paused ? 'Resume' : 'Pause'}
+          onClick={pause}
+        >
+          <PauseArt size={28} paused={paused} />
+        </button>
       </div>
     </aside>
   );
@@ -729,7 +733,6 @@ export default function App() {
   if (title) return <Title />;
   const guest = game.guests.find((g) => g.id === selected);
   const recipeId = selected === -1 ? practiceRecipe : (guest?.recipeId ?? practiceRecipe);
-  const phase = game.phase;
   const focusPanel = [
     'recipe',
     'settings',
@@ -764,20 +767,15 @@ export default function App() {
     menu: <CocktailArt size={40} />,
   };
   const atStation = panel === 'station' || panel === 'recipe';
-  const sidePanel = !atStation && phase !== 'service';
   return (
     <div
       className={
         'game-shell theme-' +
         game.settings.theme +
         (game.settings.reducedMotion ? ' reduced-motion' : '') +
-        (atStation ? ' station-mode' : '') +
-        (sidePanel ? ' with-side' : '')
+        (atStation ? ' station-mode' : '')
       }
     >
-      {sidePanel && phase === 'opening' && <OpeningCard />}
-      {sidePanel && phase === 'closing' && <ClosingCard />}
-      {sidePanel && phase === 'recap' && <RecapCard />}
       <main className="scene">
         <Suspense
           fallback={
@@ -789,10 +787,6 @@ export default function App() {
         >
           <BarScene />
         </Suspense>
-        {!atStation && phase === 'service' && <ToolTray />}
-        {!atStation && phase === 'service' && game.guests.length === 0 && (
-          <div className="empty-hint">No guests yet. Someone will walk in soon.</div>
-        )}
         <div className="top-center">
           {tasks.length > 0 && (
             <div className="task-pill">

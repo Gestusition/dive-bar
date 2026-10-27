@@ -265,10 +265,11 @@ function Camera() {
     const target = new THREE.Vector3(0, station ? 1 : 0.7, station ? -1.7 : 0.3);
     camera.lookAt(target);
     if (camera instanceof THREE.OrthographicCamera) {
-      const zoom = Math.min(
-        size.width / (station ? 6.3 : 16.5),
-        size.height / (station ? 5.4 : 13),
-      );
+      // The floor view fills the whole scene (cropping the outer walls) instead
+      // of fitting the room inside it, so the bar reads as full screen.
+      const zoom = station
+        ? Math.min(size.width / 6.3, size.height / 5.4)
+        : Math.max(size.width / 15, size.height / 11.5);
       camera.zoom = useGame.getState().game.settings.reducedMotion
         ? zoom
         : THREE.MathUtils.damp(camera.zoom, zoom, 4, dt);
