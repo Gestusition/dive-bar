@@ -269,7 +269,7 @@ function Camera() {
       // of fitting the room inside it, so the bar reads as full screen.
       const zoom = station
         ? Math.min(size.width / 6.3, size.height / 5.4)
-        : Math.max(size.width / 15, size.height / 11.5);
+        : Math.max(size.width / 16, size.height / 12);
       camera.zoom = useGame.getState().game.settings.reducedMotion
         ? zoom
         : THREE.MathUtils.damp(camera.zoom, zoom, 4, dt);

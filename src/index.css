@@ -438,10 +438,9 @@ a {
   transition: left 1s linear;
 }
 .hud-body {
-  flex: 1;
+  flex: 1 0 auto;
   display: flex;
   flex-direction: column;
-  min-height: 0;
 }
 .hud-section {
   flex: 1;
