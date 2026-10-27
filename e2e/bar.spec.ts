@@ -8,6 +8,7 @@ async function enter(page: Page) {
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
   await page.getByRole('switch', { name: 'Reduced motion' }).click();
   await page.getByRole('button', { name: 'Close dialog' }).click();
+  await page.getByRole('button', { name: 'Get ready', exact: true }).click();
   await page.clock.pauseAt((await page.evaluate(() => Date.now())) + 1000);
 }
 async function order(page: Page) {
@@ -145,7 +146,6 @@ test('last call, closing checklist and the next night form a complete loop', asy
   await page.getByRole('button', { name: 'Last orders' }).click();
   await page.clock.runFor(5000);
   await expect(page.getByRole('heading', { name: 'Closing time' })).toBeVisible();
-  await page.getByRole('button', { name: /Clean-up tasks/ }).click();
   await page.getByRole('button', { name: 'Wipe counter', exact: true }).click();
   await page.getByRole('button', { name: 'Take out trash', exact: true }).click();
   await page.getByRole('button', { name: 'Restock shelves', exact: true }).click();

@@ -47,11 +47,11 @@ function roomParts() {
     p.push([x, y, z, w, h, d, c]);
   // The floor runs on past the front of the room and the back wall rises
   // high, so the straight-on camera only ever sees the bar.
-  box(0, -0.22, 6.4, 11.8, 0.35, 22.4, dark);
-  for (let x = 0; x < 12; x++)
+  box(0, -0.22, 6.4, 15.8, 0.35, 22.4, dark);
+  for (let x = 0; x < 16; x++)
     for (let z = 0; z < 22; z++)
       box(
-        x - 0.5 - 5,
+        x - 7.5,
         0.005,
         z - 4,
         0.96,
@@ -59,11 +59,11 @@ function roomParts() {
         0.96,
         ['#ab7851', '#b48359', '#a16d49', '#ba8b62'][(x * 7 + z * 3) % 4],
       );
-  box(0, 7.6, -4.55, 11.8, 15.4, 0.25, '#6b463b');
-  box(-5.8, 1.55, 0.3, 0.25, 3.3, 9.7, '#744b3c');
-  for (let i = 0; i < 12; i++) box(i - 5.5, 0.7, -4.37, 0.05, 1.55, 0.1, brass);
-  box(0, 0.12, -4.32, 11.5, 0.18, 0.18, dark);
-  box(0, 3.15, -4.3, 11.5, 0.15, 0.2, dark);
+  box(0, 7.6, -4.55, 15.8, 15.4, 0.25, '#6b463b');
+  box(-7.8, 1.55, 0.3, 0.25, 3.3, 9.7, '#744b3c');
+  for (let i = 0; i < 16; i++) box(i - 7.5, 0.7, -4.37, 0.05, 1.55, 0.1, brass);
+  box(0, 0.12, -4.32, 15.5, 0.18, 0.18, dark);
+  box(0, 3.15, -4.3, 15.5, 0.15, 0.2, dark);
   // Framed windows and their little glowing sill lamps.
   for (const x of [-3.9, 3.9]) {
     box(x, 2, -4.33, 1.65, 1.65, 0.16, dark);
@@ -102,6 +102,8 @@ function roomParts() {
   for (const [x, z] of [
     [-2.7, 2],
     [2.25, 2.25],
+    [-6.1, 2.4],
+    [6.2, 2.2],
   ]) {
     box(x, 0.78, z, 1.75, 0.15, 1.45, '#d3a36c');
     box(x, 0.36, z, 0.23, 0.75, 0.23, dark);
@@ -131,12 +133,13 @@ function roomParts() {
   for (let x = -0.8; x < 1; x += 0.4) box(x, 0.11, 2.3, 0.06, 0.01, 3, '#d5a169');
   p.push(...cornerPlantParts);
   // Amber lights, framed menu and coat hooks.
-  for (const x of [-4.8, -2.4, 0, 2.4, 4.8]) {
+  for (const x of [-7.2, -4.8, -2.4, 0, 2.4, 4.8, 7.2]) {
     box(x, 2.85, -4.08, 0.2, 0.32, 0.18, brass);
     box(x, 2.85, -3.96, 0.12, 0.2, 0.1, '#ffe2a3');
   }
-  box(-5.58, 1.7, 1.4, 0.15, 1.3, 1, dark);
-  box(-5.47, 1.7, 1.4, 0.04, 1.1, 0.8, '#ddc594');
+  // Framed menu between the left window and the shelves.
+  box(-6.2, 2.05, -4.38, 1, 1.3, 0.1, dark);
+  box(-6.2, 2.05, -4.31, 0.8, 1.1, 0.04, '#ddc594');
   return p;
 }
 const shirts = ['#669f8e', '#b97876', '#d2a054', '#8088a8', '#986d98', '#d6bd8b'];
@@ -271,7 +274,7 @@ function Camera() {
       // scene, so nothing outside the bar is ever on screen.
       const zoom = station
         ? Math.min(size.width / 6.3, size.height / 5.4)
-        : Math.max(size.width / 11.8, size.height / 10);
+        : Math.max(size.width / 15.8, size.height / 10);
       camera.zoom = useGame.getState().game.settings.reducedMotion
         ? zoom
         : THREE.MathUtils.damp(camera.zoom, zoom, 4, dt);
@@ -395,7 +398,7 @@ function Room({ guestGroups }: { guestGroups: SceneRefs['guestGroups'] }) {
         </mesh>
       )}
       {game.upgrades.plant && (
-        <group position={[4.7, 0, 3.9]}>
+        <group position={[7.2, 0, 4.6]}>
           <mesh position={[0, 0.25, 0]}>
             <boxGeometry args={[0.6, 0.5, 0.6]} />
             <meshStandardMaterial color="#bc7960" />

@@ -1,4 +1,5 @@
 import { quality } from './quality';
+import { seats } from './navigation';
 export { quality } from './quality';
 import {
   conversations,
@@ -575,7 +576,9 @@ export function reduceGame(current: Game, a: Action): Game {
       }
       const used = new Set(active(s).map((g) => g.seat));
       g.seat =
-        Array.from({ length: 4 }, (_, i) => (i + g.id - 1) % 4).find((i) => !used.has(i)) ?? 0;
+        Array.from({ length: seats.length }, (_, i) => (i + g.id - 1) % seats.length).find(
+          (i) => !used.has(i),
+        ) ?? 0;
       g.status = 'reading';
       g.remaining = 8;
       note(g.name + ' has a menu. Give them a moment to choose.');
@@ -685,7 +688,7 @@ export function reduceGame(current: Game, a: Action): Game {
           .filter((x) => x.id !== g.id)
           .map((x) => x.seat),
       );
-      const seat = [0, 1, 2, 3].find((i) => i !== g.seat && !used.has(i));
+      const seat = seats.map((_, i) => i).find((i) => i !== g.seat && !used.has(i));
       if (seat !== undefined) {
         g.seat = seat;
         note('A quieter corner for ' + g.name + '.');

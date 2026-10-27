@@ -11,6 +11,8 @@ export const seats: [number, number, number][] = [
   [2.25, 0.18, 3.2],
   [-1.2, 0.35, -0.25],
   [1.2, 0.35, -0.25],
+  [-6.1, 0.18, 3.35],
+  [6.2, 0.18, 3.15],
 ];
 export const guestPosition = (g: Pick<Guest, 'status' | 'seat'>): [number, number, number] =>
   g.status === 'waiting' ? [-4.6, 0, 4.1] : (seats[g.seat] ?? [-4.6, 0, 4.1]);
