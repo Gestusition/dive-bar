@@ -233,3 +233,52 @@ export const DoorArt = ({ size }: ArtProps) => (
     <path d="M8 56h48" fill="none" />
   </Art>
 );
+
+// Bartending techniques for the counter's mix step.
+export const IceCubesArt = ({ size }: ArtProps) => (
+  <Art size={size}>
+    <rect
+      x="10"
+      y="24"
+      width="22"
+      height="22"
+      rx="4"
+      fill="#effaf8"
+      transform="rotate(-10 21 35)"
+    />
+    <rect x="30" y="18" width="22" height="22" rx="4" fill="#dff3ee" transform="rotate(12 41 29)" />
+    <path d="M15 31l5-1M35 24l5 1" fill="none" stroke="#ffffff" />
+    <path d="M22 50h22" fill="none" stroke="#9fe3d8" />
+  </Art>
+);
+
+export const MuddleArt = ({ size }: ArtProps) => (
+  <Art size={size}>
+    <rect x="29" y="4" width="8" height="38" rx="4" fill="#d9a35c" transform="rotate(14 33 23)" />
+    <path d="M14 30h36l-4 26H18z" fill="#dff3ee" />
+    <path d="M19 46c4-4 9-4 12-1 4-4 9-3 12 1l-1 6H20z" fill="#7bbf5a" stroke="none" />
+    <path d="M14 30h36l-4 26H18z" fill="none" />
+  </Art>
+);
+
+export const ShakerArt = ({ size }: ArtProps) => (
+  <Art size={size}>
+    <path d="M10 28c-3 4-3 10 0 14M54 28c3 4 3 10 0 14" fill="none" />
+    <rect x="28" y="5" width="8" height="6" rx="2" fill="#cfd3dc" />
+    <path d="M24 22l3-11h10l3 11z" fill="#cfd3dc" />
+    <rect x="20" y="21" width="24" height="7" rx="3" fill="#b4bccb" />
+    <path d="M22 28h20l-3 29H25z" fill="#cfd3dc" />
+    <path d="M27 33l1 18" fill="none" stroke="#ffffff" />
+  </Art>
+);
+
+export const StirArt = ({ size }: ArtProps) => (
+  <Art size={size}>
+    <path d="M17 22h30l-3 34H20z" fill="#dff3ee" />
+    <path d="M19.5 34h25l-2 20h-21z" fill="#e9a65a" stroke="none" />
+    <path d="M17 22h30l-3 34H20z" fill="none" />
+    <path d="M44 4L33 46" fill="none" />
+    <circle cx="44.5" cy="4" r="2.5" fill="#cfd3dc" />
+    <path d="M24 40c4-3 12-3 16 0" fill="none" stroke="#fbf3e4" />
+  </Art>
+);

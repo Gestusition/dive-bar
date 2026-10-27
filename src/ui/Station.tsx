@@ -4,15 +4,13 @@ import {
   ArrowRight,
   BookOpen,
   Check,
-  Droplets,
-  RotateCcw,
   SlidersHorizontal,
   Snowflake,
-  Sparkles,
   Trash2,
   X,
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
+import { IceCubesArt, MuddleArt, ShakerArt, StirArt } from './art';
 import {
   ingredients,
   ingredientColors,
@@ -352,7 +350,7 @@ export default function Station() {
         </h3>
         <div className="craft-actions">
           <button className={prep.ice ? 'done' : ''} onClick={() => prepAction('ice')}>
-            <Snowflake size={20} strokeWidth={2.5} />
+            <IceCubesArt size={34} />
             {prep.ice ? 'Ice added' : 'Add ice'}
           </button>
           <button
@@ -360,7 +358,7 @@ export default function Station() {
             disabled={!!busy}
             onClick={() => setBusy('muddle')}
           >
-            <Droplets size={20} strokeWidth={2.5} />
+            <MuddleArt size={34} />
             Muddle
           </button>
           <button
@@ -368,7 +366,7 @@ export default function Station() {
             disabled={!!busy}
             onClick={() => setBusy('shake')}
           >
-            <Sparkles size={20} strokeWidth={2.5} />
+            <ShakerArt size={34} />
             Shake
           </button>
           <button
@@ -376,7 +374,7 @@ export default function Station() {
             disabled={!!busy}
             onClick={() => setBusy('stir')}
           >
-            <RotateCcw size={20} strokeWidth={2.5} />
+            <StirArt size={34} />
             Stir
           </button>
         </div>
