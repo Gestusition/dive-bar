@@ -300,13 +300,10 @@ a {
   box-shadow: 0 0 10px #f6b545;
   opacity: 0;
 }
-.title-option:hover,
-.title-option:focus-visible,
-.title-option.main {
+.title-option.active {
   color: #f6b545;
 }
-.title-option:hover::before,
-.title-option:focus-visible::before {
+.title-option.active::before {
   opacity: 1;
 }
 @keyframes flicker {

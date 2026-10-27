@@ -44,6 +44,13 @@ function useExit(show: boolean, ms: number) {
 const SHIFT = 420;
 function Title() {
   const { loaded, hasSave, start, saveError } = useGame();
+  // One highlighted option at a time; it follows the pointer and keyboard focus.
+  const [active, setActive] = useState(0);
+  const option = (i: number) => ({
+    className: 'title-option ' + (active === i ? 'active' : ''),
+    onMouseEnter: () => setActive(i),
+    onFocus: () => setActive(i),
+  });
   return (
     <main
       className="title-screen"
@@ -65,13 +72,13 @@ function Title() {
               lockLandscape();
               start();
             }}
-            className="title-option main"
+            {...option(0)}
           >
             {loaded ? (hasSave ? 'Continue' : 'Play') : 'Loading…'}
           </button>
           {hasSave && (
             <button
-              className="title-option"
+              {...option(1)}
               onClick={() => {
                 if (
                   confirm(
