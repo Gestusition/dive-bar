@@ -1041,22 +1041,28 @@ a {
   font-size: 15px;
 }
 .guest-card-snacks {
-  display: flex;
+  /* Two equal buttons that always stay inside the card. */
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 6px;
 }
 .guest-card-snacks button {
-  flex: 1;
+  min-width: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  padding: 6px 4px;
+  gap: 3px;
+  padding: 6px 2px;
   border: var(--line-thin);
   border-radius: var(--r-sm);
   background: var(--cream);
-  font-size: 15px;
-  font-weight: 400;
+  font-size: 13px;
+  font-weight: 600;
   white-space: nowrap;
+  overflow: hidden;
+}
+.guest-card-snacks button:only-child {
+  grid-column: 1 / -1;
 }
 .guest-card-snacks button:hover:not(:disabled) {
   background: var(--accent-soft);
