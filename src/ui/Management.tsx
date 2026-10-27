@@ -1,18 +1,17 @@
-import './management.css';
 import { useState } from 'react';
 import { Check, Receipt, GlassWater } from 'lucide-react';
 import { recipes, prices, recipeById, money, stockItems, names, snacks } from '../game/content';
 import { useGame } from '../game/store';
 import { Button } from '../components/ui/button';
+import { DrinkArt } from './art';
 
 export function MenuPanel() {
   const { game, act } = useGame();
   const editable = ['opening', 'recap'].includes(game.phase);
   return (
     <>
-      <p className="muted">
-        Choose one to six drinks for tonight. Everything is available at the Practice Bench.{' '}
-        {game.activeMenu.length}/6 selected.
+      <p className="hint">
+        Pick 1 to 6 drinks. <b>{game.activeMenu.length}/6 selected</b>
       </p>
       <div className="menu-catalogue">
         {recipes.map((r) => (
@@ -23,20 +22,16 @@ export function MenuPanel() {
             onClick={() => act({ type: 'toggleMenu', id: r.id })}
           >
             <span className="menu-check">
-              {game.activeMenu.includes(r.id) ? <Check size={15} /> : null}
+              {game.activeMenu.includes(r.id) ? <Check size={14} strokeWidth={3} /> : null}
             </span>
-            <span>
-              <strong>{r.name}</strong>
-              <small>{r.source.publisher ?? 'International Bartenders Association'}</small>
-            </span>
+            <DrinkArt size={36} id={r.id} />
+            <strong>{r.name}</strong>
             <b>{money(prices[r.id])}</b>
           </button>
         ))}
       </div>
       {!editable && (
-        <p className="muted">
-          Change the menu between shifts. Current orders keep their original recipe and price.
-        </p>
+        <p className="hint">You can change the menu before opening or after closing.</p>
       )}
     </>
   );
@@ -69,9 +64,8 @@ export function StockPanel() {
   const total = rows.reduce((sum, i) => sum + Math.ceil((quantities[i.id] ?? 0) * i.cost), 0);
   return (
     <>
-      <p className="muted">
-        Suggested quantities bring the shelves back to par. Edit them before buying.{' '}
-        {money(game.cash)} in the till.
+      <p className="hint">
+        Amounts are set to fill the shelves. Till: {money(game.cash)} in the till.
       </p>
       <div className="stock-list">
         {rows
@@ -108,8 +102,8 @@ export function StockPanel() {
       {rows.every((r) => r.current >= r.par) && (
         <div className="quiet-state">
           <GlassWater />
-          <h3>Shelves looking lovely.</h3>
-          <p>Nothing to buy. Check stock and carry on.</p>
+          <h3>Shelves are full</h3>
+          <p>Nothing to buy tonight.</p>
         </div>
       )}
       <div className="stock-total">
@@ -124,7 +118,7 @@ export function StockPanel() {
           setPanel('floor');
         }}
       >
-        {total ? 'Confirm restock' : 'Stock checked · no purchase'}
+        {total ? 'Buy for ' + money(total) : 'Done, nothing to buy'}
       </Button>
       {total > game.cash && (
         <p className="error-text">Adjust the quantities to stay within the till.</p>
@@ -138,9 +132,8 @@ export function PosPanel() {
   const tabs = game.guests.filter((g) => g.charge > 0 && !g.paid);
   return (
     <>
-      <p className="muted">
-        Split a bill, collect each share, and keep the rounding on the last one. Tips are counted
-        once, when the tab closes.
+      <p className="hint">
+        Split a bill or settle it in one go. Tips are added when the tab closes.
       </p>
       {tabs.length ? (
         tabs.map((g) => (
@@ -165,7 +158,7 @@ export function PosPanel() {
                 </button>
               ))}
             </div>
-            <p className="muted">
+            <p className="hint">
               Paid {money(g.paidAmount)} · Remaining {money(g.charge - g.paidAmount)}
             </p>
             <div className="payment-shares">
@@ -198,15 +191,15 @@ export function PosPanel() {
               })}
             </div>
             {g.status !== 'pay' && (
-              <small className="muted">They’re still enjoying their drink.</small>
+              <small className="hint">Still drinking — they’ll be ready soon.</small>
             )}
           </div>
         ))
       ) : (
         <div className="quiet-state">
           <Receipt size={30} />
-          <h3>No open bills.</h3>
-          <p>The till is happy.</p>
+          <h3>No open tabs</h3>
+          <p>Everyone has paid.</p>
         </div>
       )}
     </>

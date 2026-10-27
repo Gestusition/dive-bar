@@ -1,0 +1,391 @@
+/* ---------- The counter, one step at a time ----------
+   Prep → Pour → Mix → Garnish. Only the current step's controls are shown,
+   so the player always knows what to do next. */
+.bench {
+  grid-area: station;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--cream);
+  border-left: var(--line);
+  z-index: 4;
+}
+.bench-zoom {
+  zoom: var(--drawer-scale);
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.bench-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 18px 12px;
+}
+.bench-back {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  background: var(--paper);
+  border: var(--line);
+  border-radius: 50%;
+  box-shadow: 0 3px 0 var(--ink);
+}
+.bench-title {
+  flex: 1;
+  min-width: 0;
+}
+.bench-title h2 {
+  font-size: 34px;
+  line-height: 1;
+}
+.bench-title small {
+  display: block;
+  margin-top: 2px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.bench-recipe {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: var(--paper);
+  border: var(--line);
+  border-radius: 99px;
+  box-shadow: 0 3px 0 var(--ink);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+/* Step tracker */
+.bench-steps {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin: 0 18px;
+  padding: 6px;
+  background: var(--paper);
+  border: var(--line);
+  border-radius: 99px;
+}
+.bench-steps button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 38px;
+  border-radius: 99px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+.bench-steps i {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border: var(--line-thin);
+  border-radius: 50%;
+  font-style: normal;
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--paper);
+  color: var(--ink);
+}
+.bench-steps .done i {
+  background: var(--leaf);
+  color: var(--paper);
+}
+.bench-steps .current {
+  background: var(--accent);
+  color: var(--ink);
+  box-shadow: inset 0 0 0 2px var(--ink);
+}
+
+/* Current step */
+.bench-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 18px;
+}
+.bench-hint {
+  font-size: 15px;
+  color: var(--ink-soft);
+}
+.bench-hint b {
+  color: var(--ink);
+}
+.bench-group h3 {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin-bottom: 8px;
+}
+.bench-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
+  gap: 8px;
+}
+.bench-tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 6px 8px;
+  background: var(--paper);
+  border: var(--line);
+  border-radius: var(--r-md);
+  box-shadow: var(--lift);
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.2;
+}
+.bench-tile[aria-pressed='true'] {
+  background: var(--accent);
+}
+.bench-tile.done {
+  background: #dcefcf;
+}
+.bench-tile .tag {
+  position: absolute;
+  top: -9px;
+  right: -6px;
+  padding: 1px 7px;
+  background: var(--ink);
+  color: var(--paper);
+  border-radius: 99px;
+  font-size: 11px;
+}
+
+/* Pour: one row per ingredient of the recipe */
+.pour-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--paper);
+  border: var(--line);
+  border-radius: var(--r-md);
+}
+.pour-row.next {
+  box-shadow: var(--lift);
+  background: #fff8ea;
+}
+.pour-row.done {
+  background: #dcefcf;
+}
+.pour-name strong {
+  display: block;
+  font-size: 16px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pour-meter {
+  position: relative;
+  height: 10px;
+  margin-top: 6px;
+  background: #eadcc2;
+  border: var(--line-thin);
+  border-radius: 99px;
+  overflow: hidden;
+}
+.pour-meter i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--liquid, var(--sun));
+}
+.pour-meter b {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  width: 2px;
+  background: var(--ink);
+}
+.pour-name small {
+  display: block;
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+.pour-amount {
+  display: flex;
+  align-items: center;
+  border: var(--line-thin);
+  border-radius: 99px;
+  background: var(--cream);
+}
+.pour-amount button {
+  width: 32px;
+  height: 32px;
+  font-size: 18px;
+  font-weight: 700;
+}
+.pour-amount output {
+  min-width: 56px;
+  text-align: center;
+  font-size: 15px;
+  font-weight: 700;
+}
+.pour-row .button {
+  min-height: 40px;
+  padding: 6px 16px;
+  font-size: 15px;
+}
+.pour-row.done .pour-amount,
+.pour-row.done .button {
+  visibility: hidden;
+}
+.pour-check {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  background: var(--leaf);
+  color: var(--paper);
+  border: var(--line-thin);
+  border-radius: 50%;
+}
+.bench-more {
+  align-self: flex-start;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  color: var(--ink-soft);
+}
+.bench-progress {
+  height: 14px;
+  background: var(--paper);
+  border: var(--line-thin);
+  border-radius: 99px;
+  overflow: hidden;
+}
+.bench-progress i {
+  display: block;
+  height: 100%;
+  background: var(--leaf);
+}
+
+/* Footer: one clear next action */
+.bench-foot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 18px 16px;
+  background: var(--blush);
+  border-top: var(--line);
+}
+.bench-score {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+.bench-score strong {
+  display: block;
+  font-size: 16px;
+  color: var(--ink);
+}
+.bench-foot .button {
+  flex-shrink: 0;
+}
+
+.bench-pick {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  padding: 2px 10px;
+  background: var(--accent-soft);
+  border: var(--line-thin);
+  border-radius: 99px;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.bench-zoom {
+  position: relative;
+}
+/* The drink picker opens inside the counter, never past its edges. */
+.bench-picker {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 18px;
+  background: var(--cream);
+  animation: drawer-swap 0.22s ease;
+}
+.bench-picker header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.bench-picker h3 {
+  font-size: 26px;
+}
+.bench-picker .bench-tiles {
+  overflow-y: auto;
+  min-height: 0;
+  padding: 10px 4px 8px;
+  grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
+}
+.bench-tile .garnish-dot.big {
+  width: 30px;
+  height: 30px;
+  margin: 3px 0;
+  border-width: 3px;
+}
+
+/* Short phones (S8+ landscape and up): tighter tiles so each step fits. */
+@media (max-height: 440px) {
+  .bench-body {
+    gap: 8px;
+    padding: 10px 18px;
+  }
+  .bench-tiles {
+    grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+    gap: 6px;
+  }
+  .bench-tile {
+    padding: 6px 4px 5px;
+    font-size: 13px;
+  }
+  .bench-tile svg {
+    width: 32px;
+    height: 32px;
+  }
+  .bench-group h3 {
+    margin-bottom: 5px;
+  }
+  .bench-top {
+    padding: 10px 18px 8px;
+  }
+  .pour-row {
+    padding: 7px 10px;
+  }
+}

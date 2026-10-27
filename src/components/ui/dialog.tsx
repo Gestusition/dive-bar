@@ -6,12 +6,14 @@ export function Dialog({
   onOpenChange,
   title,
   description,
+  art,
   children,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   title: string;
   description?: string;
+  art?: ReactNode;
   children: ReactNode;
 }) {
   return (
@@ -20,14 +22,13 @@ export function Dialog({
         <Primitive.Overlay className="dialog-overlay" />
         <Primitive.Content className="dialog-content">
           <header>
-            <div>
-              <Primitive.Title>{title}</Primitive.Title>
-              <Primitive.Description className="muted">
-                {description ?? 'Take your time. The bar is paused.'}
-              </Primitive.Description>
-            </div>
-            <Primitive.Close className="icon-button" aria-label="Close dialog">
-              <X size={20} />
+            {art && <span className="dialog-art">{art}</span>}
+            <Primitive.Title>{title}</Primitive.Title>
+            <Primitive.Description className="sr-only">
+              {description ?? 'The game is paused while this window is open.'}
+            </Primitive.Description>
+            <Primitive.Close className="close-button" aria-label="Close dialog">
+              <X size={20} strokeWidth={3} />
             </Primitive.Close>
           </header>
           <div className="dialog-scroll">{children}</div>

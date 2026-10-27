@@ -1,4 +1,7 @@
 import { quality } from './quality';
+import { seats } from './navigation';
+// Long enough for a guest to walk from the far table out of the front door.
+const leaveTime = 6;
 export { quality } from './quality';
 import {
   conversations,
@@ -329,7 +332,7 @@ function tick(s: Game, dt: number) {
       s.dirtyGlasses++;
     } else if (['ordered', 'ready', 'waiting'].includes(g.status) && g.remaining <= 0) {
       g.status = g.charge > g.paidAmount ? 'pay' : 'leaving';
-      g.remaining = g.status === 'pay' ? 90 : 3;
+      g.remaining = g.status === 'pay' ? 90 : leaveTime;
       s.stats.cancelled++;
       s.notice = g.name + ' couldn’t wait any longer. Take a breath; the next one is yours.';
       s.spawnIn = Math.max(s.spawnIn, 35);
@@ -343,11 +346,11 @@ function tick(s: Game, dt: number) {
     }
     if (s.seconds >= 360 && ['waiting', 'reading', 'ready'].includes(g.status)) {
       g.status = 'leaving';
-      g.remaining = 3;
+      g.remaining = leaveTime;
     }
     if (s.seconds >= 510 && g.status === 'ordered') {
       g.status = g.charge > g.paidAmount ? 'pay' : 'leaving';
-      g.remaining = g.status === 'pay' ? 90 : 3;
+      g.remaining = g.status === 'pay' ? 90 : leaveTime;
       s.stats.cancelled++;
     }
   }
@@ -575,7 +578,9 @@ export function reduceGame(current: Game, a: Action): Game {
       }
       const used = new Set(active(s).map((g) => g.seat));
       g.seat =
-        Array.from({ length: 4 }, (_, i) => (i + g.id - 1) % 4).find((i) => !used.has(i)) ?? 0;
+        Array.from({ length: seats.length }, (_, i) => (i + g.id - 1) % seats.length).find(
+          (i) => !used.has(i),
+        ) ?? 0;
       g.status = 'reading';
       g.remaining = 8;
       note(g.name + ' has a menu. Give them a moment to choose.');
@@ -648,7 +653,7 @@ export function reduceGame(current: Game, a: Action): Game {
       s.stats.tips += tip;
       g.paid = true;
       g.status = 'leaving';
-      g.remaining = 3;
+      g.remaining = leaveTime;
       s.visitCount[g.customerId] = (s.visitCount[g.customerId] ?? 0) + 1;
       note(g.name + ' settled up. Tip: $' + (tip / 100).toFixed(2));
     }
@@ -685,7 +690,7 @@ export function reduceGame(current: Game, a: Action): Game {
           .filter((x) => x.id !== g.id)
           .map((x) => x.seat),
       );
-      const seat = [0, 1, 2, 3].find((i) => i !== g.seat && !used.has(i));
+      const seat = seats.map((_, i) => i).find((i) => i !== g.seat && !used.has(i));
       if (seat !== undefined) {
         g.seat = seat;
         note('A quieter corner for ' + g.name + '.');
@@ -846,7 +851,7 @@ export function reduceGame(current: Game, a: Action): Game {
       g.recipeId = ch.orderChange;
     if (ch.result === 'cancel' || ch.result === 'decline') {
       g.status = 'leaving';
-      g.remaining = 3;
+      g.remaining = leaveTime;
       if (ch.result === 'cancel') {
         s.stats.cancelled++;
         s.spawnIn = Math.max(s.spawnIn, 35);

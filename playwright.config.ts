@@ -37,15 +37,8 @@ export default defineConfig({
       name: 'desktop',
       use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 1000 } },
     },
-    { name: 'touch', use: { ...devices['Pixel 7'] } },
-    {
-      name: 'webkit',
-      use: {
-        ...devices['Desktop Safari'],
-        viewport: { width: 390, height: 844 },
-        hasTouch: true,
-        deviceScaleFactor: 1,
-      },
-    },
+    // Phones are played on their side; the smallest target is a Galaxy S8+.
+    { name: 'touch', use: { ...devices['Galaxy S8 landscape'] } },
+    { name: 'webkit', use: { ...devices['iPhone 13 landscape'] } },
   ],
 });

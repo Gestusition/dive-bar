@@ -41,8 +41,9 @@ interface Store {
   bartenderPosition: FloorPoint;
   act: (a: Action) => void;
   setPanel: (p: Panel) => void;
-  select: (id: number) => void;
+  select: (id: number | null) => void;
   start: (fresh?: boolean) => void;
+  toTitle: () => void;
   pause: () => void;
   boot: () => Promise<void>;
   talk: (id: number) => void;
@@ -120,6 +121,11 @@ export const useGame = create<Store>((set, get) => ({
     else if (get().game.phase === 'title') get().act({ type: 'start' });
     set({ title: false, paused: false, panel: 'floor' });
     sound('coin');
+  },
+  // Save and go back to the title screen; Continue picks up from here.
+  toTitle: () => {
+    persist(get().game);
+    set({ title: true, hasSave: true, paused: false, panel: 'floor', tasks: [], selected: null });
   },
   pause: () => set((s) => ({ paused: !s.paused })),
   boot: async () => {

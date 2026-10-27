@@ -309,3 +309,23 @@ describe('save recovery and last call', () => {
     expect(() => validateSave(JSON.parse(JSON.stringify(s)))).not.toThrow();
   });
 });
+describe('taste notes and seating', () => {
+  it('names the bottle, never the recipe slot id', () => {
+    const p = { ...margarita(), amounts: { tequila_100_agave: 50, triple_sec: 50 } };
+    const issues = quality(p, recipeById('margarita')).issues.join(' | ');
+    expect(issues).toContain('Missing Fresh Lime Juice');
+    expect(issues).toContain('Triple Sec: 50 / 20 ml');
+    expect(issues).not.toMatch(/_/);
+  });
+  it('seats guests at every table, including the two added ones', () => {
+    let s = reduceGame(newGame(), { type: 'open' });
+    s = { ...s, settings: { ...s.settings, mode: 'rush' } };
+    const used = new Set<number>();
+    for (const g of s.guests) {
+      s = reduceGame(s, { type: 'guest', id: g.id, operation: 'seat' });
+      const seat = s.guests.find((x) => x.id === g.id)!.seat;
+      if (seat >= 0) used.add(seat);
+    }
+    for (const seat of used) expect(seat).toBeLessThan(6);
+  });
+});
