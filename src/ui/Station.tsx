@@ -172,9 +172,18 @@ export default function Station() {
     }, 100);
   };
   const pourMeasured = (bottle: string, amount: number) => {
-    prepAction('measure', { ingredient: bottle, amount });
+    // An old save can still hold a measure in the jigger; tip it in first.
+    if (prep.measure) prepAction('transfer');
+    const unit = ingredients.find((i) => i.id === bottle)?.unit;
+    // The engine measures dashes and pieces one at a time.
+    if (unit === 'ml') prepAction('measure', { ingredient: bottle, amount });
+    else for (let n = 0; n < amount; n++) prepAction('measure', { ingredient: bottle, amount: 1 });
     prepAction('transfer');
   };
+  // What is in the tin, plus what is mid-pour in the jigger.
+  const poured = (ids: string[]) =>
+    ids.reduce((sum, a) => sum + (prep.amounts[a] ?? 0), 0) +
+    (prep.measure && ids.includes(prep.measure.id) ? prep.measure.quantity : 0);
 
   // Every bottle the recipe calls for, plus any other bottle the player opens.
   const rows = [
@@ -185,7 +194,7 @@ export default function Station() {
       label: r.allowed.map((a) => names[a]).join(' or '),
       target: r.quantity,
       unit: r.unit,
-      have: r.allowed.reduce((sum, a) => sum + (prep.amounts[a] ?? 0), 0),
+      have: poured(r.allowed),
     })),
     ...(showAll
       ? ingredients
@@ -203,7 +212,7 @@ export default function Station() {
             label: i.name,
             target: null as number | null,
             unit: i.unit,
-            have: prep.amounts[i.id] ?? 0,
+            have: poured([i.id]),
           }))
       : []),
   ];
