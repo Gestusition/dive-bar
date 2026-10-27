@@ -58,7 +58,14 @@ function Title() {
           <span className="pink">Bar</span>
         </h1>
         <nav className="title-menu">
-          <button disabled={!loaded} onClick={() => start()} className="title-option main">
+          <button
+            disabled={!loaded}
+            onClick={() => {
+              lockLandscape();
+              start();
+            }}
+            className="title-option main"
+          >
             {loaded ? (hasSave ? 'Continue' : 'Play') : 'Loading…'}
           </button>
           {hasSave && (
@@ -818,6 +825,37 @@ function Hud({
     </aside>
   );
 }
+/** On phones, go full screen and hold landscape where the browser allows it. */
+function lockLandscape() {
+  if (!window.matchMedia('(pointer: coarse)').matches) return;
+  const orientation = screen.orientation as ScreenOrientation & {
+    lock?: (o: 'landscape') => Promise<void>;
+  };
+  document.documentElement
+    .requestFullscreen?.()
+    .then(() => orientation.lock?.('landscape'))
+    .catch(() => {});
+}
+/** Covers the game on phones held upright; the bar only works in landscape. */
+function RotateNotice() {
+  return (
+    <div className="rotate-notice" role="alert">
+      <svg
+        className="art rotate-phone"
+        viewBox="0 0 64 64"
+        width="96"
+        height="96"
+        aria-hidden="true"
+      >
+        <rect x="20" y="6" width="24" height="52" rx="5" fill="#fbf3e4" />
+        <rect x="24" y="12" width="16" height="36" rx="2" fill="#f6b545" />
+        <circle cx="32" cy="53" r="1.6" fill="#231a24" />
+      </svg>
+      <h2>Turn your phone sideways</h2>
+      <p>Dive Bar is played in landscape.</p>
+    </div>
+  );
+}
 export default function App() {
   const {
     game,
@@ -882,7 +920,13 @@ export default function App() {
     window.addEventListener('keydown', handler, true);
     return () => window.removeEventListener('keydown', handler, true);
   }, []);
-  if (title) return <Title />;
+  if (title)
+    return (
+      <>
+        <Title />
+        <RotateNotice />
+      </>
+    );
   const guest = game.guests.find((g) => g.id === selected);
   const recipeId = selected === -1 ? practiceRecipe : (guest?.recipeId ?? practiceRecipe);
   const focusPanel = [
@@ -1008,6 +1052,7 @@ export default function App() {
           </div>
         </div>
       )}
+      <RotateNotice />
     </div>
   );
 }
