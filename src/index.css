@@ -2453,3 +2453,19 @@ a {
 .pause-overlay .phase-card {
   zoom: var(--drawer-scale);
 }
+/* Short phones: the how-to-play steps sit in two columns so they fit. */
+@media (max-height: 440px) {
+  .dialog-scroll {
+    padding: 14px;
+    gap: 10px;
+  }
+  .help-content ol {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .help-content li {
+    padding: 8px 10px;
+  }
+}
