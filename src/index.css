@@ -2537,7 +2537,7 @@ a {
 }
 /* Very short screens (an iPhone on its side, under Safari's bars): keep the
    values but drop the stat pictures so the buttons still fit. */
-@media (max-height: 320px) {
+@media (max-height: 350px) {
   .rail {
     gap: 4px;
     padding: 4px 6px;
@@ -2560,5 +2560,11 @@ a {
   .rail .rail-tile svg {
     width: calc(var(--u) * 5);
     height: calc(var(--u) * 5);
+  }
+}
+/* Shortest screens: the tiles keep their pictures, the labels go to tooltips. */
+@media (max-height: 300px) {
+  .rail-tile small {
+    display: none;
   }
 }

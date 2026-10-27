@@ -668,6 +668,8 @@ function RailTile({
     <button
       className={'rail-tile ' + (active ? 'active ' : '') + (attention ? 'attention' : '')}
       aria-pressed={active}
+      aria-label={label}
+      title={label}
       onClick={onClick}
     >
       {art}
