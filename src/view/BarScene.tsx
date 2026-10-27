@@ -10,7 +10,12 @@ import {
   bartenderHome,
   entrance,
   guestPosition,
+  guestPath,
+  guestSpeed,
+  stepAlong,
+  tables,
   walkingSpeed,
+  type FloorPoint,
 } from '../game/navigation';
 import { cornerPlantParts } from '../game/room-layout';
 import { CocktailArt, CoinArt, HeartArt } from '../ui/art';
@@ -66,21 +71,22 @@ function roomParts() {
         ['#ab7851', '#b48359', '#a16d49', '#ba8b62'][(x * 7 + z * 3) % 4],
       );
   box(0, 7.6, -4.55, 15.8, 15.4, 0.25, '#6b463b');
-  // Left wall with the front door: a gap near the front, framed, with the
-  // door swung open into the room so the straight-on camera can see it.
-  box(-7.8, 1.55, -0.5, 0.25, 3.3, 8.1, '#744b3c');
-  box(-7.8, 1.55, 5, 0.25, 3.3, 0.3, '#744b3c');
-  box(-7.8, 2.85, 4.2, 0.25, 0.7, 1.3, '#744b3c');
-  box(-7.8, 2.4, 4.2, 0.4, 0.2, 1.5, dark);
-  for (const z of [3.5, 4.9]) box(-7.8, 1.2, z, 0.4, 2.4, 0.14, dark);
-  box(-7.3, 1.12, 3.52, 1, 2.2, 0.09, '#5a3a2c');
-  box(-7.3, 1.6, 3.58, 0.62, 0.62, 0.03, '#f3c56a');
-  box(-7.3, 1.6, 3.6, 0.04, 0.62, 0.02, dark);
-  box(-7.3, 1.6, 3.6, 0.62, 0.04, 0.02, dark);
-  box(-7.3, 0.55, 3.58, 0.7, 0.62, 0.03, '#6e4733');
-  box(-6.92, 1.08, 3.6, 0.09, 0.09, 0.07, brass);
-  box(-7.05, 0.075, 4.2, 0.95, 0.02, 1.15, '#3f6b5e');
-  for (const dz of [-0.35, 0, 0.35]) box(-7.05, 0.09, 4.2 + dz, 0.8, 0.01, 0.07, cream);
+  // Left wall with the front door ahead of the tables. The door is hinged on
+  // the front jamb and swung into the room so the straight-on camera sees it
+  // and it never stands in the guests' way.
+  box(-7.8, 1.55, 0.675, 0.25, 3.3, 10.45, '#744b3c');
+  box(-7.8, 1.55, 7.45, 0.25, 3.3, 0.7, '#744b3c');
+  box(-7.8, 2.85, 6.5, 0.25, 0.7, 1.2, '#744b3c');
+  box(-7.8, 2.4, 6.5, 0.4, 0.2, 1.4, dark);
+  for (const z of [5.9, 7.1]) box(-7.8, 1.2, z, 0.4, 2.4, 0.14, dark);
+  box(-7.3, 1.12, 7.02, 1, 2.2, 0.09, '#5a3a2c');
+  box(-7.3, 1.6, 7.08, 0.62, 0.62, 0.03, '#f3c56a');
+  box(-7.3, 1.6, 7.1, 0.04, 0.62, 0.02, dark);
+  box(-7.3, 1.6, 7.1, 0.62, 0.04, 0.02, dark);
+  box(-7.3, 0.55, 7.08, 0.7, 0.62, 0.03, '#6e4733');
+  box(-6.92, 1.08, 7.1, 0.09, 0.09, 0.07, brass);
+  box(-7.05, 0.075, 6.5, 0.95, 0.02, 1.1, '#3f6b5e');
+  for (const dz of [-0.35, 0, 0.35]) box(-7.05, 0.09, 6.5 + dz, 0.8, 0.01, 0.07, cream);
   for (let i = 0; i < 16; i++) box(i - 7.5, 0.7, -4.37, 0.05, 1.55, 0.1, brass);
   box(0, 0.12, -4.32, 15.5, 0.18, 0.18, dark);
   box(0, 3.15, -4.3, 15.5, 0.15, 0.2, dark);
@@ -119,12 +125,7 @@ function roomParts() {
   box(-2.4, 1.32, -1.7, 0.58, 0.12, 0.6, '#617d7a');
   box(-2.4, 1.38, -1.7, 0.4, 0.05, 0.4, '#bdc9bc');
   // Two tables and low cushioned chairs.
-  for (const [x, z] of [
-    [-2.7, 2],
-    [2.25, 2.25],
-    [-6.1, 2.4],
-    [6.2, 2.2],
-  ]) {
+  for (const [x, z] of tables) {
     box(x, 0.78, z, 1.75, 0.15, 1.45, '#d3a36c');
     box(x, 0.36, z, 0.23, 0.75, 0.23, dark);
     box(x, 0.08, z, 1, 0.12, 0.8, dark);
@@ -209,12 +210,28 @@ function Person({ guest, guestGroups }: { guest: Guest; guestGroups: SceneRefs['
   );
   const body = useMemo(() => geometry(personParts(guest.customerId)), [guest.customerId]);
   const setSelected = useGame((s) => s.select);
+  // Where the guest is standing on the floor. New guests start in the doorway.
+  const floor = useRef<FloorPoint>(
+    guest.status === 'waiting'
+      ? [entrance[0], entrance[2]]
+      : [guestPosition(guest)[0], guestPosition(guest)[2]],
+  );
+  const path = useRef<{ to: string; points: FloorPoint[] }>({ to: '', points: [] });
   useFrame(({ clock }, delta) => {
     if (!ref.current) return;
-    const target = new THREE.Vector3(...guestPosition(guest));
-    if (useGame.getState().game.settings.reducedMotion) ref.current.position.copy(target);
-    else ref.current.position.lerp(target, 1 - Math.exp(-delta * 4));
-    const moving = ref.current.position.distanceTo(target) > 0.05;
+    const [tx, ty, tz] = guestPosition(guest);
+    if (useGame.getState().game.settings.reducedMotion) floor.current = [tx, tz];
+    else {
+      // Plan a new route only when the destination changes.
+      const key = tx + ',' + tz;
+      if (path.current.to !== key)
+        path.current = { to: key, points: guestPath(floor.current, [tx, tz]) };
+      const next = stepAlong(floor.current, path.current.points, guestSpeed * Math.min(delta, 0.1));
+      floor.current = next.position;
+      path.current.points = next.path;
+    }
+    const moving = Math.hypot(floor.current[0] - tx, floor.current[1] - tz) > 0.001;
+    ref.current.position.set(floor.current[0], moving ? 0 : ty, floor.current[1]);
     ref.current.rotation.z = moving
       ? Math.sin(clock.elapsedTime * 9) * 0.045
       : Math.sin(clock.elapsedTime * 1.5 + guest.id) * 0.009;
@@ -235,7 +252,7 @@ function Person({ guest, guestGroups }: { guest: Guest; guestGroups: SceneRefs['
         ref.current = group;
         setGroup(group);
       }}
-      position={guest.status === 'waiting' ? entrance : guestPosition(guest)}
+      position={[floor.current[0], 0, floor.current[1]]}
     >
       <mesh
         geometry={body}
@@ -287,7 +304,7 @@ function Camera() {
       new THREE.Vector3(0, station ? 8 : 14, station ? 9 : 17),
       useGame.getState().game.settings.reducedMotion ? 1 : 1 - Math.exp(-dt * 4),
     );
-    const target = new THREE.Vector3(0, station ? 1 : 1.4, station ? -1.7 : -0.9);
+    const target = new THREE.Vector3(0, 1, station ? -1.7 : 0.9);
     camera.lookAt(target);
     if (camera instanceof THREE.OrthographicCamera) {
       // A straight-on view of the counter. The room's width always fills the
