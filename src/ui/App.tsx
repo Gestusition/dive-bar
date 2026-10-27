@@ -45,7 +45,9 @@ const SHIFT = 420;
 function Title() {
   const { loaded, hasSave, start, saveError, game } = useGame();
   // One highlighted option at a time; it follows the pointer and keyboard focus.
-  const [active, setActive] = useState(0);
+  // With a save, Continue starts highlighted; a first-time Play stays plain until pointed at.
+  const [hovered, setActive] = useState<number | null>(null);
+  const active = hovered ?? (hasSave ? 0 : -1);
   const option = (i: number) => ({
     className: 'title-option ' + (active === i ? 'active' : ''),
     onMouseEnter: () => setActive(i),
