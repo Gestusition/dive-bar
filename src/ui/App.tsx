@@ -678,6 +678,12 @@ function Hud({
     const t = setTimeout(() => setShown(null), 320);
     return () => clearTimeout(t);
   }, [drawer, reduced]);
+  // Keep the counter label and toasts clear of the open drawer.
+  useEffect(() => {
+    const wide = window.matchMedia('(min-width: 761px)').matches;
+    const covered = drawer && wide ? (drawer === 'phase' ? 300 : 360) : 0;
+    document.documentElement.style.setProperty('--scene-inset', covered + 'px');
+  }, [drawer]);
   const phaseTile =
     phase === 'opening'
       ? { label: 'Get ready', art: <CocktailArt size={40} />, title: 'Get ready' }

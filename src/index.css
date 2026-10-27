@@ -373,6 +373,7 @@ a {
 /* ---------- Side panel: compact rail plus an opening drawer ---------- */
 .hud {
   grid-area: hud;
+  position: relative;
   display: flex;
   min-height: 0;
   background: var(--blush);
@@ -381,6 +382,9 @@ a {
 }
 .rail {
   /* Everything in the rail sizes from the viewport so it always fits without scrolling. */
+  position: relative;
+  z-index: 2;
+  background: var(--blush);
   --u: min(1.28dvh, 1.1vw);
   width: clamp(84px, calc(var(--u) * 11), 140px);
   flex-shrink: 0;
@@ -497,36 +501,39 @@ a {
   box-shadow: 0 1px 0 var(--ink);
 }
 .drawer {
-  /* Slides open from the rail; width animates so the bar rescales smoothly. */
-  width: 0;
-  min-height: 0;
-  overflow: hidden;
+  /* Slides straight out from behind the rail over the scene. Only its
+     position animates, on the compositor, and the bar underneath stays put. */
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 100%;
+  width: var(--drawer-w);
   display: flex;
-  justify-content: flex-end;
-  transition: width 0.34s cubic-bezier(0.22, 1, 0.36, 1);
+  translate: 100% 0;
+  visibility: hidden;
+  will-change: translate;
+  transition:
+    translate 0.42s cubic-bezier(0.22, 1, 0.36, 1),
+    visibility 0s linear 0.42s;
 }
 .drawer.open {
-  width: var(--drawer-w);
+  translate: 0 0;
+  visibility: visible;
+  transition:
+    translate 0.42s cubic-bezier(0.22, 1, 0.36, 1),
+    visibility 0s;
 }
 .drawer-inner {
-  flex-shrink: 0;
-  width: var(--drawer-w);
+  flex: 1;
   display: flex;
   flex-direction: column;
   min-height: 0;
   background: var(--paper);
-  border-right: var(--line);
-  opacity: 0;
-  translate: 24px 0;
-  transition:
-    opacity 0.18s ease,
-    translate 0.34s cubic-bezier(0.22, 1, 0.36, 1);
+  border-left: var(--line);
+  box-shadow: -6px 0 0 #231a2422;
 }
 .drawer.open .drawer-inner {
-  opacity: 1;
-  translate: 0 0;
-  transition-delay: 0.06s;
-  animation: drawer-swap 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+  animation: drawer-swap 0.3s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .drawer-inner > header {
   display: flex;
@@ -606,7 +613,6 @@ a {
 @keyframes drawer-swap {
   from {
     opacity: 0;
-    translate: 0 10px;
   }
 }
 @keyframes nudge {
@@ -744,7 +750,8 @@ a {
   position: absolute;
   bottom: 20px;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translateX(calc(-50% - var(--scene-inset, 0px) / 2));
+  transition: transform 0.42s cubic-bezier(0.22, 1, 0.36, 1);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -804,6 +811,9 @@ a {
   position: absolute;
   top: 18px;
   right: 18px;
+  /* Stays clear of the open drawer, moving with it. */
+  translate: calc(var(--scene-inset, 0px) * -1) 0;
+  transition: translate 0.42s cubic-bezier(0.22, 1, 0.36, 1);
   pointer-events: auto;
   display: flex;
   align-items: center;
@@ -2240,23 +2250,31 @@ a {
   .rail-small button {
     height: 30px;
   }
+  /* On phones the drawer sits in the flow above the rail and pushes the bar
+     up, so it never covers the guests. */
   .drawer {
+    position: static;
     width: auto;
-    max-height: 0;
-    transition: max-height 0.34s cubic-bezier(0.22, 1, 0.36, 1);
+    height: 0;
+    translate: none;
+    overflow: hidden;
+    transition:
+      height 0.36s cubic-bezier(0.22, 1, 0.36, 1),
+      visibility 0s linear 0.36s;
   }
   .drawer.open {
-    width: auto;
-    max-height: 48dvh;
+    height: 44dvh;
+    translate: none;
+    transition:
+      height 0.36s cubic-bezier(0.22, 1, 0.36, 1),
+      visibility 0s;
   }
   .drawer-inner {
-    width: 100%;
-    max-height: 48dvh;
-    border-right: 0;
-    border-bottom: var(--line);
-    translate: 0 16px;
+    border-left: 0;
+    border-top: var(--line);
+    box-shadow: 0 -6px 0 #231a2422;
   }
-  .drawer > header h2 {
+  .drawer-inner > header h2 {
     font-size: 24px;
   }
   .station-panel {

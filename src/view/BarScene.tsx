@@ -348,12 +348,14 @@ function Camera() {
     if (!(camera instanceof THREE.OrthographicCamera)) return;
     // A straight-on view that always fits the room's width and everything
     // from the bar sign down to the front door. The side walls follow the
-    // screen edges, so nothing outside the bar is ever on screen.
+    // screen edges, so nothing outside the bar is ever on screen. The side
+    // drawer slides over the scene; the camera never moves for it.
     const zoom = station
       ? Math.min(size.width / 6.3, size.height / 5.4)
       : Math.min(size.width / 15.8, size.height / 10.3);
-    // Follow panel resizes closely; ease the bigger jump to and from the counter.
-    camera.zoom = reduced ? zoom : THREE.MathUtils.damp(camera.zoom, zoom, station ? 4 : 14, dt);
+    // The drawer is already eased, so follow it closely; ease the bigger jump
+    // to and from the counter more gently.
+    camera.zoom = reduced ? zoom : THREE.MathUtils.damp(camera.zoom, zoom, station ? 4 : 16, dt);
     // Pin the top of the view just above the bar sign, so any spare height
     // goes to the floor rather than to empty wall.
     const up = 0.781,
@@ -366,7 +368,7 @@ function Camera() {
     const position = station
       ? new THREE.Vector3(0, 8, 9)
       : target.clone().add(new THREE.Vector3(0, 13, 16.25));
-    camera.position.lerp(position, reduced ? 1 : 1 - Math.exp(-dt * 4));
+    camera.position.lerp(position, reduced ? 1 : 1 - Math.exp(-dt * (station ? 4 : 16)));
     camera.lookAt(target);
     camera.updateProjectionMatrix();
   });
