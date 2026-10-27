@@ -304,7 +304,7 @@ function Camera() {
       new THREE.Vector3(0, station ? 8 : 14, station ? 9 : 17),
       useGame.getState().game.settings.reducedMotion ? 1 : 1 - Math.exp(-dt * 4),
     );
-    const target = new THREE.Vector3(0, 1, station ? -1.7 : 0.9);
+    const target = new THREE.Vector3(0, 1, station ? -1.7 : 1.3);
     camera.lookAt(target);
     if (camera instanceof THREE.OrthographicCamera) {
       // A straight-on view of the counter. The room's width always fills the
