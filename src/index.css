@@ -2535,3 +2535,30 @@ a {
     gap: 6px;
   }
 }
+/* Very short screens (an iPhone on its side, under Safari's bars): keep the
+   values but drop the stat pictures so the buttons still fit. */
+@media (max-height: 320px) {
+  .rail {
+    gap: 4px;
+    padding: 4px 6px;
+  }
+  .rail-small {
+    gap: 6px;
+  }
+  .rail-stat.calendar svg,
+  .rail-stat.money svg {
+    display: none;
+  }
+  .calendar strong {
+    position: static;
+  }
+  .calendar strong::before {
+    content: 'Night ';
+    font-size: 0.7em;
+    font-weight: 600;
+  }
+  .rail .rail-tile svg {
+    width: calc(var(--u) * 5);
+    height: calc(var(--u) * 5);
+  }
+}
