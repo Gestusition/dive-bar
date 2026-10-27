@@ -274,7 +274,7 @@ function Camera() {
       // scene, so nothing outside the bar is ever on screen.
       const zoom = station
         ? Math.min(size.width / 6.3, size.height / 5.4)
-        : Math.max(size.width / 15.8, size.height / 10);
+        : size.width / 15.8;
       camera.zoom = useGame.getState().game.settings.reducedMotion
         ? zoom
         : THREE.MathUtils.damp(camera.zoom, zoom, 4, dt);
