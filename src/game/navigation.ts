@@ -14,8 +14,14 @@ export const seats: [number, number, number][] = [
   [-6.1, 0.18, 3.35],
   [6.2, 0.18, 3.15],
 ];
+// The front door in the left wall: guests walk in from here and leave by it.
+export const entrance: [number, number, number] = [-7.2, 0, 4.2];
 export const guestPosition = (g: Pick<Guest, 'status' | 'seat'>): [number, number, number] =>
-  g.status === 'waiting' ? [-4.6, 0, 4.1] : (seats[g.seat] ?? [-4.6, 0, 4.1]);
+  g.status === 'waiting'
+    ? [-4.6, 0, 4.1]
+    : g.status === 'leaving'
+      ? entrance
+      : (seats[g.seat] ?? [-4.6, 0, 4.1]);
 export function servicePosition(g: Guest): FloorPoint {
   return [guestPosition(g)[0], g.status === 'waiting' ? 3.3 : frontAisle];
 }

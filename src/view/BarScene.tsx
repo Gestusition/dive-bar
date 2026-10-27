@@ -5,7 +5,13 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { useGame } from '../game/store';
 import { volume, type Guest } from '../game/engine';
-import { advanceWalk, bartenderHome, guestPosition, walkingSpeed } from '../game/navigation';
+import {
+  advanceWalk,
+  bartenderHome,
+  entrance,
+  guestPosition,
+  walkingSpeed,
+} from '../game/navigation';
 import { cornerPlantParts } from '../game/room-layout';
 import { CocktailArt, CoinArt, HeartArt } from '../ui/art';
 import { GuestActions, patience } from '../ui/GuestActions';
@@ -60,7 +66,21 @@ function roomParts() {
         ['#ab7851', '#b48359', '#a16d49', '#ba8b62'][(x * 7 + z * 3) % 4],
       );
   box(0, 7.6, -4.55, 15.8, 15.4, 0.25, '#6b463b');
-  box(-7.8, 1.55, 0.3, 0.25, 3.3, 9.7, '#744b3c');
+  // Left wall with the front door: a gap near the front, framed, with the
+  // door swung open into the room so the straight-on camera can see it.
+  box(-7.8, 1.55, -0.5, 0.25, 3.3, 8.1, '#744b3c');
+  box(-7.8, 1.55, 5, 0.25, 3.3, 0.3, '#744b3c');
+  box(-7.8, 2.85, 4.2, 0.25, 0.7, 1.3, '#744b3c');
+  box(-7.8, 2.4, 4.2, 0.4, 0.2, 1.5, dark);
+  for (const z of [3.5, 4.9]) box(-7.8, 1.2, z, 0.4, 2.4, 0.14, dark);
+  box(-7.3, 1.12, 3.52, 1, 2.2, 0.09, '#5a3a2c');
+  box(-7.3, 1.6, 3.58, 0.62, 0.62, 0.03, '#f3c56a');
+  box(-7.3, 1.6, 3.6, 0.04, 0.62, 0.02, dark);
+  box(-7.3, 1.6, 3.6, 0.62, 0.04, 0.02, dark);
+  box(-7.3, 0.55, 3.58, 0.7, 0.62, 0.03, '#6e4733');
+  box(-6.92, 1.08, 3.6, 0.09, 0.09, 0.07, brass);
+  box(-7.05, 0.075, 4.2, 0.95, 0.02, 1.15, '#3f6b5e');
+  for (const dz of [-0.35, 0, 0.35]) box(-7.05, 0.09, 4.2 + dz, 0.8, 0.01, 0.07, cream);
   for (let i = 0; i < 16; i++) box(i - 7.5, 0.7, -4.37, 0.05, 1.55, 0.1, brass);
   box(0, 0.12, -4.32, 15.5, 0.18, 0.18, dark);
   box(0, 3.15, -4.3, 15.5, 0.15, 0.2, dark);
@@ -215,7 +235,7 @@ function Person({ guest, guestGroups }: { guest: Guest; guestGroups: SceneRefs['
         ref.current = group;
         setGroup(group);
       }}
-      position={guestPosition(guest)}
+      position={guest.status === 'waiting' ? entrance : guestPosition(guest)}
     >
       <mesh
         geometry={body}
@@ -272,9 +292,7 @@ function Camera() {
     if (camera instanceof THREE.OrthographicCamera) {
       // A straight-on view of the counter. The room's width always fills the
       // scene, so nothing outside the bar is ever on screen.
-      const zoom = station
-        ? Math.min(size.width / 6.3, size.height / 5.4)
-        : size.width / 15.8;
+      const zoom = station ? Math.min(size.width / 6.3, size.height / 5.4) : size.width / 15.8;
       camera.zoom = useGame.getState().game.settings.reducedMotion
         ? zoom
         : THREE.MathUtils.damp(camera.zoom, zoom, 4, dt);
