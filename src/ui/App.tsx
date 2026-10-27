@@ -43,7 +43,7 @@ function useExit(show: boolean, ms: number) {
 }
 const SHIFT = 420;
 function Title() {
-  const { loaded, hasSave, start, saveError } = useGame();
+  const { loaded, hasSave, start, saveError, game } = useGame();
   // One highlighted option at a time; it follows the pointer and keyboard focus.
   const [active, setActive] = useState(0);
   const option = (i: number) => ({
@@ -75,6 +75,11 @@ function Title() {
             {...option(0)}
           >
             {loaded ? (hasSave ? 'Continue' : 'Play') : 'Loading…'}
+            {loaded && hasSave && (
+              <small aria-hidden="true">
+                Night {game.day} · {money(game.cash)}
+              </small>
+            )}
           </button>
           {hasSave && (
             <button
