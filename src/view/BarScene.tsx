@@ -7,9 +7,11 @@ import { useGame } from '../game/store';
 import { volume, type Guest } from '../game/engine';
 import { advanceWalk, bartenderHome, guestPosition, walkingSpeed } from '../game/navigation';
 import { cornerPlantParts } from '../game/room-layout';
+import { CocktailArt, CoinArt, HeartArt } from '../ui/art';
+import { GuestActions, patience } from '../ui/GuestActions';
 type Part = [number, number, number, number, number, number, string];
 type OverlayElements = {
-  guests: Map<number, HTMLButtonElement>;
+  guests: Map<number, HTMLElement>;
 };
 type SceneRefs = {
   elements: { current: OverlayElements };
@@ -332,7 +334,7 @@ function Sign({ lit }: { lit: boolean }) {
     c.strokeRect(6, 6, 756, 168);
     c.textAlign = 'center';
     c.fillStyle = lit ? '#a8e3c9' : '#aea28b';
-    c.font = '500 76px Fredoka, sans-serif';
+    c.font = '400 84px "Caveat Brush", sans-serif';
     c.fillText('DIVE BAR', 384, 98);
     c.fillStyle = '#e6cda1';
     c.font = '20px sans-serif';
@@ -363,8 +365,7 @@ function Room({ guestGroups }: { guestGroups: SceneRefs['guestGroups'] }) {
   return (
     <>
       <Camera />
-      <color attach="background" args={['#29232c']} />
-      <fog attach="fog" args={['#29232c', 25, 55]} />
+      <fog attach="fog" args={['#241c26', 25, 55]} />
       <ambientLight intensity={1.1} color="#ffe6c0" />
       <hemisphereLight args={['#ead9bd', '#60473f', 1.3]} />
       <directionalLight
@@ -433,6 +434,11 @@ function SceneProjector({ elements, guestGroups }: SceneRefs) {
       element.style.transform = `translate3d(${x}px,${y}px,0) translate(-50%,-50%)`;
       element.style.visibility = position.z < -1 || position.z > 1 ? 'hidden' : 'visible';
       element.style.zIndex = String(Math.round((1 - position.z) * 1000));
+      // Keep the guest's action card on screen near the edges of the scene.
+      const half = 130;
+      const nudge = x < half ? half - x : x > size.width - half ? size.width - half - x : 0;
+      element.style.setProperty('--nudge', nudge + 'px');
+      element.dataset.below = String(y < 330);
     };
 
     for (const [id, element] of elements.current.guests) {
@@ -449,6 +455,7 @@ function SceneLabels({ elements }: { elements: SceneRefs['elements'] }) {
   const setPanel = useGame((s) => s.setPanel);
   const select = useGame((s) => s.select);
 
+  const present = guests.filter((g) => g.status !== 'leaving');
   return (
     <div className="scene-overlay">
       <button
@@ -458,39 +465,63 @@ function SceneLabels({ elements }: { elements: SceneRefs['elements'] }) {
           setPanel('station');
         }}
       >
-        THE COUNTER <span>↗</span>
+        <CocktailArt size={22} /> Counter
       </button>
       {guests.map((guest) => {
         const isSelected = selected === guest.id;
         const ready = ['waiting', 'ready', 'ordered', 'pay'].includes(guest.status);
+        const open =
+          guest.status !== 'leaving' && (isSelected || (present.length === 1 && selected === null));
+        const left = patience(guest);
         return (
-          <button
+          <div
             key={guest.id}
             ref={(element) => {
               if (element) elements.current.guests.set(guest.id, element);
               else elements.current.guests.delete(guest.id);
             }}
             className={
-              'guest-bubble ' + (isSelected ? 'selected ' : '') + (ready ? 'attention' : '')
+              'guest-anchor ' +
+              (isSelected ? 'selected ' : '') +
+              (ready ? 'attention ' : '') +
+              (left !== null && left < 0.3 ? 'hurry' : '')
             }
-            onClick={() => select(guest.id)}
-            aria-label={'Select ' + guest.name}
           >
-            <span>
-              {guest.status === 'waiting'
-                ? '👋'
-                : guest.status === 'reading'
-                  ? '···'
-                  : guest.status === 'ready'
-                    ? '✎'
-                    : guest.status === 'ordered'
-                      ? '🍸'
-                      : guest.status === 'pay'
-                        ? '$'
-                        : '♡'}
-            </span>
-            <small>{guest.name}</small>
-          </button>
+            {open && <GuestActions guest={guest} />}
+            <button
+              className={'guest-bubble ' + guest.status}
+              onClick={() => select(isSelected ? null : guest.id)}
+              aria-label={'Select ' + guest.name}
+            >
+              {left !== null && (
+                <svg className="patience-ring" viewBox="0 0 60 60" aria-hidden="true">
+                  <circle
+                    cx="30"
+                    cy="30"
+                    r="26"
+                    pathLength="100"
+                    strokeDasharray={left * 100 + ' 100'}
+                  />
+                </svg>
+              )}
+              <span className="bubble-face">
+                {guest.status === 'waiting' ? (
+                  <b>!</b>
+                ) : guest.status === 'reading' ? (
+                  <b className="dots">···</b>
+                ) : guest.status === 'ready' ? (
+                  <b>?</b>
+                ) : guest.status === 'ordered' ? (
+                  <CocktailArt size={30} />
+                ) : guest.status === 'pay' ? (
+                  <CoinArt size={30} />
+                ) : (
+                  <HeartArt size={26} />
+                )}
+              </span>
+              <small>{guest.name}</small>
+            </button>
+          </div>
         );
       })}
     </div>
@@ -529,7 +560,7 @@ export default function BarScene() {
           shadows="percentage"
           dpr={[1, 1.5]}
           camera={{ position: [11, 13, 16], zoom: 45, near: 0.1, far: 100 }}
-          gl={{ antialias: true, powerPreference: 'high-performance' }}
+          gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
         >
           <Suspense fallback={null}>
             <Room guestGroups={guestGroups} />

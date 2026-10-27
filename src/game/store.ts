@@ -41,7 +41,7 @@ interface Store {
   bartenderPosition: FloorPoint;
   act: (a: Action) => void;
   setPanel: (p: Panel) => void;
-  select: (id: number) => void;
+  select: (id: number | null) => void;
   start: (fresh?: boolean) => void;
   pause: () => void;
   boot: () => Promise<void>;
