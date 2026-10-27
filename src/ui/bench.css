@@ -2,7 +2,6 @@
    Prep → Pour → Mix → Garnish. Only the current step's controls are shown,
    so the player always knows what to do next. */
 .bench {
-  --bench-scale: 1;
   grid-area: station;
   min-width: 0;
   min-height: 0;
@@ -13,7 +12,7 @@
   z-index: 4;
 }
 .bench-zoom {
-  zoom: var(--bench-scale);
+  zoom: var(--drawer-scale);
   flex: 1;
   min-height: 0;
   display: flex;
@@ -313,22 +312,6 @@
   flex-shrink: 0;
 }
 
-/* Desktop gives the counter a fixed column; short screens draw it smaller. */
-@media (max-height: 760px) {
-  .bench {
-    --bench-scale: 0.88;
-  }
-}
-@media (max-height: 600px) {
-  .bench {
-    --bench-scale: 0.74;
-  }
-}
-@media (max-height: 470px) {
-  .bench {
-    --bench-scale: 0.66;
-  }
-}
 .bench-select {
   max-width: 100%;
   margin-top: 4px;
