@@ -496,17 +496,35 @@ function ClosingCard() {
       run: () => act({ type: 'wash' }),
     },
   ];
+  const [open, setOpen] = useState(false);
+  const done = items.filter((i) => i.done).length;
   return (
     <Section title="Closing time">
-      <div className="checklist">
-        {items.map((item) => (
-          <button key={item.key} className={item.done ? 'done' : ''} onClick={item.run}>
-            {item.art}
-            <span>{item.label}</span>
-            <i>{item.done ? <Check size={16} strokeWidth={3} /> : null}</i>
-          </button>
-        ))}
-      </div>
+      <button
+        className={'fold-tile ' + (open ? 'open' : '')}
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+      >
+        <TrashArt size={30} />
+        <span>
+          <strong>Clean-up tasks</strong>
+          <small>
+            {done}/{items.length} done
+          </small>
+        </span>
+        <ChevronRight size={20} strokeWidth={3} />
+      </button>
+      {open && (
+        <div className="checklist">
+          {items.map((item) => (
+            <button key={item.key} className={item.done ? 'done' : ''} onClick={item.run}>
+              {item.art}
+              <span>{item.label}</span>
+              <i>{item.done ? <Check size={16} strokeWidth={3} /> : null}</i>
+            </button>
+          ))}
+        </div>
+      )}
       <div className="section-actions">
         <Button onClick={() => act({ type: 'finish' })}>
           Close the bar <ArrowRight size={16} />

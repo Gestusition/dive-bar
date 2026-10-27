@@ -443,7 +443,6 @@ a {
   flex-direction: column;
 }
 .hud-section {
-  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -458,7 +457,7 @@ a {
   font-size: 32px;
 }
 .section-actions {
-  margin-top: auto;
+  margin-top: 4px;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -559,6 +558,34 @@ a {
 }
 .menu-list button:hover {
   background: var(--accent-soft);
+}
+.fold-tile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  text-align: left;
+  background: var(--cream);
+  border: var(--line);
+  border-radius: var(--r-md);
+  box-shadow: 0 3px 0 var(--ink);
+}
+.fold-tile span {
+  flex: 1;
+}
+.fold-tile strong {
+  display: block;
+  font-size: 15px;
+}
+.fold-tile small {
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+.fold-tile svg:last-child {
+  transition: transform 0.15s;
+}
+.fold-tile.open svg:last-child {
+  transform: rotate(90deg);
 }
 .checklist {
   display: flex;
