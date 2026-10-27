@@ -630,7 +630,10 @@ type Drawer = 'phase' | 'recipes' | 'tabs' | 'decor';
 function RecipesDrawer() {
   const { game } = useGame();
   const menu = recipes.filter((r) => game.activeMenu.includes(r.id));
-  const [id, setId] = useState(menu[0]?.id ?? recipes[0].id);
+  const [picked, setPicked] = useState(menu[0]?.id ?? recipes[0].id);
+  // Fall back to the first drink if the picked one leaves tonight's menu.
+  const id = menu.some((r) => r.id === picked) ? picked : (menu[0]?.id ?? recipes[0].id);
+  const setId = setPicked;
   return (
     <>
       <div className="segmented">

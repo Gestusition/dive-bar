@@ -229,7 +229,10 @@ export default function Station() {
   const complete: Record<Step, boolean> = {
     prep: prep.tool === recipeTool.tool && prep.glass === recipeTool.glass,
     pour: rows.filter((r) => r.recipe).every(isDone),
-    mix: prep.ice && (!recipeTool.technique || prep.technique === recipeTool.technique),
+    mix:
+      prep.ice &&
+      prep.technique === recipeTool.technique &&
+      (!('dissolve' in recipeTool && recipeTool.dissolve) || prep.dissolved),
     garnish:
       Object.values(prep.garnish).some((n) => n > 0) &&
       !assess.issues.includes('Finish the garnish'),
