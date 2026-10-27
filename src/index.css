@@ -528,7 +528,7 @@ a {
   transition-delay: 0.06s;
   animation: drawer-swap 0.28s cubic-bezier(0.22, 1, 0.36, 1);
 }
-.drawer > header {
+.drawer-inner > header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -537,10 +537,10 @@ a {
   border-bottom: var(--line);
   background: var(--cream);
 }
-.drawer > header h2 {
+.drawer-inner > header h2 {
   font-size: 30px;
 }
-.drawer > header .close-button {
+.drawer-inner > header .close-button {
   width: 36px;
   height: 36px;
 }
