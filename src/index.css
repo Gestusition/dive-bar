@@ -252,7 +252,7 @@ a {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: calc(var(--title) * 0.34);
+  gap: calc(var(--title) * 0.22);
 }
 .neon-sign {
   display: flex;
@@ -282,7 +282,7 @@ a {
   flex-direction: column;
   align-items: flex-start;
   gap: calc(var(--title) * 0.08);
-  /* Line the text up with the D of the sign; the marker hangs outside. */
+  /* Line the text up with the D of the sign. */
   padding-left: calc(var(--title) * 0.06);
 }
 .title-option {
@@ -303,28 +303,9 @@ a {
   color: #c9b89e;
   letter-spacing: 0.02em;
 }
-.title-option::before {
-  content: '';
-  position: absolute;
-  left: -0.7em;
-  top: 0.58em;
-  width: 0.36em;
-  height: 0.36em;
-  translate: 0 -50%;
-  border-radius: 50%;
-  background: #f6b545;
-  box-shadow: 0 0 10px #f6b545;
-  opacity: 0;
-  transition: opacity 0.15s;
-}
 .title-option.active {
   translate: 0.12em 0;
-}
-.title-option.active {
   color: #f6b545;
-}
-.title-option.active::before {
-  opacity: 1;
 }
 @keyframes flicker {
   0%,
