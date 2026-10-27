@@ -5,6 +5,7 @@ import { Button } from '../components/ui/button';
 import {
   BottleArt,
   DrinkArt,
+  GarnishArt,
   GlassShapeArt,
   IceCubesArt,
   MuddleArt,
@@ -497,7 +498,7 @@ export default function Station() {
                     className={'bench-tile ' + (prep.garnish[key] ? 'done' : '')}
                     onClick={() => prepAction('garnish', { ingredient: key })}
                   >
-                    <i className={'garnish-dot big ' + key} />
+                    <GarnishArt size={40} id={key} />
                     {names[key]}
                     {prep.garnish[key] ? <span className="tag">×{prep.garnish[key]}</span> : null}
                   </button>

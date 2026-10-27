@@ -475,3 +475,85 @@ export const BottleArt = ({ size, kind, color }: ArtProps & { kind: string; colo
     )}
   </Art>
 );
+
+// A citrus wheel: rind, pith and segments.
+const Wheel = ({ rind, flesh }: { rind: string; flesh: string }) => (
+  <>
+    <circle cx="32" cy="32" r="22" fill={rind} />
+    <circle cx="32" cy="32" r="17" fill="#fbf3e4" stroke="none" />
+    <circle cx="32" cy="32" r="15" fill={flesh} stroke="none" />
+    {[0, 45, 90, 135].map((r) => (
+      <path
+        key={r}
+        d="M32 17v30"
+        fill="none"
+        stroke="#fbf3e4"
+        strokeWidth="2"
+        transform={`rotate(${r} 32 32)`}
+      />
+    ))}
+    <circle cx="32" cy="32" r="22" fill="none" />
+  </>
+);
+
+/** Garnishes as they look on the drink. */
+export const GarnishArt = ({ size, id }: ArtProps & { id: string }) => (
+  <Art size={size}>
+    {id === 'cocktail_cherry' && (
+      <>
+        <path d="M24 38C26 22 34 12 46 8M40 40c0-12 2-22 6-32" fill="none" stroke="#5a3a2c" />
+        <circle cx="23" cy="44" r="10" fill="#d8344a" />
+        <circle cx="41" cy="46" r="10" fill="#c22a40" />
+        <circle cx="19" cy="40" r="2.5" fill="#f4a3ab" stroke="none" />
+        <path d="M46 8c4 0 7 2 8 5-4 1-7 0-8-5z" fill="#7bbf5a" />
+      </>
+    )}
+    {id === 'orange_slice' && (
+      <>
+        <path d="M8 38a24 24 0 0 1 48 0z" fill="#f29a3a" />
+        <path d="M13 38a19 19 0 0 1 38 0z" fill="#fbf3e4" stroke="none" />
+        <path d="M15 38a17 17 0 0 1 34 0z" fill="#f7b04f" stroke="none" />
+        <path d="M32 38V22M32 38l-12-9M32 38l12-9" fill="none" stroke="#fbf3e4" strokeWidth="2" />
+        <path d="M8 38a24 24 0 0 1 48 0z" fill="none" />
+      </>
+    )}
+    {id === 'orange_zest' && (
+      <>
+        <path
+          d="M12 46c6-2 6-12 14-12s8 10 14 10 8-12 14-16l2 6c-6 4-8 14-16 14s-8-10-14-10-8 10-14 12z"
+          fill="#f29a3a"
+        />
+      </>
+    )}
+    {id === 'half_salt_rim' && (
+      <>
+        <path d="M12 18h40L32 44z" fill="#dff3ee" />
+        <path d="M32 44v10M24 56h16" fill="none" />
+        <path d="M12 18h20v4H14z" fill="#ffffff" />
+        {[15, 20, 25, 30].map((x) => (
+          <circle key={x} cx={x} cy="16" r="1.8" fill="#ffffff" />
+        ))}
+      </>
+    )}
+    {id === 'lime_slice' && <Wheel rind="#5fa246" flesh="#a7d68c" />}
+    {id === 'lemon_slice' && <Wheel rind="#f2c430" flesh="#fbe58a" />}
+    {id === 'mint_sprig' && (
+      <>
+        <path d="M32 58V20" fill="none" stroke="#4f8a37" />
+        <path d="M32 24c-8-2-14-8-14-16 8 0 14 6 14 16z" fill="#7bbf5a" />
+        <path d="M32 24c8-2 14-8 14-16-8 0-14 6-14 16z" fill="#5fa246" />
+        <path d="M32 40c-9-1-15-7-16-15 9 0 15 6 16 15z" fill="#5fa246" />
+        <path d="M32 40c9-1 15-7 16-15-9 0-15 6-16 15z" fill="#7bbf5a" />
+      </>
+    )}
+    {id === 'celery_stick' && (
+      <>
+        <path d="M27 58l4-38h6l-2 38z" fill="#b9dd7f" />
+        <path d="M31 24l-1 32" fill="none" stroke="#8fc160" />
+        <path d="M34 20c-6-4-12-4-14-12 6-2 12 2 14 12z" fill="#7bbf5a" />
+        <path d="M34 20c4-6 10-8 16-6-1 7-8 9-16 6z" fill="#5fa246" />
+        <path d="M34 20c0-8 2-14 6-16 3 6 0 12-6 16z" fill="#96d27a" />
+      </>
+    )}
+  </Art>
+);
