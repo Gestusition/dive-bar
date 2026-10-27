@@ -14,6 +14,7 @@ import {
   CalendarArt,
   CocktailArt,
   CoinsArt,
+  DrinkArt,
   DiceArt,
   GearArt,
   GlassArt,
@@ -122,7 +123,7 @@ function RecipeCard({ id }: { id: string }) {
   return (
     <div className="recipe-card">
       <div className="recipe-heading">
-        <CocktailArt size={56} />
+        <DrinkArt size={56} id={r.id} />
         <h3>{r.name}</h3>
       </div>
       <div className="recipe-ingredients">

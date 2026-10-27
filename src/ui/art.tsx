@@ -282,3 +282,196 @@ export const StirArt = ({ size }: ArtProps) => (
     <path d="M24 40c4-3 12-3 16 0" fill="none" stroke="#fbf3e4" />
   </Art>
 );
+
+// Each drink drawn in its own glass and colour, for menus and pickers.
+type GlassShape = 'coupe' | 'rocks' | 'highball' | 'mug' | 'hurricane';
+const drinkLooks: Record<string, [GlassShape, string, string]> = {
+  old_fashioned: ['rocks', '#c8782e', '#d8344a'],
+  margarita: ['coupe', '#e4e3a0', '#7bbf5a'],
+  manhattan: ['coupe', '#8e2f1f', '#d8344a'],
+  moscow_mule: ['mug', '#eadcb0', '#7bbf5a'],
+  daiquiri: ['coupe', '#f1efd2', '#7bbf5a'],
+  bloody_mary: ['rocks', '#c8352c', '#96d27a'],
+  long_island: ['highball', '#8a5a2e', '#f6d34a'],
+  wisconsin_old_fashioned: ['rocks', '#c98a3c', '#f29a3a'],
+  rose_mary: ['coupe', '#e6c86a', '#f6d34a'],
+  summer_hummer: ['highball', '#f2eea6', '#7bbf5a'],
+  rum_runner: ['hurricane', '#d9573a', '#f29a3a'],
+  cherry_lemonade: ['highball', '#f07a8c', '#d8344a'],
+  cherry_mule: ['mug', '#d94a5c', '#d8344a'],
+  vodka_cherry: ['highball', '#b3263a', '#d8344a'],
+};
+export const DrinkArt = ({ size, id }: ArtProps & { id: string }) => {
+  const [shape, liquid, garnish] = drinkLooks[id] ?? ['coupe', '#ff8a65', '#d8344a'];
+  return (
+    <Art size={size}>
+      {shape === 'coupe' && (
+        <>
+          <path d="M12 14h40L32 36z" fill="#dff3ee" />
+          <path d="M17 17.5h30L32 32z" fill={liquid} stroke="none" />
+          <path d="M12 14h40L32 36z" fill="none" />
+          <path d="M32 36v16M22 54h20" fill="none" />
+          <circle cx="45" cy="12" r="5" fill={garnish} />
+        </>
+      )}
+      {shape === 'rocks' && (
+        <>
+          <path d="M14 24h36l-3 32H17z" fill="#dff3ee" />
+          <path d="M15.5 34h33l-2.2 20H17.7z" fill={liquid} stroke="none" />
+          <rect x="22" y="30" width="9" height="9" rx="2" fill="#effaf8" stroke="none" />
+          <path d="M14 24h36l-3 32H17z" fill="none" />
+          <circle cx="44" cy="24" r="5" fill={garnish} />
+        </>
+      )}
+      {shape === 'highball' && (
+        <>
+          <path d="M20 8h24l-2 48H22z" fill="#dff3ee" />
+          <path d="M20.8 20h22.4l-1.6 34H22.4z" fill={liquid} stroke="none" />
+          <path d="M20 8h24l-2 48H22z" fill="none" />
+          <path d="M38 4l-4 22" fill="none" stroke="#e04f5f" />
+          <circle cx="43" cy="12" r="5" fill={garnish} />
+        </>
+      )}
+      {shape === 'mug' && (
+        <>
+          <path d="M44 26h4a6 6 0 0 1 0 12h-4" fill="none" />
+          <rect x="14" y="18" width="30" height="38" rx="5" fill="#c97b4a" />
+          <rect x="16.5" y="20.5" width="25" height="7" rx="2" fill={liquid} stroke="none" />
+          <path d="M20 34v14" fill="none" stroke="#e8a77a" />
+          <circle cx="42" cy="18" r="5" fill={garnish} />
+        </>
+      )}
+      {shape === 'hurricane' && (
+        <>
+          <path
+            d="M22 6h20c0 9-6 12-6 20 0 7 7 10 7 18 0 5-4 8-11 8s-11-3-11-8c0-8 7-11 7-18 0-8-6-11-6-20z"
+            fill="#dff3ee"
+          />
+          <path
+            d="M27.5 30c0 4-6 7-6 14 0 4 4 6 10.5 6s10.5-2 10.5-6c0-7-6-10-6-14z"
+            fill={liquid}
+            stroke="none"
+          />
+          <path
+            d="M22 6h20c0 9-6 12-6 20 0 7 7 10 7 18 0 5-4 8-11 8s-11-3-11-8c0-8 7-11 7-18 0-8-6-11-6-20z"
+            fill="none"
+          />
+          <path d="M32 52v4M24 58h16" fill="none" />
+          <circle cx="42" cy="8" r="5" fill={garnish} />
+        </>
+      )}
+    </Art>
+  );
+};
+
+/** Empty glassware, for choosing what to build and serve in. */
+export const GlassShapeArt = ({ size, shape }: ArtProps & { shape: GlassShape }) => (
+  <Art size={size}>
+    {shape === 'coupe' && (
+      <>
+        <path d="M12 14h40L32 36z" fill="#dff3ee" />
+        <path d="M32 36v16M22 54h20" fill="none" />
+      </>
+    )}
+    {shape === 'rocks' && (
+      <>
+        <path d="M14 26h36l-3 30H17z" fill="#dff3ee" />
+        <path d="M17.5 50h29" fill="none" stroke="#9fe3d8" />
+      </>
+    )}
+    {shape === 'highball' && (
+      <>
+        <path d="M20 6h24l-2 50H22z" fill="#dff3ee" />
+        <path d="M23 50h18" fill="none" stroke="#9fe3d8" />
+      </>
+    )}
+    {shape === 'mug' && (
+      <>
+        <path d="M44 26h4a6 6 0 0 1 0 12h-4" fill="none" />
+        <rect x="14" y="18" width="30" height="38" rx="5" fill="#c97b4a" />
+        <path d="M20 26v20" fill="none" stroke="#e8a77a" />
+      </>
+    )}
+    {shape === 'hurricane' && (
+      <>
+        <path
+          d="M22 4h20c0 9-6 12-6 20 0 7 7 10 7 18 0 5-4 8-11 8s-11-3-11-8c0-8 7-11 7-18 0-8-6-11-6-20z"
+          fill="#dff3ee"
+        />
+        <path d="M32 50v5M24 58h16" fill="none" />
+      </>
+    )}
+  </Art>
+);
+
+/** A bottle, jug, can or shaker in the colour of what's inside, by kind. */
+export const BottleArt = ({ size, kind, color }: ArtProps & { kind: string; color: string }) => (
+  <Art size={size}>
+    {(kind === 'spirit' || kind === 'vermouth') && (
+      <>
+        <rect x="27" y="4" width="10" height="7" rx="2" fill="#5a3a2c" />
+        <path
+          d="M28 11h8v9c6 2 9 6 9 12v22a4 4 0 0 1-4 4H23a4 4 0 0 1-4-4V32c0-6 3-10 9-12z"
+          fill={color}
+        />
+        <rect x="23" y="34" width="18" height="12" rx="2" fill="#fbf3e4" />
+      </>
+    )}
+    {kind === 'liqueur' && (
+      <>
+        <rect x="28" y="4" width="8" height="7" rx="2" fill="#5a3a2c" />
+        <path d="M29 11h6v12a15 15 0 1 1-6 0z" fill={color} />
+        <circle cx="32" cy="40" r="7" fill="#fbf3e4" />
+      </>
+    )}
+    {kind === 'bitters' && (
+      <>
+        <rect x="28" y="8" width="8" height="8" rx="2" fill="#e8d6b0" />
+        <path d="M27 16h10l3 6v32a3 3 0 0 1-3 3H27a3 3 0 0 1-3-3V22z" fill={color} />
+        <rect x="21" y="28" width="22" height="16" rx="2" fill="#fbf3e4" />
+      </>
+    )}
+    {(kind === 'juice' || kind === 'water') && (
+      <>
+        <path d="M44 24h3a6 6 0 0 1 0 12h-3" fill="none" />
+        <path d="M18 10h26l-2 6v38a4 4 0 0 1-4 4H22a4 4 0 0 1-4-4z" fill="#dff3ee" />
+        <path d="M19.5 26h23v28a3 3 0 0 1-3 3h-17a3 3 0 0 1-3-3z" fill={color} stroke="none" />
+        <path d="M18 10h26l-2 6v38a4 4 0 0 1-4 4H22a4 4 0 0 1-4-4z" fill="none" />
+      </>
+    )}
+    {kind === 'mixer' && (
+      <>
+        <rect x="19" y="10" width="26" height="46" rx="5" fill={color} />
+        <path d="M19 16h26M19 50h26" fill="none" />
+        <rect x="24" y="24" width="16" height="18" rx="2" fill="#fbf3e4" />
+      </>
+    )}
+    {kind === 'seasoning' && (
+      <>
+        <path d="M22 18a10 10 0 0 1 20 0z" fill="#cfd3dc" />
+        <rect x="20" y="18" width="24" height="38" rx="5" fill={color} />
+        {[27, 32, 37].map((x) => (
+          <circle key={x} cx={x} cy="12" r="1.3" fill="#231a24" stroke="none" />
+        ))}
+      </>
+    )}
+    {(kind === 'sweetener' ||
+      ![
+        'spirit',
+        'vermouth',
+        'liqueur',
+        'bitters',
+        'juice',
+        'water',
+        'mixer',
+        'seasoning',
+      ].includes(kind)) && (
+      <>
+        <rect x="18" y="12" width="28" height="8" rx="3" fill="#d9a35c" />
+        <rect x="16" y="20" width="32" height="36" rx="6" fill="#dff3ee" />
+        <rect x="18.5" y="30" width="27" height="23.5" rx="4" fill={color} stroke="none" />
+        <rect x="16" y="20" width="32" height="36" rx="6" fill="none" />
+      </>
+    )}
+  </Art>
+);

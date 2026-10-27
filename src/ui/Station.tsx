@@ -2,7 +2,15 @@ import './bench.css';
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { ArrowLeft, ArrowRight, BookOpen, Check, ChevronDown, Trash2, X } from 'lucide-react';
 import { Button } from '../components/ui/button';
-import { CocktailArt, GlassArt, IceCubesArt, MuddleArt, ShakerArt, StirArt } from './art';
+import {
+  BottleArt,
+  DrinkArt,
+  GlassShapeArt,
+  IceCubesArt,
+  MuddleArt,
+  ShakerArt,
+  StirArt,
+} from './art';
 import {
   ingredients,
   ingredientColors,
@@ -25,15 +33,19 @@ const stepLabel: Record<Step, string> = {
 const tools = [
   { id: 'shaker', name: 'Shaker', art: <ShakerArt size={40} /> },
   { id: 'mixing_glass', name: 'Mixing glass', art: <StirArt size={40} /> },
-  { id: 'old_fashioned_glass', name: 'Rocks glass', art: <GlassArt size={40} /> },
-  { id: 'build_glass', name: 'Build in glass', art: <CocktailArt size={40} /> },
+  {
+    id: 'old_fashioned_glass',
+    name: 'Rocks glass',
+    art: <GlassShapeArt size={40} shape="rocks" />,
+  },
+  { id: 'build_glass', name: 'Build in glass', art: <GlassShapeArt size={40} shape="highball" /> },
 ] as const;
 const glasses = [
-  ['cocktail_glass', 'Coupe'],
-  ['old_fashioned_glass', 'Rocks'],
-  ['highball', 'Highball'],
-  ['mug', 'Mug'],
-  ['hurricane', 'Hurricane'],
+  ['cocktail_glass', 'Coupe', 'coupe'],
+  ['old_fashioned_glass', 'Rocks', 'rocks'],
+  ['highball', 'Highball', 'highball'],
+  ['mug', 'Mug', 'mug'],
+  ['hurricane', 'Hurricane', 'hurricane'],
 ] as const;
 const garnishes = [
   'cocktail_cherry',
@@ -164,7 +176,13 @@ export default function Station() {
     })),
     ...(showAll
       ? ingredients
-          .filter((i) => !recipe.ingredients.some((r) => r.allowed.includes(i.id)))
+          // Garnishes are added at the Garnish step, not poured.
+          .filter(
+            (i) =>
+              i.kind !== 'fruit' &&
+              !garnishes.includes(i.id) &&
+              !recipe.ingredients.some((r) => r.allowed.includes(i.id)),
+          )
           .map((i) => ({
             key: i.id,
             recipe: false,
@@ -206,10 +224,11 @@ export default function Station() {
         className={'pour-row ' + (done ? 'done ' : '') + (r === nextRow ? 'next' : '')}
         style={{ '--liquid': ingredientColors[r.bottle] } as React.CSSProperties}
       >
-        <span className="bottle-art">
-          <i />
-          <b />
-        </span>
+        <BottleArt
+          size={38}
+          kind={ingredients.find((i) => i.id === r.bottle)?.kind ?? 'spirit'}
+          color={ingredientColors[r.bottle] ?? '#d6c996'}
+        />
         <div className="pour-name">
           <strong>{r.label}</strong>
           <div className="pour-meter">
@@ -348,7 +367,7 @@ export default function Station() {
                       setPicking(false);
                     }}
                   >
-                    <CocktailArt size={34} />
+                    <DrinkArt size={38} id={r.id} />
                     {r.name}
                     {game.activeMenu.includes(r.id) && <span className="tag">Menu</span>}
                   </button>
@@ -391,18 +410,14 @@ export default function Station() {
               </Group>
               <Group title="Serve in">
                 <div className="bench-tiles">
-                  {glasses.map(([value, label]) => (
+                  {glasses.map(([value, label, shape]) => (
                     <button
                       key={value}
                       className="bench-tile"
                       aria-pressed={prep.glass === value}
                       onClick={() => prepAction('glass', { value })}
                     >
-                      {value === 'cocktail_glass' ? (
-                        <CocktailArt size={36} />
-                      ) : (
-                        <GlassArt size={36} />
-                      )}
+                      <GlassShapeArt size={36} shape={shape} />
                       {label}
                     </button>
                   ))}
