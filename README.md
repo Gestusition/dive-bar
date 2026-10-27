@@ -2,6 +2,83 @@
 
 A small voxel neighbourhood bar. Real measures, familiar faces, and the occasional little white lie.
 
+**Play it:** https://gestusition.github.io/dive-bar/ · **Latest release:** [v0.0.1](https://github.com/Gestusition/dive-bar/releases/tag/v0.0.1)
+
+![Title screen](docs/screenshots/title.jpg)
+
+## Screenshots
+
+| Getting ready for the night                         | Guests show what they need                             |
+| --------------------------------------------------- | ------------------------------------------------------ |
+| ![Get ready drawer](docs/screenshots/get-ready.jpg) | ![A guest's action card](docs/screenshots/service.jpg) |
+| **Pouring a Manhattan, one bottle at a time**       | **Finishing it off at the Garnish step**               |
+| ![Pour step](docs/screenshots/counter-pour.jpg)     | ![Garnish step](docs/screenshots/counter-garnish.jpg)  |
+
+On a phone held sideways (Galaxy S8+, 740 x 360):
+
+![Recipes on a phone](docs/screenshots/phone-recipes.jpg)
+
+## How to play
+
+1. Tap **Get ready** on the side rail. Check tonight's menu, practise if you like, then **Open the bar**.
+2. A guest walks in through the front door. Tap their bubble and **Seat guest**.
+3. When their bubble shows **?**, take the order. **Chat** if they have something to say.
+4. Tap **Make drink** and work through the counter's four steps:
+   - **Prep:** pick what to build the drink in and the glass to serve it in.
+   - **Pour:** each ingredient in the recipe has its own row; set the amount and tap **Pour**.
+   - **Mix:** add ice, then shake, stir or muddle as the recipe asks.
+   - **Garnish:** finish it off, then **Strain & serve**.
+5. Let them enjoy it, then settle their tab.
+6. Call **Last orders** from **Bar tools**. At closing time wipe, empty the trash, restock and wash glasses, then close the bar.
+7. Between nights, decorate the bar or play a round of house dice.
+
+A step is ticked only when it is really done. Pours count within 40% of the target; the **Taste check** scores the fine detail.
+
+Escape closes a drawer or window, or pauses. Windows pause service. The pause menu can save and return to the title, where **Continue** picks up the night.
+
+## What is in the game
+
+**The bar**
+
+- React 19 and React Three Fiber 9 / Three.js voxel room and characters, framed straight on and filling the screen.
+- Four tables and a front door; guests plan paths around the furniture on the way in and out.
+- Decor themes that change the room, plants and neon, and a working barback upgrade.
+
+**The interface**
+
+- A compact side rail for the night, cash and time, with tiles that slide out drawers: Get ready / Bar tools / Closing, Recipes, Tabs and Decorate.
+- Speech bubbles over guests show what they need; tap one for its action card.
+- Illustrated icons for drinks, glassware, bottles, garnishes and bar tools, drawn in each drink's real colour.
+- Neon-sign title screen, hand-lettered headings (Caveat Brush) and Inter body text.
+- Keyboard-accessible controls and a reduced-motion setting.
+
+**Drinks**
+
+- Fourteen classic, regional and clearly labelled house recipes; pick up to six for a night.
+- A step-by-step counter (Prep, Pour, Mix, Garnish) with measured or free pouring and native dash, piece and spoon units.
+- Recipe quantity, proportion, yield and technique scoring, with taste notes that name the bottles.
+- Real stock use and waste; a separate unlimited practice bench with an in-game drink picker.
+
+**Service**
+
+- Guest arrival, seating, menu reading, orders, preparation, drinking, tabs, payment and last call.
+- Warm pretzels and cheese toasties with one warming slot, snack stock and charges.
+- Split-payment tabs, integer money, idempotent settlement and one final tip.
+- Authored English conversations, plausible sweet lies, saved rapport and story callbacks.
+- Cleaning, washing, trash, editable restocking, ice refills and a closing recap.
+- Optional after-hours dice and a small scripted stool wobble.
+
+**Phones**
+
+- Played in landscape. Phones held upright are asked to turn sideways, and Android locks to landscape on Play.
+- Everything fits without scrolling from a Galaxy S8+ (360 px tall) upwards, and on iPhones on their side.
+
+**Saving**
+
+- IndexedDB saves and validated JSON import and export.
+
+The conversation banks hold 24 encounters and 96 responses. The game picks social encounters that fit the moment; service-draft encounters stay in the source rather than appearing in the wrong situation. There is no ingredient-provenance screen or truth/lie badge.
+
 ## Play locally
 
 Requires Node 24 and Bun 1.4.2.
@@ -18,37 +95,6 @@ bun run build
 bun run preview
 ```
 
-## What is implemented
-
-- React 19 + React Three Fiber 9 / Three.js voxel room and characters.
-- Desktop and portrait/touch UI, with keyboard-accessible controls and reduced motion.
-- Fourteen classic, regional and explicitly labelled house recipes; select up to six for a night.
-- Measured or free pouring, native dash/piece/spoon units, mixing tools, ice, glassware, garnish and a recipe book.
-- Recipe quantity, proportion, yield and technique evaluation; real stock consumption and waste.
-- Guest arrival, seating, menu reading, orders, preparation, drinking, tabs, payment and last call.
-- Warm pretzels and cheese toasties, one warming slot, snack stock and charges.
-- Split-payment POS, integer money, idempotent settlement and one final tip.
-- Authored English conversations, plausible sweet lies, saved rapport and story callbacks.
-- Cleaning, washing, trash, editable restocking, ice refills and a closing recap.
-- Decor themes that change the room, plants/neon and a working barback upgrade.
-- Optional after-hours dice and a small scripted stool wobble.
-- Separate unlimited practice inventory; IndexedDB saves and validated JSON import/export.
-- Locally bundled fonts and a static Next.js/Turbopack export for GitHub Pages.
-
-The conversation banks contain 24 encounters / 96 responses. The runtime selects context-fitting social encounters; service-draft encounters are retained as source content rather than indiscriminately shown in the wrong situation. There is no ingredient-provenance UI or truth/lie answer badge.
-
-## How to play
-
-1. Open the bar, offer the first guest a seat, and let them read.
-2. Take their order. Chat before preparation if they have something to say.
-3. At the counter choose the vessel, ingredients and measures. Transfer each measure.
-4. Follow the recipe's technique, chill/choose the serving glass, and garnish.
-5. Serve, let the guest enjoy it, then settle the tab.
-6. Call last orders when ready. Clean, empty trash, check stock and close.
-7. Spend between nights or play a friendly round of dice.
-
-Escape closes a panel or pauses. Reading panels pause service. Hidden tabs pause and require Resume; an interrupted pour never resumes by itself.
-
 ## Checks
 
 ```sh
@@ -62,36 +108,30 @@ bunx playwright install chromium firefox webkit
 bun run test:e2e
 ```
 
-Vitest is the selected unit runner; use bun run test:unit rather than bun test. Playwright tests the production build in Chromium, Firefox, touch Chromium and narrow touch WebKit contexts. Emulation is not a physical-phone performance certification.
+Vitest is the unit runner; use `bun run test:unit` rather than `bun test`. Playwright tests the production build in Firefox, Chrome, a Galaxy S8 in landscape (Chromium) and an iPhone 13 in landscape (WebKit). Emulation is not a physical-phone performance certification.
 
 ## Delivery
 
-.github/workflows/ci.yml checks PRs and main, then deploys the same tested artifact on main. Dependabot maintains Bun and Actions dependencies without auto-merge. GitHub Pages is deployed from main through Actions. Separate build-output branches are unnecessary.
+`.github/workflows/ci.yml` checks pull requests and `main`, then deploys the same tested build to GitHub Pages from `main`. Dependabot keeps Bun and Actions dependencies up to date without auto-merge.
 
-Live game: https://gestusition.github.io/dive-bar/ . Current quality results are available in the repository Actions tab.
-
-The repository publishes the statically exported Next.js app from main using Actions, with Turbopack used for development and production builds. GitHub Pages uses the `/dive-bar` base path; local development and preview use the root path. TypeScript 7 supplies the native `tsc` executable, while the `typescript` package aliases `@typescript/typescript6` for lint tools that still need its API. This follows [Microsoft's side-by-side migration](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/#running-side-by-side-with-typescript-6-0).
-
-Bartender errands follow the right-hand counter opening and the front aisle. Seating, ordering and payment wait for arrival; cancelling an errand returns the bartender along the same walkable corridors.
+The site is a static Next.js export, with Turbopack for development and production builds. GitHub Pages uses the `/dive-bar` base path; local development and preview use the root path. TypeScript 7 supplies the native `tsc`, while the `typescript` package aliases `@typescript/typescript6` for lint tools that still need its API, following [Microsoft's side-by-side migration](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/#running-side-by-side-with-typescript-6-0).
 
 ## Source map
 
-- src/game/engine.ts — deterministic service, stock, money, dialogue effects and shift transitions.
-- src/game/quality.ts — recipe and technique scoring.
-- src/game/navigation.ts — counter-safe walking paths shared by service timing and scene movement.
-- src/game/store.ts — React bridge, clock ownership, action queue and sound.
-- src/game/storage.ts — IndexedDB and save validation.
-- src/view/BarScene.tsx — merged voxel geometry, scene, actors and cameras.
-- src/ui/Station.tsx — hands-on cocktail workstation.
-- src/ui/Management.tsx — nightly menu, editable stock and split POS.
-- src/ui/App.tsx — application shell, guest and focus flows.
-- data/cocktails.en.json — original IBA recipe seeds.
-- data/catalogue.en.json — researched expansion and declared house variations.
-- docs/recipe-research.md — uncertain-name interpretations and recipe sources.
-- docs/implementation-status.md — verified behaviour and remaining validation limits.
-- docs/development-handoff.md — original implementation plan; current runtime status supersedes its original not-started wording.
+- `src/game/engine.ts`: deterministic service, stock, money, dialogue effects and shift transitions.
+- `src/game/quality.ts`: recipe and technique scoring and taste notes.
+- `src/game/navigation.ts`: the bartender's counter-safe route and the guests' furniture-aware pathfinding.
+- `src/game/store.ts`: React bridge, clock, action queue, saving and sound.
+- `src/game/storage.ts`: IndexedDB and save validation.
+- `src/view/BarScene.tsx`: voxel geometry, scene, actors, camera and guest bubbles.
+- `src/ui/App.tsx`: title screen, side rail and drawers, windows and the pause menu.
+- `src/ui/Station.tsx` and `src/ui/bench.css`: the step-by-step counter.
+- `src/ui/GuestActions.tsx`: the action card over a guest.
+- `src/ui/Management.tsx`: tonight's menu, restocking and tabs.
+- `src/ui/art.tsx`: the illustrated icons.
+- `data/cocktails.en.json`: original IBA recipe seeds.
+- `data/catalogue.en.json`: researched expansion and declared house variations.
+- `docs/recipe-research.md`: interpretations of uncertain names and recipe sources.
+- `docs/implementation-status.md`: verified behaviour and remaining validation limits.
 
-The supplied artwork in public/assets and art-src was preserved. Voxel geometry is authored in code. Caveat Brush and Inter are self-hosted via Fontsource (SIL Open Font License; license notices are shipped in public/licenses).
-
-
-
+The supplied artwork in `public/assets` and `art-src` is preserved. Voxel geometry is authored in code. Caveat Brush and Inter are self-hosted via Fontsource under the SIL Open Font License; the licence notices ship in `public/licenses`.
