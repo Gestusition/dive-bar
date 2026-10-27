@@ -324,13 +324,13 @@ a {
   position: fixed;
   inset: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 300px;
+  grid-template-columns: minmax(0, 1fr) auto;
   grid-template-rows: minmax(0, 1fr);
   grid-template-areas: 'scene hud';
   background: var(--night);
 }
 .game-shell.station-mode {
-  grid-template-columns: minmax(0, 1fr) min(480px, 40vw) 300px;
+  grid-template-columns: minmax(0, 1fr) min(480px, 40vw) auto;
   grid-template-areas: 'scene station hud';
 }
 .reduced-motion *,
@@ -369,59 +369,48 @@ a {
   font-size: 15px;
 }
 
-/* ---------- Side panel ---------- */
+/* ---------- Side panel: compact rail plus an opening drawer ---------- */
 .hud {
   grid-area: hud;
   display: flex;
-  flex-direction: column;
-  gap: 14px;
-  padding: 14px;
+  min-height: 0;
   background: var(--blush);
   border-left: var(--line);
-  overflow-y: auto;
   z-index: 5;
-  scrollbar-width: thin;
 }
-.hud-stats {
-  display: grid;
-  grid-template-columns: 1fr 1.25fr 1fr;
-  gap: 8px;
+.rail {
+  width: 112px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  padding: 12px 10px;
+  overflow-y: auto;
+  scrollbar-width: none;
 }
-.hud-stat {
+.rail-stat {
   position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 4px;
-  padding: 8px 4px;
-  background: var(--paper);
-  border: var(--line);
-  border-radius: var(--r-md);
-  box-shadow: var(--lift);
+  gap: 2px;
 }
-.hud-stat strong {
+.rail-stat strong {
+  font-size: 16px;
   font-weight: 700;
-  font-size: 17px;
-  color: var(--ink);
   line-height: 1;
-}
-.hud-stat small {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--ink-soft);
 }
 .calendar strong {
   position: absolute;
-  top: 29px;
-  font-size: 20px;
+  top: 21px;
+  font-size: 19px;
 }
 .sky-dial {
   position: relative;
-  width: 100%;
-  max-width: 64px;
-  height: 22px;
-  margin: 9px 0 6px;
+  width: 70px;
+  height: 20px;
+  margin: 2px 0 4px;
   background: #3a2d3e;
   border: var(--line-thin);
   border-radius: 99px;
@@ -429,32 +418,113 @@ a {
 .sky-sun {
   position: absolute;
   top: 50%;
-  width: 18px;
-  height: 18px;
-  margin: -9px 0 0 -9px;
+  width: 16px;
+  height: 16px;
+  margin: -8px 0 0 -8px;
   border-radius: 50%;
   background: var(--sun);
   border: var(--line-thin);
   transition: left 1s linear;
 }
-.hud-body {
-  flex: 1 0 auto;
+.rail-divider {
+  height: 0;
+  border-top: 3px dashed var(--blush-deep);
+  margin: 2px 0;
+}
+.rail-tile {
+  position: relative;
   display: flex;
   flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 2px 6px;
+  background: var(--paper);
+  border: var(--line);
+  border-radius: var(--r-md);
+  box-shadow: var(--lift);
+  transition: transform 0.08s;
 }
-.hud-section {
+.rail-tile small {
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.rail-tile:hover {
+  transform: translateY(-2px);
+}
+.rail-tile:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 var(--ink);
+}
+.rail-tile.active {
+  background: var(--accent);
+}
+.rail-tile.attention:not(.active) {
+  animation: nudge 1.8s ease-in-out infinite;
+  background: var(--accent-soft);
+}
+.rail-small {
+  margin-top: auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.rail-small button {
+  display: grid;
+  place-items: center;
+  height: 40px;
+  background: var(--paper);
+  border: var(--line-thin);
+  border-radius: var(--r-sm);
+  box-shadow: 0 3px 0 var(--ink);
+}
+.rail-small button:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 var(--ink);
+}
+.drawer {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  width: 300px;
+  background: var(--paper);
+  border-right: var(--line);
+  animation: drawer-in 0.22s cubic-bezier(0.3, 1.2, 0.6, 1);
+}
+.drawer-recipes,
+.drawer-tabs,
+.drawer-decor {
+  width: 360px;
+}
+.drawer > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 14px 12px 18px;
+  border-bottom: var(--line);
+  background: var(--cream);
+}
+.drawer > header h2 {
+  font-size: 30px;
+}
+.drawer > header .close-button {
+  width: 36px;
+  height: 36px;
+}
+.drawer-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.drawer-content {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 16px 14px 14px;
-  background: var(--paper);
-  border: var(--line);
-  border-radius: var(--r-lg);
-  box-shadow: var(--lift);
-  animation: pop-in 0.25s cubic-bezier(0.3, 1.5, 0.6, 1);
-}
-.hud-section h2 {
-  font-size: 32px;
 }
 .section-actions {
   margin-top: 4px;
@@ -473,70 +543,48 @@ a {
   padding: 0 2px;
   margin-top: -4px;
 }
-.hud-nav {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-}
-.nav-tile,
-.tool-tile {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  padding: 8px 4px 6px;
-  background: var(--paper);
-  border: var(--line);
-  border-radius: var(--r-md);
-  box-shadow: var(--lift);
-  transition: transform 0.08s;
-}
-.nav-tile small,
-.tool-tile small {
-  font-size: 13px;
-  font-weight: 600;
-  white-space: nowrap;
-}
-.nav-tile:hover,
-.tool-tile:hover {
-  transform: translateY(-2px);
-}
-.nav-tile:active,
-.tool-tile:active {
-  transform: translateY(3px);
-  box-shadow: 0 1px 0 var(--ink);
-}
 .tool-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
 }
 .tool-tile {
-  background: var(--cream);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
   padding: 10px 4px 8px;
+  background: var(--cream);
+  border: var(--line);
+  border-radius: var(--r-md);
+  box-shadow: var(--lift);
+}
+.tool-tile small {
+  font-size: 13px;
+  font-weight: 600;
+}
+.tool-tile:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 var(--ink);
 }
 .small-stats {
-  margin-top: auto;
   font-size: 14px;
 }
-.hud-small {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
+@keyframes drawer-in {
+  from {
+    opacity: 0;
+    translate: 24px 0;
+  }
 }
-.hud-small button {
-  display: grid;
-  place-items: center;
-  height: 44px;
-  background: var(--paper);
-  border: var(--line);
-  border-radius: var(--r-sm);
-  box-shadow: 0 3px 0 var(--ink);
-}
-.hud-small button:active {
-  transform: translateY(2px);
-  box-shadow: 0 1px 0 var(--ink);
+@keyframes nudge {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
 }
 
 /* ---------- Phase content ---------- */
@@ -2082,36 +2130,72 @@ a {
 }
 
 /* ---------- Smaller screens ---------- */
-@media (max-width: 1100px) and (min-width: 761px) {
-  .game-shell {
-    grid-template-columns: minmax(0, 1fr) 260px;
-  }
-  .game-shell.station-mode {
-    grid-template-columns: minmax(0, 1fr) min(420px, 46vw) 260px;
-  }
-  .hud {
-    padding: 10px;
-    gap: 10px;
-  }
-  .hud-stat strong {
-    font-size: 15px;
-  }
-}
 @media (max-width: 760px) {
   .game-shell,
   .game-shell.station-mode {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: 46dvh minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto;
     grid-template-areas: 'scene' 'hud';
   }
   .game-shell.station-mode {
     grid-template-rows: 30dvh minmax(0, 1fr) auto;
     grid-template-areas: 'scene' 'station' 'hud';
   }
-  .station-mode .hud-body,
-  .station-mode .hud-stats,
-  .station-mode .hud-nav {
+  .hud {
+    flex-direction: column;
+    border-left: 0;
+    border-top: var(--line);
+  }
+  .rail {
+    width: auto;
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
+    overflow-x: auto;
+  }
+  .rail-stat.calendar,
+  .rail-stat.sky .sky-dial,
+  .rail-divider {
     display: none;
+  }
+  .rail-stat svg {
+    width: 26px;
+    height: 26px;
+  }
+  .rail-stat strong {
+    font-size: 14px;
+  }
+  .rail-tile {
+    min-width: 58px;
+    padding: 4px 2px;
+  }
+  .rail-tile svg {
+    width: 28px;
+    height: 28px;
+  }
+  .rail-tile small {
+    font-size: 11px;
+  }
+  .rail-small {
+    margin: 0;
+    grid-template-columns: repeat(2, 34px);
+    gap: 4px;
+  }
+  .rail-small button {
+    height: 30px;
+  }
+  .drawer,
+  .drawer-recipes,
+  .drawer-tabs,
+  .drawer-decor {
+    width: auto;
+    max-height: 48dvh;
+    border-right: 0;
+    border-bottom: var(--line);
+  }
+  .drawer > header h2 {
+    font-size: 24px;
   }
   .station-panel {
     border-left: 0;
@@ -2121,15 +2205,6 @@ a {
   .station-footer {
     margin: auto -14px 0;
     padding: 10px 14px 12px;
-  }
-  .hud {
-    border-left: 0;
-    border-top: var(--line);
-    padding: 10px 10px calc(10px + env(safe-area-inset-bottom));
-    gap: 10px;
-  }
-  .hud-section h2 {
-    font-size: 26px;
   }
   .guest-card {
     width: 210px;

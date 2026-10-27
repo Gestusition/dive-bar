@@ -415,13 +415,9 @@ function HelpPanel() {
     </div>
   );
 }
-function Section({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <section className="hud-section">
-      <h2>{title}</h2>
-      {children}
-    </section>
-  );
+// Phase content lives inside the side panel's drawer, which already shows the title.
+function Section({ children }: { title: string; children: ReactNode }) {
+  return <div className="drawer-content">{children}</div>;
 }
 function OpeningCard() {
   const { game, select, setPanel, act } = useGame();
@@ -496,35 +492,17 @@ function ClosingCard() {
       run: () => act({ type: 'wash' }),
     },
   ];
-  const [open, setOpen] = useState(false);
-  const done = items.filter((i) => i.done).length;
   return (
     <Section title="Closing time">
-      <button
-        className={'fold-tile ' + (open ? 'open' : '')}
-        aria-expanded={open}
-        onClick={() => setOpen((v) => !v)}
-      >
-        <TrashArt size={30} />
-        <span>
-          <strong>Clean-up tasks</strong>
-          <small>
-            {done}/{items.length} done
-          </small>
-        </span>
-        <ChevronRight size={20} strokeWidth={3} />
-      </button>
-      {open && (
-        <div className="checklist">
-          {items.map((item) => (
-            <button key={item.key} className={item.done ? 'done' : ''} onClick={item.run}>
-              {item.art}
-              <span>{item.label}</span>
-              <i>{item.done ? <Check size={16} strokeWidth={3} /> : null}</i>
-            </button>
-          ))}
-        </div>
-      )}
+      <div className="checklist">
+        {items.map((item) => (
+          <button key={item.key} className={item.done ? 'done' : ''} onClick={item.run}>
+            {item.art}
+            <span>{item.label}</span>
+            <i>{item.done ? <Check size={16} strokeWidth={3} /> : null}</i>
+          </button>
+        ))}
+      </div>
       <div className="section-actions">
         <Button onClick={() => act({ type: 'finish' })}>
           Close the bar <ArrowRight size={16} />
@@ -618,35 +596,127 @@ function ServiceCard() {
     </Section>
   );
 }
-function Hud() {
+type Drawer = 'phase' | 'recipes' | 'tabs' | 'decor';
+function RecipesDrawer() {
+  const { game } = useGame();
+  const menu = recipes.filter((r) => game.activeMenu.includes(r.id));
+  const [id, setId] = useState(menu[0]?.id ?? recipes[0].id);
+  return (
+    <>
+      <div className="segmented">
+        {menu.map((r) => (
+          <button key={r.id} aria-pressed={id === r.id} onClick={() => setId(r.id)}>
+            {r.name}
+          </button>
+        ))}
+      </div>
+      <RecipeCard id={id} />
+    </>
+  );
+}
+function RailTile({
+  label,
+  art,
+  active,
+  badge,
+  attention,
+  onClick,
+}: {
+  label: string;
+  art: ReactNode;
+  active?: boolean;
+  badge?: number | null;
+  attention?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      className={'rail-tile ' + (active ? 'active ' : '') + (attention ? 'attention' : '')}
+      aria-pressed={active}
+      onClick={onClick}
+    >
+      {art}
+      {!!badge && <span className="badge">{badge}</span>}
+      <small>{label}</small>
+    </button>
+  );
+}
+function Hud({
+  drawer,
+  setDrawer,
+}: {
+  drawer: Drawer | null;
+  setDrawer: (d: Drawer | null) => void;
+}) {
   const { game, paused, pause, setPanel } = useGame();
   const time = Math.max(0, SHIFT - game.seconds);
   const progress = Math.min(1, game.seconds / SHIFT);
   const phase = game.phase;
   const openTabs = game.guests.filter((g) => g.charge > 0 && !g.paid).length;
+  const toggle = (d: Drawer) => setDrawer(drawer === d ? null : d);
+  const phaseTile =
+    phase === 'opening'
+      ? { label: 'Get ready', art: <CocktailArt size={40} />, title: 'Get ready' }
+      : phase === 'closing'
+        ? { label: 'Closing', art: <TrashArt size={40} />, title: 'Closing time' }
+        : phase === 'recap'
+          ? {
+              label: 'Night done',
+              art: <DiceArt size={40} />,
+              title: 'Night ' + game.day + ' complete',
+            }
+          : { label: 'Bar tools', art: <SpongeArt size={40} />, title: 'Bar tools' };
+  const drawerTitle: Record<Drawer, string> = {
+    phase: phaseTile.title,
+    recipes: 'Recipes',
+    tabs: 'Open tabs',
+    decor: 'Decorate',
+  };
   return (
     <aside className="hud" aria-label="Bar status">
-      <div className="hud-stats">
-        <div className="hud-stat calendar" title={'Night ' + game.day}>
-          <CalendarArt size={52} />
+      {drawer && (
+        <section className={'drawer drawer-' + drawer} aria-label={drawerTitle[drawer]}>
+          <header>
+            <h2>{drawerTitle[drawer]}</h2>
+            <button
+              className="close-button"
+              aria-label="Close panel"
+              onClick={() => setDrawer(null)}
+            >
+              <X size={18} strokeWidth={3} />
+            </button>
+          </header>
+          <div className="drawer-body">
+            {drawer === 'phase' ? (
+              phase === 'opening' ? (
+                <OpeningCard />
+              ) : phase === 'closing' ? (
+                <ClosingCard />
+              ) : phase === 'recap' ? (
+                <RecapCard />
+              ) : (
+                <ServiceCard />
+              )
+            ) : drawer === 'recipes' ? (
+              <RecipesDrawer />
+            ) : drawer === 'tabs' ? (
+              <PosPanel />
+            ) : (
+              <DecorPanel />
+            )}
+          </div>
+        </section>
+      )}
+      <div className="rail">
+        <div className="rail-stat calendar" title={'Night ' + game.day}>
+          <CalendarArt size={50} />
           <strong>{game.day}</strong>
-          <small>
-            {phase === 'opening'
-              ? 'Prep'
-              : phase === 'closing'
-                ? 'Closing'
-                : phase === 'recap'
-                  ? 'Done'
-                  : game.seconds >= 360
-                    ? 'Last call'
-                    : 'Open'}
-          </small>
         </div>
-        <div className="hud-stat money">
-          <CoinsArt size={40} />
+        <div className="rail-stat money">
+          <CoinsArt size={34} />
           <strong className="cash">{money(game.cash)}</strong>
         </div>
-        <div className="hud-stat sky" title="Time left tonight">
+        <div className="rail-stat sky" title="Time left tonight">
           <div className="sky-dial">
             <span className="sky-sun" style={{ left: progress * 100 + '%' }} />
           </div>
@@ -654,56 +724,58 @@ function Hud() {
             {Math.floor(time / 60)}:{String(Math.floor(time % 60)).padStart(2, '0')}
           </strong>
         </div>
-      </div>
-      <div className="hud-body">
-        {phase === 'opening' ? (
-          <OpeningCard />
-        ) : phase === 'closing' ? (
-          <ClosingCard />
-        ) : phase === 'recap' ? (
-          <RecapCard />
-        ) : (
-          <ServiceCard />
-        )}
-      </div>
-      <nav className="hud-nav">
-        <button className="nav-tile" onClick={() => setPanel('recipe')}>
-          <BookArt size={34} />
-          <small>Recipes</small>
-        </button>
-        <button className="nav-tile" onClick={() => setPanel('pos')}>
-          <ReceiptArt size={34} />
-          {!!openTabs && <span className="badge">{openTabs}</span>}
-          <small>Tabs</small>
-        </button>
-        <button className="nav-tile" onClick={() => setPanel('decor')}>
-          <PlantArt size={34} />
-          <small>Decorate</small>
-        </button>
-      </nav>
-      <div className="hud-small">
-        <button aria-label="How to play" title="How to play" onClick={() => setPanel('help')}>
-          <HelpArt size={28} />
-        </button>
-        <button
-          aria-label="Sound"
-          title="Sound"
-          onClick={() =>
-            useGame.getState().act({ type: 'setting', key: 'sound', value: !game.settings.sound })
-          }
-        >
-          <SoundArt size={28} on={game.settings.sound} />
-        </button>
-        <button aria-label="Settings" title="Settings" onClick={() => setPanel('settings')}>
-          <GearArt size={28} />
-        </button>
-        <button
-          aria-label={paused ? 'Resume' : 'Pause'}
-          title={paused ? 'Resume' : 'Pause'}
-          onClick={pause}
-        >
-          <PauseArt size={28} paused={paused} />
-        </button>
+        <span className="rail-divider" />
+        <RailTile
+          label={phaseTile.label}
+          art={phaseTile.art}
+          active={drawer === 'phase'}
+          attention={phase !== 'service' && drawer !== 'phase'}
+          badge={phase === 'service' ? game.mess + game.dirtyGlasses || null : null}
+          onClick={() => toggle('phase')}
+        />
+        <RailTile
+          label="Recipes"
+          art={<BookArt size={40} />}
+          active={drawer === 'recipes'}
+          onClick={() => toggle('recipes')}
+        />
+        <RailTile
+          label="Tabs"
+          art={<ReceiptArt size={40} />}
+          active={drawer === 'tabs'}
+          badge={openTabs}
+          onClick={() => toggle('tabs')}
+        />
+        <RailTile
+          label="Decorate"
+          art={<PlantArt size={40} />}
+          active={drawer === 'decor'}
+          onClick={() => toggle('decor')}
+        />
+        <div className="rail-small">
+          <button aria-label="How to play" title="How to play" onClick={() => setPanel('help')}>
+            <HelpArt size={26} />
+          </button>
+          <button
+            aria-label="Sound"
+            title="Sound"
+            onClick={() =>
+              useGame.getState().act({ type: 'setting', key: 'sound', value: !game.settings.sound })
+            }
+          >
+            <SoundArt size={26} on={game.settings.sound} />
+          </button>
+          <button aria-label="Settings" title="Settings" onClick={() => setPanel('settings')}>
+            <GearArt size={26} />
+          </button>
+          <button
+            aria-label={paused ? 'Resume' : 'Pause'}
+            title={paused ? 'Resume' : 'Pause'}
+            onClick={pause}
+          >
+            <PauseArt size={26} paused={paused} />
+          </button>
+        </div>
       </div>
     </aside>
   );
@@ -723,6 +795,7 @@ export default function App() {
     cancelTasks,
   } = useGame();
   const [toast, setToast] = useState('');
+  const [drawer, setDrawer] = useState<Drawer | null>(null);
   useEffect(() => {
     void boot();
     return startClock();
@@ -740,6 +813,7 @@ export default function App() {
         if ((e.target as HTMLElement)?.closest('input,select,textarea')) return;
         if (s.panel !== 'floor' && s.panel !== 'station') return;
         if (s.panel === 'station') s.setPanel('floor');
+        else if (document.querySelector('.drawer')) setDrawer(null);
         else if (s.selected !== null && !s.paused) s.select(null);
         else s.pause();
         e.preventDefault();
@@ -832,7 +906,7 @@ export default function App() {
         </div>
       </main>
       {atStation && <Station />}
-      <Hud />
+      <Hud drawer={drawer} setDrawer={setDrawer} />
       <Dialog
         open={focusPanel}
         onOpenChange={(open) => {

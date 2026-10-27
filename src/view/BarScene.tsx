@@ -45,9 +45,11 @@ function roomParts() {
   const p: Part[] = [];
   const box = (x: number, y: number, z: number, w: number, h: number, d: number, c: string) =>
     p.push([x, y, z, w, h, d, c]);
-  box(0, -0.22, 0.4, 11.8, 0.35, 10.4, dark);
-  for (let x = 0; x < 12; x++)
-    for (let z = 0; z < 10; z++)
+  // The floor and the two back walls run far past the playable room so the
+  // camera only ever sees the bar, never an empty background.
+  box(14, -0.22, 14.4, 39.8, 0.35, 38.4, dark);
+  for (let x = 0; x < 40; x++)
+    for (let z = 0; z < 38; z++)
       box(
         x - 0.5 - 5,
         0.005,
@@ -57,8 +59,8 @@ function roomParts() {
         0.96,
         ['#ab7851', '#b48359', '#a16d49', '#ba8b62'][(x * 7 + z * 3) % 4],
       );
-  box(0, 1.6, -4.55, 11.8, 3.4, 0.25, '#6b463b');
-  box(-5.8, 1.55, 0.3, 0.25, 3.3, 9.7, '#744b3c');
+  box(14, 7.6, -4.55, 39.8, 15.4, 0.25, '#6b463b');
+  box(-5.8, 7.55, 14.3, 0.25, 15.3, 37.7, '#744b3c');
   for (let i = 0; i < 12; i++) box(i - 5.5, 0.7, -4.37, 0.05, 1.55, 0.1, brass);
   box(0, 0.12, -4.32, 11.5, 0.18, 0.18, dark);
   box(0, 3.15, -4.3, 11.5, 0.15, 0.2, dark);
@@ -366,7 +368,6 @@ function Room({ guestGroups }: { guestGroups: SceneRefs['guestGroups'] }) {
   return (
     <>
       <Camera />
-      <fog attach="fog" args={['#241c26', 25, 55]} />
       <ambientLight intensity={1.1} color="#ffe6c0" />
       <hemisphereLight args={['#ead9bd', '#60473f', 1.3]} />
       <directionalLight
