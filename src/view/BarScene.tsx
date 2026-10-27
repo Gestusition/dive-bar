@@ -352,7 +352,8 @@ function Camera() {
     const zoom = station
       ? Math.min(size.width / 6.3, size.height / 5.4)
       : Math.min(size.width / 15.8, size.height / 10.3);
-    camera.zoom = reduced ? zoom : THREE.MathUtils.damp(camera.zoom, zoom, 4, dt);
+    // Follow panel resizes closely; ease the bigger jump to and from the counter.
+    camera.zoom = reduced ? zoom : THREE.MathUtils.damp(camera.zoom, zoom, station ? 4 : 14, dt);
     // Pin the top of the view just above the bar sign, so any spare height
     // goes to the floor rather than to empty wall.
     const up = 0.781,
@@ -653,6 +654,7 @@ export default function BarScene() {
           orthographic
           shadows="percentage"
           dpr={[1, 1.5]}
+          resize={{ debounce: 0 }}
           camera={{ position: [0, 14, 17], zoom: 45, near: 0.1, far: 100 }}
           gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
         >

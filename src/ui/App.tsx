@@ -654,6 +654,16 @@ function Hud({
   const phase = game.phase;
   const openTabs = game.guests.filter((g) => g.charge > 0 && !g.paid).length;
   const toggle = (d: Drawer) => setDrawer(drawer === d ? null : d);
+  // Keep the last drawer's content on screen while the panel slides shut.
+  const [shown, setShown] = useState(drawer);
+  useEffect(() => {
+    if (drawer) {
+      setShown(drawer);
+      return;
+    }
+    const t = setTimeout(() => setShown(null), 320);
+    return () => clearTimeout(t);
+  }, [drawer]);
   const phaseTile =
     phase === 'opening'
       ? { label: 'Get ready', art: <CocktailArt size={40} />, title: 'Get ready' }
@@ -674,39 +684,47 @@ function Hud({
   };
   return (
     <aside className="hud" aria-label="Bar status">
-      {drawer && (
-        <section className={'drawer drawer-' + drawer} aria-label={drawerTitle[drawer]}>
-          <header>
-            <h2>{drawerTitle[drawer]}</h2>
-            <button
-              className="close-button"
-              aria-label="Close panel"
-              onClick={() => setDrawer(null)}
-            >
-              <X size={18} strokeWidth={3} />
-            </button>
-          </header>
-          <div className="drawer-body">
-            {drawer === 'phase' ? (
-              phase === 'opening' ? (
-                <OpeningCard />
-              ) : phase === 'closing' ? (
-                <ClosingCard />
-              ) : phase === 'recap' ? (
-                <RecapCard />
+      <section
+        className={'drawer ' + (drawer ? 'open' : '')}
+        style={{ '--drawer-w': (shown === 'phase' ? 300 : 360) + 'px' } as React.CSSProperties}
+        aria-label={shown ? drawerTitle[shown] : undefined}
+        aria-hidden={!drawer}
+        inert={!drawer}
+      >
+        {shown && (
+          <div className="drawer-inner" key={shown}>
+            <header>
+              <h2>{drawerTitle[shown]}</h2>
+              <button
+                className="close-button"
+                aria-label="Close panel"
+                onClick={() => setDrawer(null)}
+              >
+                <X size={18} strokeWidth={3} />
+              </button>
+            </header>
+            <div className="drawer-body">
+              {shown === 'phase' ? (
+                phase === 'opening' ? (
+                  <OpeningCard />
+                ) : phase === 'closing' ? (
+                  <ClosingCard />
+                ) : phase === 'recap' ? (
+                  <RecapCard />
+                ) : (
+                  <ServiceCard />
+                )
+              ) : shown === 'recipes' ? (
+                <RecipesDrawer />
+              ) : shown === 'tabs' ? (
+                <PosPanel />
               ) : (
-                <ServiceCard />
-              )
-            ) : drawer === 'recipes' ? (
-              <RecipesDrawer />
-            ) : drawer === 'tabs' ? (
-              <PosPanel />
-            ) : (
-              <DecorPanel />
-            )}
+                <DecorPanel />
+              )}
+            </div>
           </div>
-        </section>
-      )}
+        )}
+      </section>
       <div className="rail">
         <div className="rail-stat calendar" title={'Night ' + game.day}>
           <CalendarArt size={50} />
@@ -827,7 +845,7 @@ export default function App() {
         if ((e.target as HTMLElement)?.closest('input,select,textarea')) return;
         if (s.panel !== 'floor' && s.panel !== 'station') return;
         if (s.panel === 'station') s.setPanel('floor');
-        else if (document.querySelector('.drawer')) setDrawer(null);
+        else if (document.querySelector('.drawer.open')) setDrawer(null);
         else if (s.selected !== null && !s.paused) s.select(null);
         else s.pause();
         e.preventDefault();

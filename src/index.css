@@ -497,18 +497,36 @@ a {
   box-shadow: 0 1px 0 var(--ink);
 }
 .drawer {
+  /* Slides open from the rail; width animates so the bar rescales smoothly. */
+  width: 0;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  justify-content: flex-end;
+  transition: width 0.34s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.drawer.open {
+  width: var(--drawer-w);
+}
+.drawer-inner {
+  flex-shrink: 0;
+  width: var(--drawer-w);
   display: flex;
   flex-direction: column;
   min-height: 0;
-  width: 300px;
   background: var(--paper);
   border-right: var(--line);
-  animation: drawer-in 0.22s cubic-bezier(0.3, 1.2, 0.6, 1);
+  opacity: 0;
+  translate: 24px 0;
+  transition:
+    opacity 0.18s ease,
+    translate 0.34s cubic-bezier(0.22, 1, 0.36, 1);
 }
-.drawer-recipes,
-.drawer-tabs,
-.drawer-decor {
-  width: 360px;
+.drawer.open .drawer-inner {
+  opacity: 1;
+  translate: 0 0;
+  transition-delay: 0.06s;
+  animation: drawer-swap 0.28s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .drawer > header {
   display: flex;
@@ -585,10 +603,10 @@ a {
 .small-stats {
   font-size: 14px;
 }
-@keyframes drawer-in {
+@keyframes drawer-swap {
   from {
     opacity: 0;
-    translate: 24px 0;
+    translate: 0 10px;
   }
 }
 @keyframes nudge {
@@ -2199,14 +2217,21 @@ a {
   .rail-small button {
     height: 30px;
   }
-  .drawer,
-  .drawer-recipes,
-  .drawer-tabs,
-  .drawer-decor {
+  .drawer {
     width: auto;
+    max-height: 0;
+    transition: max-height 0.34s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .drawer.open {
+    width: auto;
+    max-height: 48dvh;
+  }
+  .drawer-inner {
+    width: 100%;
     max-height: 48dvh;
     border-right: 0;
     border-bottom: var(--line);
+    translate: 0 16px;
   }
   .drawer > header h2 {
     font-size: 24px;
