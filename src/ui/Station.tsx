@@ -88,6 +88,18 @@ export default function Station() {
   const [busy, setBusy] = useState<'shake' | 'stir' | 'muddle' | null>(null);
   const [progress, setProgress] = useState(0);
   const pour = useRef<ReturnType<typeof setInterval> | null>(null);
+  const tasteCard = useRef<HTMLDivElement>(null);
+  // Bring the taste notes into view when they open; on small screens they sit below the fold.
+  useEffect(() => {
+    if (!inspect) return;
+    const reduced = useGame.getState().game.settings.reducedMotion;
+    requestAnimationFrame(() =>
+      tasteCard.current?.scrollIntoView({
+        behavior: reduced ? 'auto' : 'smooth',
+        block: 'nearest',
+      }),
+    );
+  }, [inspect]);
   const assess = quality(prep, recipe, guest?.extraCherry);
   // A new drink starts from the first step.
   useEffect(() => {
@@ -520,7 +532,7 @@ export default function Station() {
           )}
 
           {inspect && (
-            <div className={'taste-card ' + (assess.score >= 75 ? 'good' : '')}>
+            <div ref={tasteCard} className={'taste-card ' + (assess.score >= 75 ? 'good' : '')}>
               <div>
                 <strong>{assess.label}</strong>
                 <span>{assess.score}/100</span>

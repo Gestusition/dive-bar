@@ -522,6 +522,14 @@ function Room({ guestGroups }: { guestGroups: SceneRefs['guestGroups'] }) {
 function SceneProjector({ elements, guestGroups }: SceneRefs) {
   const { camera, size } = useThree();
   const projected = useMemo(() => new THREE.Vector3(), []);
+  // Guest cards are drawn at the interface scale, which follows the screen height.
+  const scale = useMemo(
+    () =>
+      parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--drawer-scale')) ||
+      1,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [size.height],
+  );
   useFrame(() => {
     const place = (element: HTMLElement | null, position: THREE.Vector3) => {
       if (!element) return;
@@ -532,10 +540,11 @@ function SceneProjector({ elements, guestGroups }: SceneRefs) {
       element.style.visibility = position.z < -1 || position.z > 1 ? 'hidden' : 'visible';
       element.style.zIndex = String(Math.round((1 - position.z) * 1000));
       // Keep the guest's action card on screen near the edges of the scene.
-      const half = 130;
+      const half = 130 * scale;
       const nudge = x < half ? half - x : x > size.width - half ? size.width - half - x : 0;
-      element.style.setProperty('--nudge', nudge + 'px');
-      element.dataset.below = String(y < 330);
+      // The card is zoomed, so its own offsets are in unscaled pixels.
+      element.style.setProperty('--nudge', nudge / scale + 'px');
+      element.dataset.below = String(y < 330 * scale);
     };
 
     for (const [id, element] of elements.current.guests) {

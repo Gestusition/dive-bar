@@ -968,6 +968,16 @@ a {
 .hurry .patience-ring circle {
   stroke: var(--coral);
 }
+.guest-bubble,
+.guest-card,
+.station-label {
+  /* Drawn smaller on short screens, like the rest of the interface. */
+  zoom: var(--drawer-scale);
+}
+/* While making a drink the guest's card would only hide the counter. */
+.station-mode .guest-card {
+  display: none;
+}
 .guest-card {
   position: absolute;
   left: 0;
@@ -1108,7 +1118,7 @@ a {
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
-  width: min(540px, calc(100vw - 28px));
+  width: min(calc(540px * var(--drawer-scale)), calc(100vw - 28px));
   max-height: calc(100dvh - 56px);
   display: flex;
   flex-direction: column;
@@ -1118,6 +1128,10 @@ a {
   box-shadow: 0 8px 0 var(--ink);
   z-index: 51;
   animation: dialog-in 0.28s cubic-bezier(0.3, 1.4, 0.6, 1);
+}
+/* Windows shrink with the screen height like the rest of the interface. */
+.dialog-content > * {
+  zoom: var(--drawer-scale);
 }
 .dialog-content > header {
   display: flex;

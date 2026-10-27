@@ -146,9 +146,6 @@ function RecipeCard({ id }: { id: string }) {
                 ? 'Chill a cocktail glass. Combine rye, sweet vermouth and bitters in a mixing glass with ice. Stir, strain and add a cocktail cherry.'
                 : 'Select the rocks glass. Add sugar, bitters and water; muddle until dissolved. Add ice and whiskey, stir gently, then add orange and a cherry.')}
         </p>
-        <a href={r.source.url || undefined} target="_blank" rel="noreferrer">
-          Source: {r.source.publisher ?? 'International Bartenders Association'} ↗
-        </a>
       </div>
     </div>
   );
