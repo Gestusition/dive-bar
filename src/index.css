@@ -381,8 +381,8 @@ a {
 }
 .rail {
   /* Everything in the rail sizes from the viewport so it always fits without scrolling. */
-  --u: min(1dvh, 0.9vw);
-  width: clamp(84px, calc(var(--u) * 12), 132px);
+  --u: min(1.28dvh, 1.1vw);
+  width: clamp(84px, calc(var(--u) * 11), 140px);
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
