@@ -2450,3 +2450,6 @@ a {
 .pause-overlay .phase-card .button {
   width: 100%;
 }
+.pause-overlay .phase-card {
+  zoom: var(--drawer-scale);
+}
