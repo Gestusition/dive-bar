@@ -1,6 +1,6 @@
 import './bench.css';
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import { ArrowLeft, ArrowRight, BookOpen, Check, Trash2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, BookOpen, Check, ChevronDown, Trash2, X } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { CocktailArt, GlassArt, IceCubesArt, MuddleArt, ShakerArt, StirArt } from './art';
 import {
@@ -69,6 +69,7 @@ export default function Station() {
   const prep = practice ? game.practice : (guest?.prep ?? game.practice);
   const [step, setStep] = useState<Step>('prep');
   const [showAll, setShowAll] = useState(false);
+  const [picking, setPicking] = useState(false);
   const [amounts, setAmounts] = useState<Record<string, number>>({});
   const [inspect, setInspect] = useState(false);
   const [busy, setBusy] = useState<'shake' | 'stir' | 'muddle' | null>(null);
@@ -287,21 +288,14 @@ export default function Station() {
           <div className="bench-title">
             <h2>{recipe.name}</h2>
             {practice ? (
-              <select
-                className="bench-select"
+              <button
+                className="bench-pick"
                 aria-label="Practice recipe"
-                value={practiceRecipe}
-                onChange={(e) => {
-                  setPracticeRecipe(e.target.value);
-                  prepAction('discard');
-                }}
+                aria-expanded={picking}
+                onClick={() => setPicking((v) => !v)}
               >
-                {recipes.map((r) => (
-                  <option key={r.id} value={r.id}>
-                    Practice · {r.name}
-                  </option>
-                ))}
-              </select>
+                Practice · change drink <ChevronDown size={14} strokeWidth={3} />
+              </button>
             ) : (
               <small>
                 {guest?.name}’s order{guest?.extraCherry ? ' · extra cherry' : ''}
@@ -329,6 +323,39 @@ export default function Station() {
           </button>
         </div>
 
+        {picking && (
+          <div className="bench-picker" role="dialog" aria-label="Pick a drink to practise">
+            <header>
+              <h3>Pick a drink to practise</h3>
+              <button className="bench-back" aria-label="Close" onClick={() => setPicking(false)}>
+                <X size={18} strokeWidth={3} />
+              </button>
+            </header>
+            <div className="bench-tiles">
+              {[...recipes]
+                .sort(
+                  (a, b) =>
+                    Number(game.activeMenu.includes(b.id)) - Number(game.activeMenu.includes(a.id)),
+                )
+                .map((r) => (
+                  <button
+                    key={r.id}
+                    className="bench-tile"
+                    aria-pressed={r.id === practiceRecipe}
+                    onClick={() => {
+                      setPracticeRecipe(r.id);
+                      prepAction('discard');
+                      setPicking(false);
+                    }}
+                  >
+                    <CocktailArt size={34} />
+                    {r.name}
+                    {game.activeMenu.includes(r.id) && <span className="tag">Menu</span>}
+                  </button>
+                ))}
+            </div>
+          </div>
+        )}
         <nav className="bench-steps" aria-label="Steps">
           {stepOrder.map((s, i) => (
             <button
