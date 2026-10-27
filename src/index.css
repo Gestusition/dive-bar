@@ -724,7 +724,7 @@ a {
 }
 .top-center {
   position: absolute;
-  top: 16px;
+  bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
@@ -2229,7 +2229,7 @@ a {
     font-size: 14px;
   }
   .top-center {
-    top: 56px;
+    bottom: 12px;
   }
   .station-title h2 {
     font-size: 26px;

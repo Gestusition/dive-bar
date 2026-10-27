@@ -15,8 +15,17 @@ export const seats: [number, number, number][] = [
   [6.2, 0.18, 3.15],
 ];
 // The front door sits in the left wall ahead of every table. Guests come in
-// there, wait just inside, and leave the same way.
+// there, wait just inside, and leave the same way. The side walls follow the
+// screen edges, so the door's x position is updated by the scene.
 export const entrance: [number, number, number] = [-7.2, 0, 6.5];
+let doorX = -7.8;
+/** Where the side walls stand for a view showing `halfWidth` either side of the middle. */
+export const roomEdge = (halfWidth: number) => Math.max(7.8, halfWidth - 0.1);
+export function setDoorX(x: number) {
+  if (Math.abs(x - doorX) < 0.01) return;
+  doorX = x;
+  entrance[0] = x + 0.6;
+}
 const waitingSpot: [number, number, number] = [-4.4, 0, 6.3];
 export const guestSpeed = 3.4;
 export const guestPosition = (g: Pick<Guest, 'status' | 'seat'>): [number, number, number] =>
@@ -96,7 +105,6 @@ export const tables: FloorPoint[] = [
   [6.2, 2.2],
 ];
 export const guestRadius = 0.32;
-const room = { minX: -7.5, maxX: 7.5, minZ: -4.2, maxZ: 7.3 };
 export const guestObstacles: Rect[] = [
   ...tables.flatMap(([x, z]): Rect[] => [
     [x, z, 1.75, 1.45],
@@ -107,19 +115,16 @@ export const guestObstacles: Rect[] = [
   [1.2, -0.25, 0.7, 0.7],
   [0, -1.8, 8, 1.35],
   [-4.8, -1.3, 0.8, 0.75],
-  [-7.3, 7.02, 1, 0.09],
 ];
 // Each seat is reached from a clear spot just in front of it.
 const tableZ = new Map(tables.map(([x, z]) => [x, z]));
 export const seatApproach: FloorPoint[] = seats.map(([x, , z]) =>
   tableZ.has(x) ? [x, tableZ.get(x)! + 1.95] : [x, z + 0.8],
 );
-const padded = guestObstacles.map(([x, z, w, d]): Rect => [
-  x,
-  z,
-  w + guestRadius * 2,
-  d + guestRadius * 2,
-]);
+const pad = ([x, z, w, d]: Rect): Rect => [x, z, w + guestRadius * 2, d + guestRadius * 2];
+const fixedPadded = guestObstacles.map(pad);
+// The swung-open door moves with the left wall.
+let padded = [...fixedPadded, pad([doorX + 0.5, 7.02, 1, 0.09])];
 const inside = ([px, pz]: FloorPoint, [x, z, w, d]: Rect) =>
   Math.abs(px - x) < w / 2 - 1e-9 && Math.abs(pz - z) < d / 2 - 1e-9;
 const blocked = (p: FloorPoint) => padded.some((r) => inside(p, r));
@@ -147,26 +152,39 @@ function crosses(a: FloorPoint, b: FloorPoint, [x, z, w, d]: Rect) {
   return true;
 }
 const clear = (a: FloorPoint, b: FloorPoint) => !padded.some((r) => crosses(a, b, r));
-const graphNodes = (
-  [
-    [entrance[0], entrance[2]],
-    [waitingSpot[0], waitingSpot[2]],
-    ...seatApproach,
-    ...padded.flatMap(([x, z, w, d]): FloorPoint[] =>
-      (
-        [
-          [-1, -1],
-          [1, -1],
-          [-1, 1],
-          [1, 1],
-        ] as const
-      ).map(([sx, sz]): FloorPoint => [x + sx * (w / 2 + 0.06), z + sz * (d / 2 + 0.06)]),
-    ),
-  ] as FloorPoint[]
-).filter(
-  (p) =>
-    !blocked(p) && p[0] >= room.minX && p[0] <= room.maxX && p[1] >= room.minZ && p[1] <= room.maxZ,
-);
+let graph: { doorX: number; nodes: FloorPoint[] } | null = null;
+// Corners of every padded obstacle plus the fixed stops, rebuilt when the door moves.
+function graphNodes() {
+  if (graph?.doorX === doorX) return graph.nodes;
+  padded = [...fixedPadded, pad([doorX + 0.5, 7.02, 1, 0.09])];
+  const room = { minX: doorX + 0.3, maxX: -doorX - 0.3, minZ: -4.2, maxZ: 7.3 };
+  const nodes = (
+    [
+      [entrance[0], entrance[2]],
+      [waitingSpot[0], waitingSpot[2]],
+      ...seatApproach,
+      ...padded.flatMap(([x, z, w, d]): FloorPoint[] =>
+        (
+          [
+            [-1, -1],
+            [1, -1],
+            [-1, 1],
+            [1, 1],
+          ] as const
+        ).map(([sx, sz]): FloorPoint => [x + sx * (w / 2 + 0.06), z + sz * (d / 2 + 0.06)]),
+      ),
+    ] as FloorPoint[]
+  ).filter(
+    (p) =>
+      !blocked(p) &&
+      p[0] >= room.minX &&
+      p[0] <= room.maxX &&
+      p[1] >= room.minZ &&
+      p[1] <= room.maxZ,
+  );
+  graph = { doorX, nodes };
+  return nodes;
+}
 const distance = (a: FloorPoint, b: FloorPoint) => Math.hypot(a[0] - b[0], a[1] - b[1]);
 function nearestApproach(p: FloorPoint) {
   return seatApproach.reduce((best, a) => (distance(p, a) < distance(p, best) ? a : best));
@@ -174,6 +192,7 @@ function nearestApproach(p: FloorPoint) {
 /** The shortest furniture-free walk from one floor point to another. */
 export function guestPath(from: FloorPoint, to: FloorPoint): FloorPoint[] {
   if (distance(from, to) < 1e-6) return [];
+  const network = graphNodes();
   // A seat sits inside its own chair, so step out to (or in from) the spot in front of it.
   const start = blocked(from) ? nearestApproach(from) : from;
   const end = blocked(to) ? nearestApproach(to) : to;
@@ -181,7 +200,7 @@ export function guestPath(from: FloorPoint, to: FloorPoint): FloorPoint[] {
   const after: FloorPoint[] = end === to ? [] : [to];
   if (distance(start, end) < 1e-6 || clear(start, end))
     return [...before, ...(distance(start, end) < 1e-6 ? [] : [end]), ...after];
-  const nodes = [start, end, ...graphNodes];
+  const nodes = [start, end, ...network];
   const best = nodes.map(() => Infinity);
   const previous = nodes.map(() => -1);
   const done = nodes.map(() => false);

@@ -12,6 +12,8 @@ import {
   guestPosition,
   guestPath,
   guestSpeed,
+  roomEdge,
+  setDoorX,
   stepAlong,
   tables,
   walkingSpeed,
@@ -52,17 +54,75 @@ function geometry(parts: Part[]) {
   geometries.forEach((g) => g.dispose());
   return merged;
 }
+// The left wall (with the front door) and the right wall, drawn around x=0
+// and moved to the edges of the screen every frame.
+const wallColor = '#744b3c';
+function leftWallParts(): Part[] {
+  const p: Part[] = [];
+  const box = (x: number, y: number, z: number, w: number, h: number, d: number, c: string) =>
+    p.push([x, y, z, w, h, d, c]);
+  // The door is hinged on the front jamb and swung into the room so the
+  // straight-on camera sees it and it never stands in the guests' way.
+  box(0, 1.55, 0.675, 0.25, 3.3, 10.45, wallColor);
+  box(0, 1.55, 12, 0.25, 3.3, 9.8, wallColor);
+  box(0, 2.85, 6.5, 0.25, 0.7, 1.2, wallColor);
+  box(0, 2.4, 6.5, 0.4, 0.2, 1.4, dark);
+  for (const z of [5.9, 7.1]) box(0, 1.2, z, 0.4, 2.4, 0.14, dark);
+  box(0.5, 1.12, 7.02, 1, 2.2, 0.09, '#5a3a2c');
+  box(0.5, 1.6, 7.08, 0.62, 0.62, 0.03, '#f3c56a');
+  box(0.5, 1.6, 7.1, 0.04, 0.62, 0.02, dark);
+  box(0.5, 1.6, 7.1, 0.62, 0.04, 0.02, dark);
+  box(0.5, 0.55, 7.08, 0.7, 0.62, 0.03, '#6e4733');
+  box(0.88, 1.08, 7.1, 0.09, 0.09, 0.07, brass);
+  box(0.75, 0.075, 6.5, 0.95, 0.02, 1.1, '#3f6b5e');
+  for (const dz of [-0.35, 0, 0.35]) box(0.75, 0.09, 6.5 + dz, 0.8, 0.01, 0.07, cream);
+  // Covers everything beyond the wall, with the street showing in the doorway.
+  box(-8, 1.65, 0.6, 16, 3.3, 10.6, wallColor);
+  box(-8, 1.65, 12.05, 16, 3.3, 9.9, wallColor);
+  box(-8, -0.04, 6.5, 16, 0.1, 1.2, '#4c4540');
+  return p;
+}
+function rightWallParts(): Part[] {
+  return [
+    [0, 1.55, 6.2, 0.25, 3.3, 21.8, wallColor],
+    [8, 1.65, 6.2, 16, 3.3, 21.8, wallColor],
+  ];
+}
+function SideWalls() {
+  const left = useRef<THREE.Group>(null);
+  const right = useRef<THREE.Group>(null);
+  const leftGeometry = useMemo(() => geometry(leftWallParts()), []);
+  const rightGeometry = useMemo(() => geometry(rightWallParts()), []);
+  const { camera, size } = useThree();
+  useFrame(() => {
+    const edge = roomEdge(size.width / camera.zoom / 2);
+    if (left.current) left.current.position.x = -edge;
+    if (right.current) right.current.position.x = edge;
+    setDoorX(-edge);
+  });
+  return (
+    <>
+      <group ref={left}>
+        <mesh geometry={leftGeometry} material={material} receiveShadow castShadow />
+      </group>
+      <group ref={right}>
+        <mesh geometry={rightGeometry} material={material} receiveShadow castShadow />
+      </group>
+    </>
+  );
+}
 function roomParts() {
   const p: Part[] = [];
   const box = (x: number, y: number, z: number, w: number, h: number, d: number, c: string) =>
     p.push([x, y, z, w, h, d, c]);
-  // The floor runs on past the front of the room and the back wall rises
-  // high, so the straight-on camera only ever sees the bar.
-  box(0, -0.22, 6.4, 15.8, 0.35, 22.4, dark);
-  for (let x = 0; x < 16; x++)
+  // The floor and back wall run well past the side walls, which follow the
+  // screen edges (see SideWalls), so however wide the screen is the camera
+  // only ever sees the bar.
+  box(0, -0.22, 6.4, 31.8, 0.35, 22.4, dark);
+  for (let x = 0; x < 32; x++)
     for (let z = 0; z < 22; z++)
       box(
-        x - 7.5,
+        x - 15.5,
         0.005,
         z - 4,
         0.96,
@@ -70,26 +130,10 @@ function roomParts() {
         0.96,
         ['#ab7851', '#b48359', '#a16d49', '#ba8b62'][(x * 7 + z * 3) % 4],
       );
-  box(0, 7.6, -4.55, 15.8, 15.4, 0.25, '#6b463b');
-  // Left wall with the front door ahead of the tables. The door is hinged on
-  // the front jamb and swung into the room so the straight-on camera sees it
-  // and it never stands in the guests' way.
-  box(-7.8, 1.55, 0.675, 0.25, 3.3, 10.45, '#744b3c');
-  box(-7.8, 1.55, 7.45, 0.25, 3.3, 0.7, '#744b3c');
-  box(-7.8, 2.85, 6.5, 0.25, 0.7, 1.2, '#744b3c');
-  box(-7.8, 2.4, 6.5, 0.4, 0.2, 1.4, dark);
-  for (const z of [5.9, 7.1]) box(-7.8, 1.2, z, 0.4, 2.4, 0.14, dark);
-  box(-7.3, 1.12, 7.02, 1, 2.2, 0.09, '#5a3a2c');
-  box(-7.3, 1.6, 7.08, 0.62, 0.62, 0.03, '#f3c56a');
-  box(-7.3, 1.6, 7.1, 0.04, 0.62, 0.02, dark);
-  box(-7.3, 1.6, 7.1, 0.62, 0.04, 0.02, dark);
-  box(-7.3, 0.55, 7.08, 0.7, 0.62, 0.03, '#6e4733');
-  box(-6.92, 1.08, 7.1, 0.09, 0.09, 0.07, brass);
-  box(-7.05, 0.075, 6.5, 0.95, 0.02, 1.1, '#3f6b5e');
-  for (const dz of [-0.35, 0, 0.35]) box(-7.05, 0.09, 6.5 + dz, 0.8, 0.01, 0.07, cream);
-  for (let i = 0; i < 16; i++) box(i - 7.5, 0.7, -4.37, 0.05, 1.55, 0.1, brass);
-  box(0, 0.12, -4.32, 15.5, 0.18, 0.18, dark);
-  box(0, 3.15, -4.3, 15.5, 0.15, 0.2, dark);
+  box(0, 7.6, -4.55, 31.8, 15.4, 0.25, '#6b463b');
+  for (let i = 0; i < 32; i++) box(i - 15.5, 0.7, -4.37, 0.05, 1.55, 0.1, brass);
+  box(0, 0.12, -4.32, 31.5, 0.18, 0.18, dark);
+  box(0, 3.15, -4.3, 31.5, 0.15, 0.2, dark);
   // Framed windows and their little glowing sill lamps.
   for (const x of [-3.9, 3.9]) {
     box(x, 2, -4.33, 1.65, 1.65, 0.16, dark);
@@ -154,7 +198,7 @@ function roomParts() {
   for (let x = -0.8; x < 1; x += 0.4) box(x, 0.11, 2.3, 0.06, 0.01, 3, '#d5a169');
   p.push(...cornerPlantParts);
   // Amber lights, framed menu and coat hooks.
-  for (const x of [-7.2, -4.8, -2.4, 0, 2.4, 4.8, 7.2]) {
+  for (const x of [-12, -9.6, -7.2, -4.8, -2.4, 0, 2.4, 4.8, 7.2, 9.6, 12]) {
     box(x, 2.85, -4.08, 0.2, 0.32, 0.18, brass);
     box(x, 2.85, -3.96, 0.12, 0.2, 0.1, '#ffe2a3');
   }
@@ -300,21 +344,30 @@ function Camera() {
   const panel = useGame((s) => s.panel);
   useFrame((_, dt) => {
     const station = panel === 'station';
-    camera.position.lerp(
-      new THREE.Vector3(0, station ? 8 : 14, station ? 9 : 17),
-      useGame.getState().game.settings.reducedMotion ? 1 : 1 - Math.exp(-dt * 4),
-    );
-    const target = new THREE.Vector3(0, 1, station ? -1.7 : 1.3);
+    const reduced = useGame.getState().game.settings.reducedMotion;
+    if (!(camera instanceof THREE.OrthographicCamera)) return;
+    // A straight-on view that always fits the room's width and everything
+    // from the bar sign down to the front door. The side walls follow the
+    // screen edges, so nothing outside the bar is ever on screen.
+    const zoom = station
+      ? Math.min(size.width / 6.3, size.height / 5.4)
+      : Math.min(size.width / 15.8, size.height / 10.3);
+    camera.zoom = reduced ? zoom : THREE.MathUtils.damp(camera.zoom, zoom, 4, dt);
+    // Pin the top of the view just above the bar sign, so any spare height
+    // goes to the floor rather than to empty wall.
+    const up = 0.781,
+      back = 0.625;
+    const top = up * 3.3 + back * 4.4 + 0.5;
+    const centre = top - size.height / camera.zoom / 2;
+    const target = station
+      ? new THREE.Vector3(0, 1, -1.7)
+      : new THREE.Vector3(0, 1, (up - centre) / back);
+    const position = station
+      ? new THREE.Vector3(0, 8, 9)
+      : target.clone().add(new THREE.Vector3(0, 13, 16.25));
+    camera.position.lerp(position, reduced ? 1 : 1 - Math.exp(-dt * 4));
     camera.lookAt(target);
-    if (camera instanceof THREE.OrthographicCamera) {
-      // A straight-on view of the counter. The room's width always fills the
-      // scene, so nothing outside the bar is ever on screen.
-      const zoom = station ? Math.min(size.width / 6.3, size.height / 5.4) : size.width / 15.8;
-      camera.zoom = useGame.getState().game.settings.reducedMotion
-        ? zoom
-        : THREE.MathUtils.damp(camera.zoom, zoom, 4, dt);
-      camera.updateProjectionMatrix();
-    }
+    camera.updateProjectionMatrix();
   });
   return null;
 }
@@ -421,6 +474,7 @@ function Room({ guestGroups }: { guestGroups: SceneRefs['guestGroups'] }) {
       />
       <mesh geometry={room} material={material} receiveShadow castShadow />
       <Sign lit={game.upgrades.neon} />
+      <SideWalls />
       <Bartender />
       {game.guests.map((g) => (
         <Person guest={g} guestGroups={guestGroups} key={g.id} />
