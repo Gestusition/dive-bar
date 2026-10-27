@@ -19,10 +19,14 @@ export function quality(p: Prep, r: Recipe, extraCherry = false) {
   const targetFractions: number[] = [],
     actualFractions: number[] = [];
   for (const i of r.ingredients) {
+    // Tell the player the bottle's name, not the recipe's internal slot id.
+    const name = i.allowed
+      .map((id) => ingredients.find((j) => j.id === id)?.name ?? id)
+      .join(' or ');
     const q = i.allowed.reduce((sum, id) => sum + (p.amounts[id] ?? 0), 0),
       target = i.quantity ?? i.gameTarget!.preferred;
     if (i.allowed.filter((id) => (p.amounts[id] ?? 0) > 0).length > 1) {
-      issues.push('Choose one alternative for ' + i.slot);
+      issues.push('Choose one of ' + name);
       invalid = true;
     }
     if (i.optional && q === 0) continue;
@@ -33,11 +37,11 @@ export function quality(p: Prep, r: Recipe, extraCherry = false) {
     quantityPenalty += (clamp((error - tol) / (target * 0.5), 0, 1) * 20) / r.ingredients.length;
     if (q === 0) {
       score -= 30 / r.ingredients.length;
-      issues.push('Missing ' + i.slot);
+      issues.push('Missing ' + name);
       if (i.allowed.some((id) => ingredients.find((j) => j.id === id)?.kind === 'spirit'))
         invalid = true;
     } else if (error > tol)
-      issues.push(i.slot + ': ' + Number(q.toFixed(1)) + ' / ' + target + ' ' + i.unit);
+      issues.push(name + ': ' + Number(q.toFixed(1)) + ' / ' + target + ' ' + i.unit);
     if (i.quantity !== null && (i.unit === 'ml' || i.unit === 'dash')) {
       const scale = i.unit === 'dash' ? 0.8 : 1;
       targetVol += target * scale;
