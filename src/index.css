@@ -381,19 +381,23 @@ a {
   z-index: 5;
 }
 .rail {
-  /* Everything in the rail sizes from the viewport so it always fits without scrolling. */
   position: relative;
   z-index: 2;
   background: var(--blush);
-  --u: min(1.28dvh, 1.1vw);
-  width: clamp(84px, calc(var(--u) * 11), 140px);
+  width: clamp(72px, 14dvh, 140px);
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: calc(var(--u) * 1.1);
-  padding: calc(var(--u) * 1.4) calc(var(--u) * 1.1);
+  gap: 1dvh;
+  padding: 1.4dvh 1dvh;
   overflow: hidden;
+  /* Everything inside sizes from the rail's own height, so it always fits
+     without scrolling or clipping, whatever the screen. */
+  container-type: size;
+}
+.rail > * {
+  --u: min(1.12cqh, 9cqw);
 }
 .rail svg {
   width: calc(var(--u) * 4.4);
@@ -501,6 +505,7 @@ a {
   box-shadow: 0 1px 0 var(--ink);
 }
 .drawer {
+  max-width: 55vw;
   /* Slides straight out from behind the rail over the scene. Only its
      position animates, on the compositor, and the bar underneath stays put. */
   position: absolute;
@@ -2195,7 +2200,27 @@ a {
 }
 
 /* ---------- Smaller screens ---------- */
-@media (max-width: 760px) {
+/* Phones on their side use the same side rail as desktop; it scales from
+   the screen height, so it fits without scrolling. */
+@media (max-height: 500px) and (orientation: landscape) {
+  .station-label {
+    top: 8px;
+    right: 8px;
+    padding: 4px 12px 4px 8px;
+    font-size: 14px;
+  }
+  .drawer-inner > header {
+    padding: 8px 10px 8px 14px;
+  }
+  .drawer-inner > header h2 {
+    font-size: 24px;
+  }
+  .drawer-body {
+    padding: 10px;
+    gap: 10px;
+  }
+}
+@media (max-width: 760px) and (orientation: portrait) {
   .game-shell,
   .game-shell.station-mode {
     grid-template-columns: minmax(0, 1fr);

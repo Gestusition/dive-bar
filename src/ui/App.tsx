@@ -687,7 +687,7 @@ function Hud({
   }, [drawer, reduced]);
   // Keep the counter label and toasts clear of the open drawer.
   useEffect(() => {
-    const wide = window.matchMedia('(min-width: 761px)').matches;
+    const wide = !window.matchMedia('(max-width: 760px) and (orientation: portrait)').matches;
     const covered = drawer && wide ? (drawer === 'phase' ? 300 : 360) : 0;
     document.documentElement.style.setProperty('--scene-inset', covered + 'px');
   }, [drawer]);
