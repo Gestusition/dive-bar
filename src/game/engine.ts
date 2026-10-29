@@ -420,7 +420,7 @@ export function conversationFor(s: Game, g: Guest) {
  * way the guest asked move it up or down, with a little chance on top.
  */
 export function tipFor(s: Game, g: Guest, bonus = 0) {
-  if (!g.served || g.charge <= 0) return 0;
+  if (!g.served || g.charge <= 0 || g.quality < 55) return 0;
   let rate = g.quality < 55 ? 0 : 0.04 + ((g.quality - 55) / 45) * 0.16;
   rate += g.tipDelta + (g.waited - 0.5) * 0.08 + ambience(s) + bonus + (rand(s) - 0.5) * 0.04;
   // Left waiting at the till.
@@ -541,7 +541,12 @@ export function reduceGame(current: Game, a: Action): Game {
         : stockItems.find((i) => i.id === id)?.costMinorPerUnit;
     if (
       rows.some(
-        ([id, q]) => itemCost(id) === undefined || !Number.isFinite(q) || q < 0 || q > 10000,
+        ([id, q]) =>
+          itemCost(id) === undefined ||
+          !Number.isFinite(q) ||
+          q < 0 ||
+          q > 10000 ||
+          (id.startsWith('snack_') && !Number.isInteger(q)),
       )
     )
       return current;
@@ -617,13 +622,15 @@ export function reduceGame(current: Game, a: Action): Game {
     const cost = rows.reduce(
       (n, [id, par]) =>
         n +
-        Math.ceil(Math.max(0, par - (s.inventory[id] ?? 0))) *
-          (stockItems.find((i) => i.id === id)?.costMinorPerUnit ?? 0),
+        Math.ceil(
+          Math.max(0, par - (s.inventory[id] ?? 0)) *
+            (stockItems.find((i) => i.id === id)?.costMinorPerUnit ?? 0),
+        ),
       0,
     );
     if (s.cash >= cost) {
       s.cash -= cost;
-      s.inventory = { ...initialInventory };
+      for (const [id, par] of rows) s.inventory[id] = Math.max(s.inventory[id] ?? 0, par);
       s.closing.restock = true;
       note('Shelves restored to par. Cost: $' + (cost / 100).toFixed(2));
     } else {
@@ -873,9 +880,7 @@ export function reduceGame(current: Game, a: Action): Game {
     if (a.operation === 'transfer' && p.measure) {
       const amount = p.measure.quantity;
       const addition =
-        p.measure.id === 'plain_water' || p.measure.id === 'angostura_bitters'
-          ? amount * 0.8
-          : amount;
+        ingredients.find((i) => i.id === p.measure!.id)?.unit === 'dash' ? amount * 0.8 : amount;
       if (volume(p) + addition > (p.tool === 'old_fashioned_glass' ? 250 : 440)) {
         note('The vessel is full. Discard or use another preparation.');
         return s;
@@ -1032,8 +1037,8 @@ export function reduceGame(current: Game, a: Action): Game {
       else reply = pick(s, declines).replace('{drink}', recipeById(g.recipeId).name);
     }
     if (ch.result === 'cancel' || ch.result === 'decline') {
-      g.status = 'leaving';
-      g.remaining = leaveTime;
+      g.status = g.charge > g.paidAmount ? 'pay' : 'leaving';
+      g.remaining = g.status === 'pay' ? 90 : leaveTime;
       if (ch.result === 'cancel') {
         s.stats.cancelled++;
         s.spawnIn = Math.max(s.spawnIn, 35);

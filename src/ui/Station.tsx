@@ -33,6 +33,7 @@ import {
 import { quality, volume, type Action } from '../game/engine';
 import { play } from '../game/audio';
 import { useGame } from '../game/store';
+import { quantityBounds } from '../game/quality';
 
 type Step = 'prep' | 'pour' | 'mix' | 'garnish';
 type Motion = 'shake' | 'stir' | 'muddle';
@@ -301,18 +302,15 @@ export default function Station() {
       : []),
   ];
   type Row = (typeof rows)[number];
-  // Close enough to tick: the taste score judges the fine detail.
-  // A row is right within the taste check's own tolerance; a heavy hand is "over"
-  // (it costs points, and the row stops asking for more).
+  // Completion and service share the same bounds; taste scoring is stricter.
   const pourState = (r: Row): 'empty' | 'short' | 'good' | 'over' => {
     if (r.have === 0) return r.optional ? 'good' : 'empty';
     if (r.target === null) return 'good';
-    const tol = r.unit === 'ml' ? Math.max(1, r.target * 0.05) : 0;
-    const low = (r.low ?? r.target) - tol,
-      high = (r.high ?? r.target) + tol;
+    const spec = recipe.ingredients.find((i) => i.slot === r.key);
+    const { low, high } = spec ? quantityBounds(spec) : { low: r.target, high: r.target };
     return r.have < low - 1e-6 ? 'short' : r.have > high + 1e-6 ? 'over' : 'good';
   };
-  const isDone = (r: Row) => r.recipe && ['good', 'over'].includes(pourState(r));
+  const isDone = (r: Row) => r.recipe && pourState(r) === 'good';
   const muddleFirst = dissolve === 'before_spirit' && !prep.dissolved;
   const nextRow = rows.find(
     (r) =>
@@ -329,10 +327,9 @@ export default function Station() {
       prep.ice &&
       prep.technique === recipeTool.technique &&
       prep.mix >= sweetZone[0] &&
+      prep.mix <= sweetZone[1] &&
       (!dissolve || prep.dissolved),
-    garnish:
-      Object.values(prep.garnish).some((n) => n > 0) &&
-      !assess.issues.includes('Finish the garnish'),
+    garnish: !assess.issues.includes('Finish the garnish'),
   };
   const serveLabel =
     method === 'build_glass' || method === 'old_fashioned_glass'
@@ -370,36 +367,37 @@ export default function Station() {
           All set. Go on to <b>Pour</b>.
         </>
       ),
-    pour:
-      muddleFirst && !rows.some((r) => r.recipe && !r.spirit && !isDone(r)) ? (
-        <>
-          Now <b>hold Muddle</b> to dissolve the sugar, before any spirit goes in.
-        </>
-      ) : nextRow ? (
-        <>
-          {nextRow.have > 0 && nextRow.target ? (
-            <>
-              A little more <b>{nextRow.label}</b>:{' '}
-              {Number((nextRow.target - nextRow.have).toFixed(1))}{' '}
-              {plural(nextRow.target - nextRow.have, nextRow.unit)} to go.
-            </>
-          ) : (
-            <>
-              Pour the <b>{nextRow.label}</b>
-              {nextRow.target ? (
-                <>
-                  : {nextRow.target} {plural(nextRow.target, nextRow.unit)}
-                </>
-              ) : null}
-              .
-            </>
-          )}
-        </>
-      ) : (
-        <>
-          Everything is in. Go on to <b>Mix</b>.
-        </>
-      ),
+    pour: rows.some((r) => r.recipe && pourState(r) === 'over') ? (
+      <>Too much in this preparation. Discard it and measure a fresh drink.</>
+    ) : muddleFirst && !rows.some((r) => r.recipe && !r.spirit && !isDone(r)) ? (
+      <>
+        Now <b>hold Muddle</b> to dissolve the sugar, before any spirit goes in.
+      </>
+    ) : nextRow ? (
+      <>
+        {nextRow.have > 0 && nextRow.target ? (
+          <>
+            A little more <b>{nextRow.label}</b>:{' '}
+            {Number((nextRow.target - nextRow.have).toFixed(1))}{' '}
+            {plural(nextRow.target - nextRow.have, nextRow.unit)} to go.
+          </>
+        ) : (
+          <>
+            Pour the <b>{nextRow.label}</b>
+            {nextRow.target ? (
+              <>
+                : {nextRow.target} {plural(nextRow.target, nextRow.unit)}
+              </>
+            ) : null}
+            .
+          </>
+        )}
+      </>
+    ) : (
+      <>
+        Everything is in. Go on to <b>Mix</b>.
+      </>
+    ),
     mix:
       dissolve === 'before_ice' && !prep.dissolved ? (
         <>
@@ -409,6 +407,8 @@ export default function Station() {
         <>
           Add <b>ice</b> first.
         </>
+      ) : prep.mix > sweetZone[1] ? (
+        <>Mixed too long. Discard it and start fresh for the best result.</>
       ) : prep.technique !== recipeTool.technique || prep.mix < sweetZone[0] ? (
         <>
           <b>Hold {recipeTool.technique === 'shake' ? 'Shake' : 'Stir'}</b> and let go while the bar
@@ -836,14 +836,16 @@ export default function Station() {
                   'shake',
                   'Shake',
                   <ShakerArt size={44} />,
-                  prep.technique === 'shake' && prep.mix >= sweetZone[0],
+                  prep.technique === 'shake' &&
+                    prep.mix >= sweetZone[0] &&
+                    prep.mix <= sweetZone[1],
                   coach && prep.ice && recipeTool.technique === 'shake' && !complete.mix,
                 )}
                 {holdTile(
                   'stir',
                   'Stir',
                   <StirArt size={44} />,
-                  prep.technique === 'stir' && prep.mix >= sweetZone[0],
+                  prep.technique === 'stir' && prep.mix >= sweetZone[0] && prep.mix <= sweetZone[1],
                   coach && prep.ice && recipeTool.technique === 'stir' && !complete.mix,
                 )}
               </div>

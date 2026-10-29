@@ -1,6 +1,17 @@
 import { ingredients, recipeMethod, type Recipe } from './content';
 import type { Prep } from './engine';
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
+// Service has a wider margin than a perfect taste score. Native dash/piece
+// quantities keep their authored ranges instead of fractional allowances.
+export const SERVICE_TOLERANCE = 0.18;
+export function quantityBounds(i: Recipe['ingredients'][number], fraction = SERVICE_TOLERANCE) {
+  const target = i.quantity ?? i.gameTarget!.preferred;
+  const tolerance = i.unit === 'ml' ? Math.max(1, target * fraction) : 0;
+  return {
+    low: (i.gameTarget?.acceptedMin ?? target) - tolerance,
+    high: (i.gameTarget?.acceptedMax ?? target) + tolerance,
+  };
+}
 export function quality(p: Prep, r: Recipe, extraCherry = false) {
   const issues: string[] = [];
   let score = 100;
@@ -39,6 +50,11 @@ export function quality(p: Prep, r: Recipe, extraCherry = false) {
       invalid = true;
     }
     if (i.optional && q === 0) continue;
+    const bounds = quantityBounds(i);
+    if (q < bounds.low - 1e-6 || q > bounds.high + 1e-6) {
+      invalid = true;
+      issues.push(name + ': outside the serving measure');
+    }
     const low = i.gameTarget?.acceptedMin ?? target,
       high = i.gameTarget?.acceptedMax ?? target;
     const error = q < low ? low - q : q > high ? q - high : 0;

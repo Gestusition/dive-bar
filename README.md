@@ -2,7 +2,7 @@
 
 A small voxel neighbourhood bar. Real measures, familiar faces, and the occasional little white lie.
 
-**Play it:** https://gestusition.github.io/dive-bar/ · **Latest release:** [v0.0.1](https://github.com/Gestusition/dive-bar/releases/tag/v0.0.1)
+**Play it:** https://gestusition.github.io/dive-bar/ · **Latest release:** [v0.0.2](https://github.com/Gestusition/dive-bar/releases/tag/v0.0.2)
 
 ![Title screen](docs/screenshots/title.jpg)
 
@@ -33,7 +33,7 @@ On a phone held sideways (Galaxy S8+, 740 x 360):
 6. Call **Last orders** from **Bar tools**. At closing time wipe, empty the trash, restock and wash glasses, then close the bar.
 7. Between nights, decorate the bar. Decor lifts tips; the host seats guests for you.
 
-A step is ticked only when it is really done. Pours count within 40% of the target; the **Taste check** scores the fine detail.
+A step is ticked only when it is really done. Each required ml ingredient must be within **±18%** of its target (with at least 1 ml of allowance) before a drink can be served. For example, 50 ml accepts 41–59 ml, and 20 ml accepts 16.4–23.6 ml. Dashes and pieces use the recipe's exact quantity or stated range; optional ingredients can be omitted. Overpours need a fresh preparation. The **Taste check** keeps a tighter ±5% / 1 ml margin for a perfect quantity score and also judges balance, technique and presentation.
 
 Escape closes a drawer or window, or pauses. Windows pause service. The pause menu can save and return to the title, where **Continue** picks up the night.
 
@@ -73,7 +73,7 @@ Escape closes a drawer or window, or pauses. Windows pause service. The pause me
 **Phones**
 
 - Played in landscape. Phones held upright are asked to turn sideways, and Android locks to landscape on Play.
-- Everything fits without scrolling from a Galaxy S8+ (360 px tall) upwards, and on iPhones on their side.
+- Core controls fit from a Galaxy S8+ (360 px tall) upwards and on landscape iPhone profiles. Long recipes and settings scroll inside their panels.
 
 **Saving**
 
@@ -110,11 +110,15 @@ bunx playwright install chromium firefox webkit
 bun run test:e2e
 ```
 
+For a quick browser iteration, run `bun run test:e2e --project=desktop`. Run the full matrix before release. The clock helper preserves every 250 ms service tick while coalescing redundant animation callbacks; held-input tests retain all 100 ms input ticks. Story journeys import a normal signed fixture backup so random orders do not select a different story. The production game has no test speed mode.
+
+Refresh the six real production-build screenshots with `UPDATE_SCREENSHOTS=1 bun run test:e2e --project=desktop --project=touch` (PowerShell: set `$env:UPDATE_SCREENSHOTS='1'` first). Captures show a fresh local bar and a fixture-backed Manhattan story, rather than a live player's save.
+
 Vitest is the unit runner; use `bun run test:unit` rather than `bun test`. Playwright tests the production build in Firefox, Chrome, a Galaxy S8 in landscape (Chromium) and an iPhone 13 in landscape (WebKit). Emulation is not a physical-phone performance certification.
 
 ## Delivery
 
-`.github/workflows/ci.yml` checks pull requests and `main`, then deploys the same tested build to GitHub Pages from `main`. Dependabot keeps Bun and Actions dependencies up to date without auto-merge.
+`.github/workflows/ci.yml` checks pull requests and `main`. It builds once and shares that exact static artifact with four parallel browser jobs; each installs only its browser and uses one worker. Pages publication waits for all four projects to pass and deploys that same artifact from `main`. Documentation changes also run the required checks so they do not leave a required status pending. Dependabot keeps Bun and Actions dependencies up to date without auto-merge.
 
 The site is a static Next.js export, with Turbopack for development and production builds. GitHub Pages uses the `/dive-bar` base path; local development and preview use the root path. TypeScript 7 supplies the native `tsc`, while the `typescript` package aliases `@typescript/typescript6` for lint tools that still need its API, following [Microsoft's side-by-side migration](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/#running-side-by-side-with-typescript-6-0).
 
@@ -136,5 +140,7 @@ The site is a static Next.js export, with Turbopack for development and producti
 - `data/catalogue.en.json`: researched expansion and declared house variations.
 - `docs/recipe-research.md`: interpretations of uncertain names and recipe sources.
 - `docs/implementation-status.md`: verified behaviour and remaining validation limits.
+
+Release notes are in [CHANGELOG.md](CHANGELOG.md). Project contribution rules are in [AGENTS.md](AGENTS.md), with a focused pull request template under `.github`.
 
 The supplied artwork in `public/assets` and `art-src` is preserved. Voxel geometry is authored in code. Caveat Brush and Inter are self-hosted via Fontsource under the SIL Open Font License; the licence notices ship in `public/licenses`.

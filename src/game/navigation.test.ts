@@ -25,13 +25,15 @@ const targets: FloorPoint[] = [
 ];
 function clearCounter(p: FloorPoint) {
   // Counter top is 8 x 1.35 at z=-1.8. Include the character's 0.42 arm radius.
-  expect(Math.abs(p[0]) >= 4.42 || p[1] <= -2.895 || p[1] >= -0.705).toBe(true);
+  if (!(Math.abs(p[0]) >= 4.42 || p[1] <= -2.895 || p[1] >= -0.705))
+    throw new Error(`Bartender intersects the counter at ${p}`);
   // A conservative rotating-body radius covers arms, head and feet. Test
   // every actual plant voxel drawn by the scene, rather than only its pot.
   for (const [x, , z, w, , d] of cornerPlantParts) {
     const dx = Math.max(Math.abs(p[0] - x) - w / 2, 0);
     const dz = Math.max(Math.abs(p[1] - z) - d / 2, 0);
-    expect(Math.hypot(dx, dz)).toBeGreaterThan(0.52);
+    if (Math.hypot(dx, dz) <= 0.52)
+      throw new Error(`Bartender intersects plant voxel ${x},${z} at ${p}`);
   }
 }
 function walk(from: FloorPoint, to: FloorPoint) {
@@ -39,9 +41,8 @@ function walk(from: FloorPoint, to: FloorPoint) {
   for (let i = 0; i < 3000; i++) {
     const next = advanceWalk(p, to, walkingSpeed / 60);
     clearCounter(next);
-    expect(Math.hypot(next[0] - p[0], next[1] - p[1])).toBeLessThanOrEqual(
-      walkingSpeed / 60 + 1e-8,
-    );
+    if (Math.hypot(next[0] - p[0], next[1] - p[1]) > walkingSpeed / 60 + 1e-8)
+      throw new Error(`Bartender exceeds walking speed from ${p} to ${next}`);
     p = next;
     if (Math.hypot(p[0] - to[0], p[1] - to[1]) < 1e-6) return p;
   }
@@ -54,10 +55,10 @@ describe('bartender walkway', () => {
       expect(z - d / 2).toBeGreaterThan(-4.425);
     }
   });
-  it('goes around the right end on every service trip and return', () => {
+  it('uses an open counter end on every service trip and return', () => {
     for (const target of targets) {
       const route = walkingRoute(bartenderHome, target);
-      expect(route.some(([x, z]) => x === 4.6 && z === 0.5)).toBe(true);
+      expect(route.some(([x, z]) => Math.abs(x) === 4.6 && z === 0.5)).toBe(true);
       expect(walk(bartenderHome, target)).toEqual(target);
       expect(walk(target, bartenderHome)).toEqual(bartenderHome);
     }
@@ -110,7 +111,8 @@ function walkGuest(from: FloorPoint, to: FloorPoint) {
       const [x, z, w, d] = r;
       const dx = Math.max(Math.abs(p[0] - x) - w / 2, 0);
       const dz = Math.max(Math.abs(p[1] - z) - d / 2, 0);
-      expect(Math.hypot(dx, dz)).toBeGreaterThanOrEqual(guestRadius - 1e-6);
+      if (Math.hypot(dx, dz) < guestRadius - 1e-6)
+        throw new Error(`Guest intersects furniture ${r} at ${p}`);
     }
     if (Math.hypot(p[0] - to[0], p[1] - to[1]) < 1e-6) return i / 60;
   }

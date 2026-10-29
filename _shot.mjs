@@ -1,14 +1,17 @@
 import { chromium } from '@playwright/test';
+import { mkdirSync } from 'node:fs';
+import { resolve, sep } from 'node:path';
 // Usage: node _shot.mjs <name> [width] [height]
-// Renders the bar with all decor and saves the full view plus a 4x3 grid of
+// Renders the current bar and saves the full view plus a 4x3 grid of
 // close-up tiles so every part of the scene can be inspected.
 const out = process.argv[2] || 'shot';
 const W = +(process.argv[3] || 1600),
   H = +(process.argv[4] || 1000);
-const dir = 'C:/Users/kirac/.gemini/antigravity/brain/49c783d5-c307-4b00-9fb1-ad35e5466926/scratch/';
+const dir = resolve(process.env.SCREENSHOT_DIR ?? 'artifacts/scene') + sep;
+mkdirSync(dir, { recursive: true });
 const browser = await chromium.launch({ args: ['--use-gl=angle', '--enable-unsafe-swiftshader'] });
 const page = await browser.newPage({ viewport: { width: W, height: H }, deviceScaleFactor: 3 });
-await page.goto('http://localhost:3000');
+await page.goto(process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:4173');
 await page.getByRole('button', { name: /^(Play|Continue)$/ }).click({ timeout: 30000 });
 await page.waitForTimeout(5000);
 await page.screenshot({ path: dir + out + '.png', scale: 'css' });
