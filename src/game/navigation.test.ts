@@ -18,6 +18,7 @@ import {
   newWalker,
   personClearance,
   replanInterval,
+  blockedReplan,
   type FloorPoint,
 } from './navigation';
 import { hostHome } from './host';
@@ -250,8 +251,28 @@ describe('route planning budget', () => {
     const door: FloorPoint = [entrance[0], entrance[2]];
     for (let frame = 0; frame < 120; frame++)
       walkFrame(guest, door, guestSpeed / 60, 1 / 60, [host], plan);
-    expect(plan.calls).toBeLessThanOrEqual(Math.ceil(2 / replanInterval) + 1);
+    // Every frame would be 120 plans; a blocked walker looks again ten times a second.
+    expect(plan.calls).toBeLessThanOrEqual(Math.ceil(2 / blockedReplan) + 1);
     expect(Math.hypot(guest.position[0] - host[0], guest.position[1] - host[1])).toBeGreaterThan(0);
+  });
+  it('keeps throttled walkers apart on every frame and still gets both where they are going', () => {
+    // The scene's real pairing: the host escorts a party in while a guest walks out.
+    const door: FloorPoint = [entrance[0], entrance[2]];
+    for (const seat of seatApproach) {
+      const host = newWalker(hostHome);
+      const guest = newWalker(seat);
+      const hostTarget: FloorPoint = [seat[0], seat[1]];
+      for (let frame = 0; frame < 60 * 20; frame++) {
+        walkFrame(host, hostTarget, guestSpeed / 60, 1 / 60, [guest.position]);
+        walkFrame(guest, door, guestSpeed / 60, 1 / 60, [host.position]);
+        expect(
+          Math.hypot(host.position[0] - guest.position[0], host.position[1] - guest.position[1]),
+          `seat ${seat} frame ${frame}`,
+        ).toBeGreaterThanOrEqual(personClearance - 1e-6);
+      }
+      expect(guest.position, `guest from ${seat} reaches the door`).toEqual(door);
+      expect(host.position, `host reaches ${seat}`).toEqual(hostTarget);
+    }
   });
   it('does not plan at all for someone already where they want to be', () => {
     const plan = counting();

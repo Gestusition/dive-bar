@@ -239,8 +239,28 @@ export function guestPath(
   from: FloorPoint,
   to: FloorPoint,
   people: FloorPoint[] = [],
+  stepAway = true,
 ): FloorPoint[] {
   if (distance(from, to) < 1e-6) return [];
+  // Just clear of someone but inside the square kept free around them, every route
+  // would start by crossing that square and none would be found, leaving both people
+  // waiting for each other. Step straight away from them first: moving away never
+  // brings anyone closer.
+  const near =
+    stepAway &&
+    people.find(
+      (p) =>
+        distance(from, p) >= personClearance - 1e-6 &&
+        inside(from, [p[0], p[1], personClearance * 2, personClearance * 2]),
+    );
+  if (near) {
+    const d = distance(from, near);
+    const out: FloorPoint = [
+      near[0] + ((from[0] - near[0]) / d) * (personClearance * Math.SQRT2 + 0.1),
+      near[1] + ((from[1] - near[1]) / d) * (personClearance * Math.SQRT2 + 0.1),
+    ];
+    if (!blocked(out) && clear(from, out)) return [out, ...guestPath(out, to, people, false)];
+  }
   const extra: Rect[] = people
     .filter((p) => distance(from, p) >= personClearance - 1e-6)
     .map(([x, z]) => [x, z, personClearance * 2, personClearance * 2]);
@@ -340,7 +360,9 @@ export const newWalker = (position: FloorPoint): Walker => ({
   replanIn: 0,
 });
 /** How often a route is refreshed around moving people, and after being blocked. */
-export const replanInterval = 0.4;
+export const replanInterval = 0.25;
+/** How soon someone who is blocked looks for a way round. */
+export const blockedReplan = 0.1;
 /**
  * One frame of walking. Planning a route is expensive on phones, so it happens when
  * the destination changes and, while other people are about, at most every
@@ -367,6 +389,8 @@ export function walkFrame(
     : stepAlong(w.position, w.path, step);
   w.position = next.position;
   w.path = next.path;
+  // Someone in the way: look for a way round soon, but not on the very next frame.
+  if ('blocked' in next && next.blocked) w.replanIn = Math.min(w.replanIn, blockedReplan);
   return w;
 }
 /** Move along a path, returning the new position and what is left of the path. */
