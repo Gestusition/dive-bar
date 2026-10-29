@@ -232,9 +232,9 @@ const toBase64 = (bytes: Uint8Array) => {
 const fromBase64 = (text: string) => Uint8Array.from(atob(text), (c) => c.charCodeAt(0));
 export const backupName = (game: Game) => 'dive-bar-night-' + game.day + '.divebar';
 export async function encodeBackup(game: Game): Promise<Blob> {
-  const json = new TextEncoder().encode(JSON.stringify(game));
+  const data = new TextEncoder().encode(JSON.stringify(game));
   const gzip = typeof CompressionStream === 'function';
-  const body = gzip ? await through(json, new CompressionStream('gzip')) : json;
+  const body = gzip ? await through(data, new CompressionStream('gzip')) : data;
   const lines = [
     MAGIC + ' v' + FORMAT,
     'night=' +
@@ -243,16 +243,14 @@ export async function encodeBackup(game: Game): Promise<Blob> {
       (game.cash / 100).toFixed(2) +
       ' saved=' +
       new Date().toISOString(),
-    'encoding=' + (gzip ? 'gzip' : 'plain') + ' crc32=' + crc32(json),
+    'encoding=' + (gzip ? 'gzip' : 'plain') + ' crc32=' + crc32(data),
     ...toBase64(body).match(/.{1,76}/g)!,
   ];
   return new Blob([lines.join('\n') + '\n'], { type: 'text/plain' });
 }
-/** Read a backup file. Older plain JSON exports still load. */
+/** Read a .divebar backup file. Anything else is refused. */
 export async function decodeBackup(text: string): Promise<Game> {
-  const trimmed = text.trim();
-  if (trimmed.startsWith('{')) return validateSave(JSON.parse(trimmed));
-  const [magic, , meta, ...body] = trimmed.split(/\r?\n/);
+  const [magic, , meta, ...body] = text.trim().split(/\r?\n/);
   const version = Number(magic?.startsWith(MAGIC + ' v') ? magic.slice(MAGIC.length + 2) : NaN);
   if (!version) throw Error('That file is not a Dive Bar save.');
   if (version > FORMAT) throw Error('This save is from a newer version of Dive Bar.');

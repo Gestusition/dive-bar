@@ -77,7 +77,7 @@ Escape closes a drawer or window, or pauses. Windows pause service. The pause me
 
 **Saving**
 
-- IndexedDB saves, and backups as a compressed, checksummed `.divebar` file that refuses to load if damaged. Older JSON backups still import.
+- IndexedDB saves, and backups as a compressed, checksummed `.divebar` file that refuses to load if damaged.
 
 The conversation banks hold 24 encounters and 96 responses. The game picks social encounters that fit the moment; service-draft encounters stay in the source rather than appearing in the wrong situation. There is no ingredient-provenance screen or truth/lie badge.
 

@@ -332,7 +332,7 @@ function SettingsPanel() {
           hidden
           ref={input}
           type="file"
-          accept=".divebar,.json,text/plain,application/json"
+          accept=".divebar"
           onChange={async (e) => {
             const file = e.target.files?.[0];
             e.target.value = '';
