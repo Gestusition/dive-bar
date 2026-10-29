@@ -1,17 +1,17 @@
 # Implementation status
 
-Updated 30 October 2026 for version 0.0.3.2. This file describes the executable game; older design documents record targets and may include richer future behaviours.
+Updated 30 October 2026 for version 0.0.3.3. This file describes the executable game; older design documents record targets and may include richer future behaviours.
 
-## 0.0.3.2 scope
+## 0.0.3.3 scope
 
-Package metadata and the changelog describe 0.0.3.2. Publication requires successful quality checks and the complete four-project production-browser suite for the release commit. GitHub Pages follows `main`; a release from another branch does not deploy that branch.
+Package metadata and the changelog describe 0.0.3.3. Publication requires successful quality checks and the complete four-project production-browser suite for the release commit. GitHub Pages follows `main`; a release from another branch does not deploy that branch.
 
 Implemented:
 
 - Fresh profiles and New game start with the host and all seven shop upgrades unowned. New game clears transient work and replaces the previous local save immediately.
 - The hired host is visible inside the room and follows routes to greet and escort guests.
 - Guests and the host route around one another, including during departures. Moving-person clearance is checked between route steps; a blocked destination waits instead of allowing an overlap.
-- Fresh bars start with six drinks and can select all fourteen. Live drink selection uses fresh Web Crypto draws with equal weight for every menu slot, without a favourite or previous-order bias. Test-only entropy injection preserves deterministic coverage without making live orders deterministic.
+- Fresh bars start with six drinks and can select all fourteen. Live drink selection uses fresh Web Crypto draws with equal weight for every menu slot, without a favourite or previous-order bias, except that one drink is never given to more than four arriving guests in a row while the menu has another. Saves made before this streak was tracked still load. Test-only entropy injection preserves deterministic coverage without making live orders deterministic.
 - Bartending hints default to enabled for night one and switch off at every next-night transition; the settings switch remains available.
 - Snack offers can be accepted or declined. Refusals persist for the visit and through save/reload, preventing repeated offers from rerolling the decision. Stock and billing remain idempotent for accepted snacks.
 - Accepting and declining a snack offer are equally likely. Guests can request the other snack, and shortened offer labels fit the guest card.
@@ -19,6 +19,7 @@ Implemented:
 - Wiping, washing glasses and taking out trash use timed jobs, staff movement, visible tools and progress. The host handles closing cleanup automatically; otherwise the bartender performs queued jobs. Completion ticks and cleanup effects occur after the work finishes, and pause or reading dialogs stop progress.
 - The trash bin stands clear of the counter-end walkway and is a furniture obstacle; staff empty it from its front left instead of standing inside it.
 - On short landscape phones, a guest card open in the lower half moves the hint and notices to the top of the scene so they cannot cover its buttons.
+- Guests, the host and the bartender plan walking routes when their destination changes, and around other people at most four times a second (ten while blocked), instead of on almost every frame. Someone starting just clear of another person steps directly away before routing, so two people cannot wait for each other indefinitely. Each character body is built once per game. Unit tests bound how often routes are planned; frame rate on physical phones is unverified.
 
 The gameplay baseline at commit `85b55a6` passed the Quality and Pages workflow, including content validation, formatting, lint, type checking, unit tests, the production build and all four browser projects. Coverage includes equal-weight menu selection with controlled entropy, live Web Crypto integration, host/guest clearance, snack decisions, menu persistence, story, cleanup, input and save flows. The same workflow must pass on the release branch before publication; its run records provide evidence for the final release commit. README captures use separate signed showcase backups with all seven upgrades owned and the Rose theme selected. Physical-device testing remains unverified.
 
