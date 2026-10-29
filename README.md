@@ -31,7 +31,7 @@ On a phone held sideways (Galaxy S8+, 740 x 360):
    - The drink builds up on the counter as you go, and bartending hints point at the next step (switch them off in Settings). On the first two nights a line at the top also says what to do next on the floor.
 5. Let them enjoy it, then settle up. Friends say whether they want one bill or to split it; listen, it shows in the tip. The tip pops up over the guest as they pay.
 6. Call **Last orders** from **Bar tools**. At closing time wipe, empty the trash, restock and wash glasses, then close the bar.
-7. Between nights, decorate the bar. Decor lifts tips; the host seats guests for you.
+7. Between nights, decorate the bar. A fresh bar starts without purchased upgrades. Decor lifts tips; hire the host to greet guests, walk them to their seats and wash glasses. New game resets progress and immediately replaces the local save.
 
 A step is ticked only when it is really done. Each required ml ingredient must be within **±18%** of its target (with at least 1 ml of allowance) before a drink can be served. For example, 50 ml accepts 41–59 ml, and 20 ml accepts 16.4–23.6 ml. Dashes and pieces use the recipe's exact quantity or stated range; optional ingredients can be omitted. Overpours need a fresh preparation. The **Taste check** keeps a tighter ±5% / 1 ml margin for a perfect quantity score and also judges balance, technique and presentation.
 

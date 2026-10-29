@@ -2,6 +2,13 @@
 
 All notable changes are recorded here. Versions describe tagged source releases; GitHub Pages follows `main` and may show a different revision. This project is still an early playable release.
 
+## Unreleased
+
+### Fixed
+
+- Fresh profiles and new games no longer receive every decor upgrade and the host for free. New game clears transient service state and immediately replaces the previous local save.
+- The hired host is positioned inside the room independently of responsive side walls and walks to greet guests, escort them to their seats and return.
+
 ## [0.0.2] - 2026-10-29
 
 ### Added

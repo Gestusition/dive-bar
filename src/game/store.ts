@@ -150,14 +150,21 @@ export const useGame = create<Store>((set, get) => ({
   setPanel: (panel) => set({ panel }),
   select: (selected) => set({ selected }),
   start: (fresh) => {
-    if (fresh)
+    if (fresh) {
       set({
         game: reduceGame(newGame(), { type: 'start', seed: seed() }),
-        hasSave: false,
+        hasSave: true,
         tasks: [],
         bartenderPosition: [...bartenderHome],
+        selected: null,
+        dialogue: null,
+        mixing: null,
+        pouring: null,
+        practiceRecipe: 'margarita',
+        saveError: '',
       });
-    else if (get().game.phase === 'title') get().act({ type: 'start' });
+      persist(get().game);
+    } else if (get().game.phase === 'title') get().act({ type: 'start' });
     set({ title: false, paused: false, panel: 'floor' });
   },
   // Save and go back to the title screen; Continue picks up from here.

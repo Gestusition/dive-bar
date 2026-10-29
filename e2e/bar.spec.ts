@@ -310,6 +310,39 @@ test('last call, closing checklist and the next night form a complete loop', asy
   await page.getByRole('button', { name: 'Next night' }).click();
   await expect(page.getByRole('heading', { name: 'Get ready' })).toBeVisible();
 });
+test('fresh profiles and New game start with an unowned shop and persist the reset', async ({
+  page,
+}) => {
+  await enter(page);
+  await page.getByRole('button', { name: 'Decorate', exact: true }).click();
+  await expect(page.locator('.shop-item')).toHaveCount(7);
+  await expect(page.locator('.shop-item.owned')).toHaveCount(0);
+  const host = page.locator('.shop-item').filter({ has: page.getByText('Host', { exact: true }) });
+  await host.getByRole('button').click();
+  await expect(host.getByRole('button', { name: 'Owned' })).toBeDisabled();
+  await expect(page.locator('.cash')).toHaveText('$60.00');
+  await page.getByRole('button', { name: 'Close panel' }).click();
+  await page.clock.runFor(250);
+  await page.screenshot({ path: test.info().outputPath('hired-host.png') });
+  await page.getByRole('button', { name: 'Get ready', exact: true }).click();
+  await page.getByRole('button', { name: 'Open the bar' }).click();
+  await advanceService(page, 12000);
+  await expect(page.getByRole('button', { name: 'Seat guest' })).toHaveCount(0);
+  await page.screenshot({ path: test.info().outputPath('host-escort.png') });
+  await page.getByRole('button', { name: 'Pause' }).click();
+  await page.getByRole('button', { name: 'Main menu' }).click();
+  page.once('dialog', (dialog) => dialog.accept());
+  await page.getByRole('button', { name: 'New game', exact: true }).click();
+  await expect(page.locator('.cash')).toHaveText('$120.00');
+  // Reload before the five-second autosave: New game itself must replace the old save.
+  await page.reload();
+  await page.getByRole('button', { name: 'Continue', exact: true }).click();
+  await page.getByRole('button', { name: 'Decorate', exact: true }).click();
+  await expect(page.locator('.shop-item')).toHaveCount(7);
+  await expect(page.locator('.shop-item.owned')).toHaveCount(0);
+  await expect(page.locator('.cash')).toHaveText('$120.00');
+});
+
 test('side drawers open from the rail and close again', async ({ page }) => {
   await enter(page);
   await page.getByRole('button', { name: 'Recipes', exact: true }).click();

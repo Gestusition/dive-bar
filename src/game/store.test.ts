@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { newGame, reduceGame } from './engine';
 import { startClock, useGame } from './store';
-import { clearSave, decodeBackup, loadSave } from './storage';
+import { clearSave, decodeBackup, loadSave, saveGame } from './storage';
 
 vi.mock('./audio', () => ({ play: vi.fn(), setMusic: vi.fn(), setSoundSwitch: vi.fn() }));
 vi.mock('./storage', () => ({
@@ -35,6 +35,44 @@ afterEach(() => {
 });
 
 describe('service clock and queue', () => {
+  it('replaces an upgraded save and transient work immediately when starting a new bar', async () => {
+    const old = newGame();
+    old.day = 9;
+    old.cash = 90000;
+    for (const key of Object.keys(old.upgrades) as (keyof typeof old.upgrades)[])
+      old.upgrades[key] = true;
+    old.history = { old: 'remembered' };
+    old.practice.amounts = { gin: 50 };
+    useGame.setState({
+      game: old,
+      selected: 99,
+      dialogue: { id: 'old', node: 'start', reply: '' },
+      mixing: 'shake',
+      pouring: { id: 'gin', at: 1 },
+      tasks: [{ id: 99, operation: 'seat', left: 1 }],
+      saveError: 'Old error',
+    });
+    useGame.getState().start(true);
+    const state = useGame.getState();
+    expect(state.game).toEqual({
+      ...newGame(),
+      phase: 'opening',
+      random: state.game.random,
+      notice: state.game.notice,
+    });
+    expect(Object.values(state.game.upgrades)).toEqual(Array(7).fill(false));
+    expect(state).toMatchObject({
+      title: false,
+      hasSave: true,
+      selected: null,
+      dialogue: null,
+      mixing: null,
+      pouring: null,
+      tasks: [],
+      saveError: '',
+    });
+    await vi.waitFor(() => expect(saveGame).toHaveBeenCalledWith(state.game));
+  });
   it.each(['recipe', 'settings', 'dialogue', 'decor', 'help', 'stock', 'menu'] as const)(
     'pauses service and walking in the %s panel',
     (panel) => {

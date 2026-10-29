@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { useGame } from '../game/store';
 import type { Guest } from '../game/engine';
+import { hostDestination, hostHome, type HostVisit } from '../game/host';
 import {
   advanceWalk,
   bartenderHome,
@@ -430,11 +431,43 @@ function Sign({ lit }: { lit: boolean }) {
 const glow = (color: string) => (
   <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.55} />
 );
-/** Things by the front door: the host, and string lights once they are bought. */
-function DoorDecor() {
-  const host = useGame((s) => s.game.upgrades.barback);
-  const lights = useGame((s) => s.game.upgrades.doorLights);
+/** The hired host walks inside the room, independently of the side walls. */
+function Host() {
+  const ref = useRef<THREE.Group>(null);
   const body = useMemo(() => geometry(personParts('host')), []);
+  const floor = useRef<FloorPoint>([...hostHome]);
+  const visit = useRef<HostVisit | null>(null);
+  const path = useRef<{ to: string; points: FloorPoint[] }>({ to: '', points: [] });
+  useFrame(({ clock }, delta) => {
+    const state = useGame.getState();
+    if (!ref.current || state.title || state.paused || !['floor', 'station'].includes(state.panel))
+      return;
+    const next = hostDestination(state.game.guests, visit.current, floor.current);
+    visit.current = next.visit;
+    const key = next.target.join(',');
+    if (path.current.to !== key)
+      path.current = { to: key, points: guestPath(floor.current, next.target) };
+    const before = floor.current;
+    const walk = stepAlong(before, path.current.points, guestSpeed * Math.min(delta, 0.1));
+    floor.current = state.game.settings.reducedMotion ? [...next.target] : walk.position;
+    path.current.points = walk.path;
+    const dx = floor.current[0] - before[0],
+      dz = floor.current[1] - before[1];
+    const moving = Math.hypot(dx, dz) > 1e-6;
+    ref.current.position.set(floor.current[0], 0, floor.current[1]);
+    if (moving) ref.current.rotation.y = Math.atan2(dx, dz);
+    ref.current.rotation.z =
+      moving && !state.game.settings.reducedMotion ? Math.sin(clock.elapsedTime * 9) * 0.045 : 0;
+  });
+  return (
+    <group ref={ref} position={[hostHome[0], 0, hostHome[1]]}>
+      <mesh geometry={body} material={material} castShadow />
+    </group>
+  );
+}
+/** String lights attached to the responsive front door once bought. */
+function DoorDecor() {
+  const lights = useGame((s) => s.game.upgrades.doorLights);
   const bulbs = useMemo(() => {
     const list: [number, number, string][] = [];
     const colors = ['#ffd36b', '#ff7a85', '#7fe3d4', '#ffd36b', '#b8a4ff'];
@@ -449,11 +482,6 @@ function DoorDecor() {
   }, []);
   return (
     <>
-      {host && (
-        <group position={[0.95, 0, 5.15]} rotation={[0, Math.PI / 2, 0]}>
-          <mesh geometry={body} material={material} castShadow />
-        </group>
-      )}
       {lights &&
         bulbs.map(([z, y, color], i) => (
           <mesh key={i} position={[0.22, y, z]}>
@@ -597,6 +625,7 @@ function Room({ guestGroups }: { guestGroups: SceneRefs['guestGroups'] }) {
       <Sign lit={game.upgrades.neon} />
       <SideWalls />
       <Bartender />
+      {game.upgrades.barback && <Host />}
       {game.guests.map((g) => (
         <Person guest={g} guestGroups={guestGroups} key={g.id} />
       ))}
