@@ -118,6 +118,13 @@ export const guestObstacles: Rect[] = [
 ];
 // Each seat is reached from a clear spot just in front of it.
 const tableZ = new Map(tables.map(([x, z]) => [x, z]));
+/** The way a seated guest faces: towards their table, or the counter from a stool. */
+export function seatFacing(seat: number) {
+  const place = seats[seat];
+  if (!place) return 0;
+  const table = tableZ.get(place[0]);
+  return table !== undefined && place[2] < table ? 0 : Math.PI;
+}
 export const seatApproach: FloorPoint[] = seats.map(([x, , z]) =>
   tableZ.has(x) ? [x, tableZ.get(x)! + 1.95] : [x, z + 0.8],
 );

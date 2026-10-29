@@ -13,6 +13,7 @@ import {
   guestPath,
   guestSpeed,
   roomEdge,
+  seatFacing,
   setDoorX,
   stepAlong,
   tables,
@@ -143,7 +144,8 @@ function roomParts() {
     box(x, 1.15, -4.1, 1.9, 0.12, 0.5, brass);
   }
   // Bottle shelves: one merged mesh rather than a mesh for every voxel.
-  for (const y of [1.5, 2.25]) {
+  // Low enough that the top row of bottles stays under the sign.
+  for (const y of [1.45, 2.12]) {
     box(0, y, -4.05, 5.1, 0.13, 0.66, dark);
     for (let i = 0; i < 13; i++) {
       const x = -2.3 + i * 0.38;
@@ -198,7 +200,8 @@ function roomParts() {
   for (let x = -0.8; x < 1; x += 0.4) box(x, 0.11, 2.3, 0.06, 0.01, 3, '#d5a169');
   p.push(...cornerPlantParts);
   // Amber lights, framed menu and coat hooks.
-  for (const x of [-12, -9.6, -7.2, -4.8, -2.4, 0, 2.4, 4.8, 7.2, 9.6, 12]) {
+  // Kept clear of the sign, the shelves and the window frames.
+  for (const x of [-12, -9.6, -7.4, -5.25, -2.75, 2.75, 5.25, 7.4, 9.6, 12]) {
     box(x, 2.85, -4.08, 0.2, 0.32, 0.18, brass);
     box(x, 2.85, -3.96, 0.12, 0.2, 0.1, '#ffe2a3');
   }
@@ -261,6 +264,7 @@ function Person({ guest, guestGroups }: { guest: Guest; guestGroups: SceneRefs['
       : [guestPosition(guest)[0], guestPosition(guest)[2]],
   );
   const path = useRef<{ to: string; points: FloorPoint[] }>({ to: '', points: [] });
+  const step = useRef<FloorPoint>([0, 0]);
   useFrame(({ clock }, delta) => {
     if (!ref.current) return;
     const [tx, ty, tz] = guestPosition(guest);
@@ -271,11 +275,25 @@ function Person({ guest, guestGroups }: { guest: Guest; guestGroups: SceneRefs['
       if (path.current.to !== key)
         path.current = { to: key, points: guestPath(floor.current, [tx, tz]) };
       const next = stepAlong(floor.current, path.current.points, guestSpeed * Math.min(delta, 0.1));
+      step.current = [next.position[0] - floor.current[0], next.position[1] - floor.current[1]];
       floor.current = next.position;
       path.current.points = next.path;
     }
     const moving = Math.hypot(floor.current[0] - tx, floor.current[1] - tz) > 0.001;
     ref.current.position.set(floor.current[0], moving ? 0 : ty, floor.current[1]);
+    // Walk facing where they are going; sit facing the table or the counter.
+    const seated = !moving && !['waiting', 'leaving'].includes(guest.status);
+    const facing =
+      moving && Math.hypot(...step.current) > 1e-6
+        ? Math.atan2(step.current[0], step.current[1])
+        : seated
+          ? seatFacing(guest.seat)
+          : 0;
+    const turn = Math.atan2(
+      Math.sin(facing - ref.current.rotation.y),
+      Math.cos(facing - ref.current.rotation.y),
+    );
+    ref.current.rotation.y += turn * (1 - Math.exp(-Math.min(delta, 0.1) * 10));
     ref.current.rotation.z = moving
       ? Math.sin(clock.elapsedTime * 9) * 0.045
       : Math.sin(clock.elapsedTime * 1.5 + guest.id) * 0.009;
@@ -321,8 +339,9 @@ function Bartender() {
       ? s.bartenderPosition
       : advanceWalk([current.x, current.z], s.bartenderPosition, delta * walkingSpeed);
     const moving = Math.hypot(next[0] - current.x, next[1] - current.z) > 0.001;
-    if (moving) {
-      const angle = Math.atan2(next[0] - current.x, next[1] - current.z);
+    {
+      // Standing still, turn back to face the room.
+      const angle = moving ? Math.atan2(next[0] - current.x, next[1] - current.z) : 0;
       const difference = Math.atan2(
         Math.sin(angle - ref.current.rotation.y),
         Math.cos(angle - ref.current.rotation.y),
@@ -422,25 +441,25 @@ function Sign({ lit }: { lit: boolean }) {
   const texture = useMemo(() => {
     const canvas = document.createElement('canvas');
     canvas.width = 768;
-    canvas.height = 180;
+    canvas.height = 162;
     const c = canvas.getContext('2d')!;
     c.fillStyle = '#493830';
-    c.fillRect(0, 0, 768, 180);
+    c.fillRect(0, 0, 768, 162);
     c.strokeStyle = '#91b9a3';
     c.lineWidth = 5;
-    c.strokeRect(6, 6, 756, 168);
+    c.strokeRect(6, 6, 756, 150);
     c.textAlign = 'center';
     c.fillStyle = lit ? '#a8e3c9' : '#aea28b';
     c.font = '400 84px "Caveat Brush", sans-serif';
-    c.fillText('DIVE BAR', 384, 98);
+    c.fillText('DIVE BAR', 384, 90);
     c.fillStyle = '#e6cda1';
     c.font = '20px sans-serif';
-    c.fillText('GOOD DRINKS · BETTER STORIES', 384, 145);
+    c.fillText('GOOD DRINKS · BETTER STORIES', 384, 134);
     return new THREE.CanvasTexture(canvas);
   }, [lit]);
   return (
-    <mesh position={[0, 2.93, -4.12]}>
-      <planeGeometry args={[3.7, 0.87]} />
+    <mesh position={[0, 3.12, -4.12]}>
+      <planeGeometry args={[3.7, 0.78]} />
       <meshBasicMaterial map={texture} />
     </mesh>
   );
