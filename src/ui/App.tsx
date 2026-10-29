@@ -6,6 +6,7 @@ import {
   ChevronRight,
   Download,
   Home,
+  Maximize,
   Lightbulb,
   Play,
   Upload,
@@ -931,18 +932,44 @@ function floorGuide(game: Game, walking: boolean): string | null {
   return 'The doors are open. Someone will walk in soon.';
 }
 /** On phones, go full screen and hold landscape where the browser allows it. */
+// Remembered for the browser tab, so it survives the phone reloading the page while
+// it was in the background.
+const fullScreenKey = 'dive-bar-full-screen';
 let wantFullScreen = false;
+const wantsFullScreen = () => {
+  try {
+    return wantFullScreen || sessionStorage.getItem(fullScreenKey) === '1';
+  } catch {
+    return wantFullScreen;
+  }
+};
+/** Full screen for real: some phones still report it after the app was left. */
+const reallyFullScreen = () =>
+  !!document.fullscreenElement &&
+  window.innerWidth * window.innerHeight >= screen.width * screen.height * 0.9;
+let entering = false;
 function lockLandscape() {
-  if (!window.matchMedia('(pointer: coarse)').matches) return;
+  if (!window.matchMedia('(pointer: coarse)').matches || entering) return;
   wantFullScreen = true;
-  if (document.fullscreenElement) return;
+  try {
+    sessionStorage.setItem(fullScreenKey, '1');
+  } catch {
+    /* Still works for this page. */
+  }
+  if (reallyFullScreen() || !document.documentElement.requestFullscreen) return;
   const orientation = screen.orientation as ScreenOrientation & {
     lock?: (o: 'landscape') => Promise<void>;
   };
-  document.documentElement
-    .requestFullscreen?.()
+  entering = true;
+  // Clear a stale full screen first, then ask again from this same tap.
+  (document.fullscreenElement ? document.exitFullscreen() : Promise.resolve())
+    .catch(() => {})
+    .then(() => document.documentElement.requestFullscreen({ navigationUI: 'hide' }))
     .then(() => orientation.lock?.('landscape'))
-    .catch(() => {});
+    .catch(() => {})
+    .finally(() => {
+      entering = false;
+    });
 }
 /**
  * Phones drop full screen when the player switches apps, locks the screen or swipes
@@ -952,10 +979,19 @@ function lockLandscape() {
 function useFullScreenComeback() {
   useEffect(() => {
     const again = () => {
-      if (wantFullScreen && !document.fullscreenElement) lockLandscape();
+      if (wantsFullScreen() && !reallyFullScreen()) lockLandscape();
     };
-    document.addEventListener('pointerup', again, true);
-    return () => document.removeEventListener('pointerup', again, true);
+    // Leave full screen cleanly when the game is hidden, so coming back starts fresh.
+    const hidden = () => {
+      if (document.hidden && document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    };
+    const events = ['pointerup', 'touchend', 'click', 'keydown'] as const;
+    for (const e of events) document.addEventListener(e, again, true);
+    document.addEventListener('visibilitychange', hidden);
+    return () => {
+      for (const e of events) document.removeEventListener(e, again, true);
+      document.removeEventListener('visibilitychange', hidden);
+    };
   }, []);
 }
 /** Covers the game on phones held upright; the bar only works in landscape. */
@@ -1163,6 +1199,11 @@ export default function App() {
             <Button onClick={pause}>
               <Play size={17} /> Resume
             </Button>
+            {wantsFullScreen() && !reallyFullScreen() && (
+              <Button variant="secondary" onClick={lockLandscape}>
+                <Maximize size={17} /> Full screen
+              </Button>
+            )}
             <Button variant="secondary" onClick={() => useGame.getState().toTitle()}>
               <Home size={17} /> Main menu
             </Button>
