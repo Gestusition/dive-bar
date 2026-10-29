@@ -68,7 +68,7 @@ Escape closes a drawer or window, or pauses. Windows pause service. The pause me
 - Guests choose from the whole menu and can turn your suggestions down; every night is shuffled with fresh randomness.
 - Authored English conversations, plausible sweet lies, saved rapport and story callbacks.
 - Cleaning, washing, trash, editable restocking, ice refills and a closing recap.
-- Bar sounds built from the real thing (door bell, till, pour, ice, shaker, glass on wood). Drop a recording into `public/sounds/<name>.mp3` (`door`, `register`, `coin`, `pour`, `ice`, `shake`, `stir`, `muddle`, `glass`, `garnish`, `page`) to replace one.
+- Real recorded bar sounds (shop door bell, till drawer and coins, pouring, ice, shaking, stirring, a glass set down) and a jukebox playing "Bossa Antigua" by Kevin MacLeod. Credits and licences are in `public/licenses/sounds.txt`.
 
 **Phones**
 

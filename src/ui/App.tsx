@@ -290,7 +290,8 @@ function SettingsPanel() {
       <SwitchRow
         label="Jukebox music"
         description={
-          game.upgrades.jukebox ? 'Soft music from the jukebox.' : 'Buy the jukebox in Decorate.'
+          (game.upgrades.jukebox ? 'Plays ' : 'Buy the jukebox in Decorate. Plays ') +
+          '“Bossa Antigua” by Kevin MacLeod (incompetech.com), CC BY 4.0.'
         }
         checked={game.settings.music}
         onChange={(v) => act({ type: 'setting', key: 'music', value: v })}

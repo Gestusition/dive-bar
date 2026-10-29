@@ -180,7 +180,8 @@ export default function Station() {
       h.elapsed += 0.1;
       const share = h.elapsed / motionTime[h.motion];
       setProgress(share);
-      if (Math.round(h.elapsed * 10) % 6 === 0) play(h.motion);
+      // The clip repeats as soon as the last one ends, for as long as the hold lasts.
+      play(h.motion);
       // A muddle is done once the sugar has dissolved; a shake or stir stops at the
       // far end of the meter.
       if ((h.motion === 'muddle' && share >= 1) || share >= 1.7) finishMotion();
