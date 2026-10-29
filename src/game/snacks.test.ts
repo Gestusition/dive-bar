@@ -17,7 +17,7 @@ const offer = {
 };
 
 describe('optional snack offers', () => {
-  it.each([0, 0.549999])('allows an accepted offer at %s and consumes stock only once', (draw) => {
+  it.each([0, 0.349999])('allows an accepted offer at %s and consumes stock only once', (draw) => {
     const before = customer();
     let game = reduceGame(before, offer, () => draw);
     expect(game.guests[0].food).toBe('warming');
@@ -34,6 +34,27 @@ describe('optional snack offers', () => {
     expect(game.guests[0].charge).toBe(700);
     game = reduceGame(game, offer);
     expect(game.guests[0].charge).toBe(700);
+    expect(game.foodStock.toastie).toBe(before.foodStock.toastie - 1);
+  });
+  it.each([0.35, 0.549999])('asks for the other snack instead at %s', (draw) => {
+    const before = customer();
+    let game = reduceGame(before, offer, () => draw);
+    expect(game.guests[0].food).toBe('warming');
+    expect(game.guests[0].foodType).toBe('pretzel');
+    expect(game.notice).toContain('instead');
+    expect(game.foodStock.toastie).toBe(before.foodStock.toastie);
+    expect(game.foodStock.pretzel).toBe(before.foodStock.pretzel - 1);
+    for (let i = 0; i < 48; i++) game = reduceGame(game, { type: 'tick', dt: 0.25 });
+    game = reduceGame(game, offer);
+    expect(game.guests[0].food).toBe('served');
+    expect(game.guests[0].charge).toBe(500);
+  });
+  it('settles for the offered snack when the requested swap is sold out', () => {
+    const before = customer();
+    before.foodStock.pretzel = 0;
+    const game = reduceGame(before, offer, () => 0.4);
+    expect(game.guests[0].food).toBe('warming');
+    expect(game.guests[0].foodType).toBe('toastie');
     expect(game.foodStock.toastie).toBe(before.foodStock.toastie - 1);
   });
   it.each([0.55, 0.999999])(

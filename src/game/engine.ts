@@ -812,17 +812,34 @@ export function reduceGame(current: Game, a: Action, random?: RandomSource): Gam
           note('That snack is sold out for tonight.');
           return s;
         }
-        if (rand(s) >= 0.55) {
+        const roll = rand(s);
+        if (roll >= 0.55) {
           g.foodType = snack.id;
           g.food = 'declined';
           note(g.name + ': “No snack for me, thanks.”');
           return s;
         }
-        s.foodStock[snack.id]--;
-        g.foodType = snack.id;
+        // Some guests turn the offer down but ask for the other snack; if that one is gone they settle.
+        const other = snacks.find((n) => n.id !== snack.id)!;
+        const swap = roll >= 0.35 && s.foodStock[other.id] > 0;
+        const chosen = swap ? other : snack;
+        s.foodStock[chosen.id]--;
+        g.foodType = chosen.id;
         g.food = 'warming';
-        g.foodTime = snack.seconds;
-        note(snack.name + ' for ' + g.name + '. Ready in ' + snack.seconds + ' seconds.');
+        g.foodTime = chosen.seconds;
+        note(
+          (swap
+            ? g.name +
+              ': “Not the ' +
+              snack.name.toLowerCase() +
+              ', could I get a ' +
+              other.name.toLowerCase() +
+              ' instead?” '
+            : snack.name + ' for ' + g.name + '. ') +
+            'Ready in ' +
+            chosen.seconds +
+            ' seconds.',
+        );
       } else if (g.food === 'ready') {
         g.food = 'served';
         const snack = snacks.find((n) => n.id === g.foodType)!;
