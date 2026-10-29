@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { newGame, reduceGame } from './engine';
+import { maxRepeatOrders, newGame, reduceGame, type Game } from './engine';
 import { recipes } from './content';
 import { deviceRandom } from './random';
 import { validateSave, encodeBackup, decodeBackup } from './storage';
@@ -51,6 +51,40 @@ describe('menus, coaching and live randomness', () => {
       }
     }
     expect([...counts.values()]).toEqual(Array(14).fill(8));
+  });
+  it('lets a drink repeat but never more than four guests in a row', () => {
+    // A source that always lands on the first menu slot is the worst case for a streak.
+    const source = () => 0;
+    let game: Game = reduceGame(newGame(), { type: 'open' }, source);
+    const orders = [game.guests[0].recipeId];
+    while (orders.length < 13) {
+      game.guests = [];
+      game = reduceGame({ ...game, spawnIn: 0 }, { type: 'tick', dt: 0.25 }, source);
+      orders.push(...game.guests.map((g) => g.recipeId));
+    }
+    const first = game.activeMenu[0];
+    expect(maxRepeatOrders).toBe(4);
+    expect(orders.slice(0, 4)).toEqual(Array(4).fill(first));
+    expect(orders[4]).not.toBe(first);
+    let run = 1;
+    for (let i = 1; i < orders.length; i++) {
+      run = orders[i] === orders[i - 1] ? run + 1 : 1;
+      expect(run).toBeLessThanOrEqual(maxRepeatOrders);
+    }
+  });
+  it('still repeats freely on a one-drink menu and loads saves made before the streak was kept', () => {
+    let game: Game = reduceGame(
+      { ...newGame(), activeMenu: ['moscow_mule'], recentOrders: Array(4).fill('moscow_mule') },
+      { type: 'open' },
+      () => 0,
+    );
+    expect(game.guests[0].recipeId).toBe('moscow_mule');
+    const { recentOrders, ...older } = game;
+    expect(recentOrders).toHaveLength(maxRepeatOrders);
+    expect(validateSave(older).recentOrders).toEqual([]);
+    expect(() => validateSave({ ...game, recentOrders: ['unknown'] })).toThrow();
+    game = validateSave(game);
+    expect(game.recentOrders).toEqual(recentOrders);
   });
   it('uses fresh Web Crypto draws, handles both boundaries and never falls back to Math.random', () => {
     let word = 0;

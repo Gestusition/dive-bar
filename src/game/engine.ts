@@ -111,6 +111,8 @@ export interface Game {
     measure: Prep['measure'];
   }[];
   activeMenu: string[];
+  /** The drinks given to the last few arriving guests, newest last. */
+  recentOrders: string[];
   foodStock: Record<'pretzel' | 'toastie', number>;
 }
 export type Action =
@@ -228,6 +230,7 @@ export function newGame(): Game {
     rapport: {},
     wasteHistory: [],
     activeMenu: recipes.slice(0, 6).map((r) => r.id),
+    recentOrders: [],
     foodStock: { pretzel: 12, toastie: 8 },
   };
 }
@@ -329,9 +332,20 @@ function seatParty(s: Game, g: Guest) {
   return true;
 }
 const names = (list: Guest[]) => list.map((g) => g.name).join(' and ');
-/** Every drink on tonight's menu has the same chance, including repeat orders. */
+/** At most this many guests in a row ask for the same drink. */
+export const maxRepeatOrders = 4;
+/**
+ * Every drink on tonight's menu has the same chance, including repeat orders, until
+ * the same drink has come up `maxRepeatOrders` times in a row: then the next guest
+ * picks something else, if the menu has anything else.
+ */
 function chooseRecipe(s: Game) {
-  return pick(s, s.activeMenu);
+  const streak = s.recentOrders;
+  const run = streak.length >= maxRepeatOrders && streak.every((id) => id === streak[0]);
+  const options = run ? s.activeMenu.filter((id) => id !== streak[0]) : s.activeMenu;
+  const id = pick(s, options.length ? options : s.activeMenu);
+  s.recentOrders = [...streak, id].slice(-maxRepeatOrders);
+  return id;
 }
 function newGuest(s: Game, customerId: string, group: number, lead: boolean): Guest {
   return {

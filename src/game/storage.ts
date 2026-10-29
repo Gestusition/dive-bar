@@ -1,5 +1,5 @@
 import { ingredients, recipes, roster, initialInventory } from './content';
-import { newGame, type Game, type Guest, type Prep, type Upgrade } from './engine';
+import { maxRepeatOrders, newGame, type Game, type Guest, type Prep, type Upgrade } from './engine';
 import { seal, unseal } from './seal';
 
 // ---------- Validation ----------
@@ -159,7 +159,8 @@ const guestModel: Record<keyof Guest, true> = {
   tip: true,
 };
 export function validateSave(raw: unknown): Game {
-  const g = record(raw, 'save');
+  // Saves from before the order streak was kept simply start without one.
+  const g: Raw = { recentOrders: [], ...record(raw, 'save') };
   if (g.version !== model.version) fail('version');
   keys(g, Object.keys(model), 'save');
   const guests = list(g.guests, 20, 'guests').map(guest);
@@ -253,6 +254,9 @@ export function validateSave(raw: unknown): Game {
       };
     }),
     activeMenu: menu,
+    recentOrders: list(g.recentOrders, maxRepeatOrders, 'menu').map((id) =>
+      oneOf(id, [...recipeIds], 'menu'),
+    ),
     foodStock: {
       pretzel: int(food.pretzel, 0, 1e5, 'food'),
       toastie: int(food.toastie, 0, 1e5, 'food'),
