@@ -17,7 +17,7 @@ const offer = {
 };
 
 describe('optional snack offers', () => {
-  it.each([0, 0.349999])('allows an accepted offer at %s and consumes stock only once', (draw) => {
+  it.each([0, 0.399999])('allows an accepted offer at %s and consumes stock only once', (draw) => {
     const before = customer();
     let game = reduceGame(before, offer, () => draw);
     expect(game.guests[0].food).toBe('warming');
@@ -36,7 +36,7 @@ describe('optional snack offers', () => {
     expect(game.guests[0].charge).toBe(700);
     expect(game.foodStock.toastie).toBe(before.foodStock.toastie - 1);
   });
-  it.each([0.35, 0.549999])('asks for the other snack instead at %s', (draw) => {
+  it.each([0.4, 0.599999])('asks for the other snack instead at %s', (draw) => {
     const before = customer();
     let game = reduceGame(before, offer, () => draw);
     expect(game.guests[0].food).toBe('warming');
@@ -52,12 +52,12 @@ describe('optional snack offers', () => {
   it('settles for the offered snack when the requested swap is sold out', () => {
     const before = customer();
     before.foodStock.pretzel = 0;
-    const game = reduceGame(before, offer, () => 0.4);
+    const game = reduceGame(before, offer, () => 0.5);
     expect(game.guests[0].food).toBe('warming');
     expect(game.guests[0].foodType).toBe('toastie');
     expect(game.foodStock.toastie).toBe(before.foodStock.toastie - 1);
   });
-  it.each([0.55, 0.999999])(
+  it.each([0.6, 0.999999])(
     'remembers a refusal at %s without consuming stock or rerolling another snack',
     async (draw) => {
       const before = customer();

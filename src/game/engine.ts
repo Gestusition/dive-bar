@@ -813,7 +813,7 @@ export function reduceGame(current: Game, a: Action, random?: RandomSource): Gam
           return s;
         }
         const roll = rand(s);
-        if (roll >= 0.55) {
+        if (roll >= 0.6) {
           g.foodType = snack.id;
           g.food = 'declined';
           note(g.name + ': “No snack for me, thanks.”');
@@ -821,7 +821,7 @@ export function reduceGame(current: Game, a: Action, random?: RandomSource): Gam
         }
         // Some guests turn the offer down but ask for the other snack; if that one is gone they settle.
         const other = snacks.find((n) => n.id !== snack.id)!;
-        const swap = roll >= 0.35 && s.foodStock[other.id] > 0;
+        const swap = roll >= 0.4 &&s.foodStock[other.id] > 0;
         const chosen = swap ? other : snack;
         s.foodStock[chosen.id]--;
         g.foodType = chosen.id;
