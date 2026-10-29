@@ -533,7 +533,7 @@ function OpeningCard() {
   const { game, select, setPanel, act } = useGame();
   return (
     <Section title="Get ready">
-      <p className="hint">Tonight’s menu — tap a drink to see the recipe.</p>
+      <p className="hint">Tonight’s menu. Tap a drink to see the recipe.</p>
       <div className="menu-list">
         {recipes
           .filter((r) => game.activeMenu.includes(r.id))
@@ -954,11 +954,11 @@ function Hud({
   );
 }
 /**
- * On the first two nights a single line at the top says what to do next on the
- * floor, following whoever needs you most. It goes quiet while you walk.
+ * Coaching starts on the first night; later nights default to no hints.
+ * The floor guide follows whoever needs you most and goes quiet while you walk.
  */
 function floorGuide(game: Game, walking: boolean): string | null {
-  if (!game.settings.hints || game.day > 2) return null;
+  if (!game.settings.hints) return null;
   if (game.phase === 'opening')
     return 'Open “Get ready”, check tonight’s menu, then tap Open the bar.';
   if (game.phase === 'closing')

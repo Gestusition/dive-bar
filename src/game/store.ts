@@ -9,6 +9,7 @@ import {
   type Guest,
 } from './engine';
 import { conversations } from './content';
+import { deviceRandom } from './random';
 import { cleanupInfo, cleanupTarget, type CleanupJob, type CleanupKind } from './cleanup';
 import { hostDestination, hostHome, type HostVisit } from './host';
 import { play, setMusic, setSoundSwitch } from './audio';
@@ -90,18 +91,9 @@ function stillNeeded(g: Guest | undefined, t: Task) {
   if (t.operation === 'order') return g.status === 'ready';
   if (t.operation === 'pay') return g.status === 'pay' && !g.paid;
   if (t.operation === 'food')
-    return (
-      g.food === 'ready' || (g.food === 'none' && ['ordered', 'drinking', 'pay'].includes(g.status))
-    );
+    return g.food === 'ready' || (g.food === 'none' && ['ordered', 'drinking'].includes(g.status));
   return g.status !== 'leaving';
 }
-const seed = () => {
-  try {
-    return crypto.getRandomValues(new Uint32Array(1))[0] || 1;
-  } catch {
-    return (Date.now() ^ (Math.random() * 4294967296)) >>> 0 || 1;
-  }
-};
 /** Sounds for what changed: someone came in, paid, got a drink, or a step at the counter. */
 function sounds(before: Game, after: Game, a: Action) {
   const old = new Map(before.guests.map((g) => [g.id, g]));
@@ -166,9 +158,7 @@ export const useGame = create<Store>((set, get) => ({
       return;
     }
     const before = get().game;
-    // Each new night and each opening draws fresh randomness from the device.
-    if (a.type === 'start' || a.type === 'open' || a.type === 'nextDay') a = { ...a, seed: seed() };
-    const game = reduceGame(before, a);
+    const game = reduceGame(before, a, deviceRandom);
     set({ game });
     if (game === before) return;
     sounds(before, game, a);
@@ -183,7 +173,7 @@ export const useGame = create<Store>((set, get) => ({
   start: (fresh) => {
     if (fresh) {
       set({
-        game: reduceGame(newGame(), { type: 'start', seed: seed() }),
+        game: reduceGame(newGame(), { type: 'start' }, deviceRandom),
         hasSave: true,
         tasks: [],
         bartenderPosition: [...bartenderHome],

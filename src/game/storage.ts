@@ -116,7 +116,11 @@ function guest(v: unknown): Guest {
     foodType: oneOf(g.foodType, ['pretzel', 'toastie'] as const, what),
     quality: num(g.quality, 0, 100, what),
     prep: prep(g.prep, what),
-    food: oneOf(g.food, ['none', 'ordered', 'warming', 'ready', 'served'] as const, what),
+    food: oneOf(
+      g.food,
+      ['none', 'ordered', 'warming', 'ready', 'served', 'declined'] as const,
+      what,
+    ),
     foodTime: num(g.foodTime, -1e4, 1e4, what),
     talked: bool(g.talked, what),
     group: int(g.group, 0, 1e9, what),
@@ -165,7 +169,9 @@ export function validateSave(raw: unknown): Game {
   const closing = keys(g.closing, Object.keys(model.closing), 'closing');
   const upgrades = keys(g.upgrades, Object.keys(model.upgrades), 'upgrades');
   const count = (v: unknown) => int(v, 0, MONEY, 'stats');
-  const menu = list(g.activeMenu, 6, 'menu').map((id) => oneOf(id, [...recipeIds], 'menu'));
+  const menu = list(g.activeMenu, recipeIds.size, 'menu').map((id) =>
+    oneOf(id, [...recipeIds], 'menu'),
+  );
   if (!menu.length || new Set(menu).size !== menu.length) fail('menu');
   const food = keys(g.foodStock, ['pretzel', 'toastie'], 'food');
   const history = record(g.history, 'history');

@@ -28,7 +28,7 @@ On a phone held sideways (Galaxy S8+, 740 x 360):
    - **Pour:** each ingredient in the recipe has its own row; set the amount and tap **Pour**. Where sugar must dissolve first, hold **Muddle** before the spirit goes in.
    - **Mix:** add ice, then hold **Shake** or **Stir** and let go while the meter is green.
    - **Garnish:** finish it off (the minus takes one off again), then **Strain & serve**.
-   - The drink builds up on the counter as you go, and bartending hints point at the next step (switch them off in Settings). On the first two nights a line at the top also says what to do next on the floor.
+   - The drink builds up on the counter as you go. Bartending hints and the floor guide start enabled on night one, then switch off automatically when the next night begins. You can enable them again in Settings.
 5. Let them enjoy it, then settle up. Friends say whether they want one bill or to split it; listen, it shows in the tip. The tip pops up over the guest as they pay.
 6. Call **Last orders** from **Bar tools**. At closing time queue wiping, taking out trash and washing dirty glasses. The bartender walks to each job and completes it before its tick appears; a hired host handles closing cleanup automatically. Restocking is optional, so you can close even with no cash for supplies. The scene shows a moving sponge, sink water and glass washing, and a trash bag carried to the door. Pause and reading dialogs stop the work.
 7. Between nights, decorate the bar. A fresh bar starts without purchased upgrades. Decor lifts tips; hire the host to greet guests, walk them to their seats and wash glasses. New game resets progress and immediately replaces the local save.
@@ -55,7 +55,7 @@ Escape closes a drawer or window, or pauses. Windows pause service. The pause me
 
 **Drinks**
 
-- Fourteen classic, regional and clearly labelled house recipes; pick up to six for a night.
+- Fourteen classic, regional and clearly labelled house recipes. A fresh bar starts with six drinks; pick any 1 to 14 for a night.
 - A step-by-step counter (Prep, Pour, Mix, Garnish) with measured or free pouring and native dash, piece and spoon units.
 - Recipe quantity, proportion, yield and technique scoring, with taste notes that name the bottles.
 - Real stock use and waste; a separate unlimited practice bench with an in-game drink picker.
@@ -65,7 +65,8 @@ Escape closes a drawer or window, or pauses. Windows pause service. The pause me
 - Guest arrival, seating, menu reading, orders, preparation, drinking, tabs, payment and last call.
 - Warm pretzels and cheese toasties with one warming slot, snack stock and charges.
 - Pairs who pay together and ask for one bill or a split, integer money, idempotent settlement, and tips that follow the drink's score, the conversation, how fast it came and the room.
-- Guests choose from the whole menu and can turn your suggestions down; every night is shuffled with fresh randomness.
+- Guests choose each menu drink with equal probability using fresh Web Crypto randomness on desktop and mobile. Favourites do not bias orders; repeat orders remain possible. Deterministic story tests explicitly import their chosen recipe instead of assuming a live guest orders Manhattan.
+- Snacks are offers, not guaranteed sales. Guests can decline; that decision lasts for the visit and survives saves, so repeated clicks or switching snacks cannot reroll it. Accepted snacks consume stock once and add their price once, on serving.
 - Authored English conversations, plausible sweet lies, saved rapport and story callbacks.
 - Cleaning, washing, trash, editable restocking, ice refills and a closing recap.
 - Real recorded bar sounds (shop door bell, till drawer and coins, pouring, ice, shaking, stirring, a glass set down) and a jukebox playing "Bossa Antigua" by Kevin MacLeod. Credits and licences are in `public/licenses/sounds.txt`.

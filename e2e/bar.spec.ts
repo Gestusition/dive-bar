@@ -71,6 +71,7 @@ async function enter(page: Page, titleCapture = false) {
   await page.clock.pauseAt((await page.evaluate(() => Date.now())) + 1000);
 }
 async function order(page: Page) {
+  // This is an explicit Manhattan story fixture, never an assumption about live orders.
   await enter(page);
   await importNight(page);
   await page.getByRole('button', { name: 'Seat guest' }).click();
@@ -78,6 +79,95 @@ async function order(page: Page) {
   await page.getByRole('button', { name: 'Take order', exact: true }).click();
   await advanceService(page, 6000);
   await expect(page.getByRole('button', { name: 'Make drink' })).toBeVisible();
+}
+async function orderFromSingleMenu(page: Page) {
+  await enter(page);
+  await page.getByRole('button', { name: 'Edit menu' }).click();
+  const choices = page.locator('.menu-catalogue button');
+  for (let i = 0; i < (await choices.count()); i++) {
+    const choice = choices.nth(i);
+    if (
+      (await choice.locator('strong').textContent()) !== 'Margarita' &&
+      (await choice.getAttribute('aria-pressed')) === 'true'
+    )
+      await choice.click();
+  }
+  await expect(page.locator('.menu-catalogue button[aria-pressed=true]')).toHaveCount(1);
+  await page.getByRole('button', { name: 'Close dialog' }).click();
+  await page.getByRole('button', { name: 'Open the bar' }).click();
+  await page.getByRole('button', { name: 'Close panel' }).click();
+  await page.getByRole('button', { name: 'Seat guest' }).click();
+  await advanceService(page, 18000);
+  await page.getByRole('button', { name: 'Take order', exact: true }).click();
+  await advanceService(page, 6000);
+  await expect(page.locator('.guest-order')).toHaveText('Margarita');
+  const name = await page.locator('.guest-card-head strong').textContent();
+  await page.getByRole('button', { name: 'Select ' + name, exact: true }).click();
+}
+
+test('six default drinks can expand to fourteen and survive a reload', async ({ page }) => {
+  await enter(page);
+  await expect(page.locator('.menu-list button')).toHaveCount(6);
+  await expect(
+    page.getByText('Tonight’s menu. Tap a drink to see the recipe.', { exact: true }),
+  ).toBeVisible();
+  await page.getByRole('button', { name: 'Edit menu' }).click();
+  await expect(page.locator('.menu-catalogue button[aria-pressed=true]')).toHaveCount(6);
+  while (await page.locator('.menu-catalogue button[aria-pressed=false]').count())
+    await page.locator('.menu-catalogue button[aria-pressed=false]').first().click();
+  await expect(page.locator('.menu-catalogue button[aria-pressed=true]')).toHaveCount(14);
+  await expect(page.getByText('14/14 selected', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Close dialog' }).click();
+  await expect(page.locator('.menu-list button')).toHaveCount(14);
+  await page.reload();
+  await page.getByRole('button', { name: 'Continue', exact: true }).click();
+  await page.getByRole('button', { name: 'Get ready', exact: true }).click();
+  await expect(page.locator('.menu-list button')).toHaveCount(14);
+});
+test('live guests order from the actual menu instead of assuming Manhattan', async ({ page }) => {
+  await orderFromSingleMenu(page);
+  await page.getByRole('button', { name: 'Make drink' }).click();
+  await expect(page.locator('.bench-title h2')).toHaveText('Margarita');
+});
+for (const accepts of [false, true]) {
+  test(`snack offers can be ${accepts ? 'accepted once and served once' : 'declined without another offer'}`, async ({
+    page,
+  }) => {
+    await orderFromSingleMenu(page);
+    // Control only the entropy dependency of the decision, not application state or rendering.
+    await page.evaluate(
+      (word) => {
+        const original = crypto.getRandomValues.bind(crypto);
+        Object.defineProperty(crypto, 'getRandomValues', {
+          configurable: true,
+          value: (array: ArrayBufferView | null) => {
+            if (array instanceof Uint32Array && array.length === 1) {
+              array[0] = word;
+              return array;
+            }
+            return Reflect.apply(original, crypto, [array]);
+          },
+        });
+      },
+      accepts ? 0 : 0xffffffff,
+    );
+    await page.getByRole('button', { name: 'Offer toastie' }).click();
+    await advanceService(page, 6000);
+    await expect(page.getByRole('button', { name: 'Offer toastie' })).toHaveCount(0);
+    if (accepts) {
+      await expect(page.getByRole('button', { name: 'Warming up…' })).toBeDisabled();
+      await advanceService(page, 20000);
+      await page.getByRole('button', { name: 'Serve toastie' }).click();
+      await advanceService(page, 6000);
+      await expect(page.getByRole('button', { name: 'Serve toastie' })).toHaveCount(0);
+      await expect(page.getByRole('button', { name: 'Offer pretzel' })).toHaveCount(0);
+    } else {
+      await expect(
+        page.locator('.guest-card').getByText('“No snack for me, thanks.”', { exact: true }),
+      ).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Offer pretzel' })).toHaveCount(0);
+    }
+  });
 }
 const step = (page: Page, name: string) =>
   page.locator('.bench-steps button', { hasText: name }).click();
@@ -103,6 +193,11 @@ test('opening, real renderer, menu and layout', async ({ page }) => {
   expect(counterLabelBox!.y).toBeLessThan(sceneBox!.y + 60);
   await page.getByRole('button', { name: 'Edit menu' }).click();
   await expect(page.getByRole('button', { name: /Moscow Mule/ })).toBeVisible();
+  await page.getByRole('button', { name: /Moscow Mule/ }).click();
+  await expect(page.getByRole('button', { name: /Moscow Mule/ })).toHaveAttribute(
+    'aria-pressed',
+    'false',
+  );
   await page.getByRole('button', { name: /Moscow Mule/ }).click();
   await expect(page.getByRole('button', { name: /Moscow Mule/ })).toHaveAttribute(
     'aria-pressed',
@@ -325,6 +420,9 @@ test('last call, closing checklist and the next night form a complete loop', asy
   await expect(page.getByRole('heading', { name: 'Night 1 complete' })).toBeVisible();
   await page.getByRole('button', { name: 'Next night' }).click();
   await expect(page.getByRole('heading', { name: 'Get ready' })).toBeVisible();
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await expect(page.getByRole('switch', { name: 'Bartending hints' })).not.toBeChecked();
+  await page.getByRole('button', { name: 'Close dialog' }).click();
 });
 for (const host of [false, true]) {
   test(`closing cleanup has visible progress and ${host ? 'automatic host' : 'manual bartender'} work without restocking`, async ({

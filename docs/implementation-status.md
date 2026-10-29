@@ -10,10 +10,14 @@ Implemented locally:
 
 - Fresh profiles and New game start with the host and all seven shop upgrades unowned. New game clears transient work and replaces the previous local save immediately.
 - The hired host is visible inside the room and follows routes to greet and escort guests.
+- Guests and the host route around one another, including during departures. Moving-person clearance is checked between route steps; a blocked destination waits instead of allowing an overlap.
+- Fresh bars start with six drinks and can select all fourteen. Live drink selection uses fresh Web Crypto draws with equal weight for every menu slot, without a favourite or previous-order bias. Test-only entropy injection preserves deterministic coverage without making live orders deterministic.
+- Bartending hints default to enabled for night one and switch off at every next-night transition; the settings switch remains available. The opening menu instruction uses a full stop instead of an em dash.
+- Snack offers can be accepted or declined. Refusals persist for the visit and through save/reload, preventing repeated offers from rerolling the decision. Stock and billing remain idempotent for accepted snacks.
 - Restocking is optional for closing, including with an empty till.
 - Wiping, washing glasses and taking out trash use timed jobs, staff movement, visible tools and progress. The host handles closing cleanup automatically; otherwise the bartender performs queued jobs. Completion ticks and cleanup effects occur after the work finishes, and pause or reading dialogs stop progress.
 
-Local verification completed: 89 unit tests; 20 desktop browser tests passed with one phone-only test skipped; both cleanup scenarios passed across all four browser profiles. Final desktop checks also covered cleanup stages and reading pauses. Content validation, formatting, lint, type checking and the production build passed. The complete four-project browser suite for the final release candidate and release preparation remain pending. Further 0.0.3 work may continue before the version is declared ready.
+Local verification includes 103 passing unit tests, covering equal-weight menu selection with controlled entropy, live Web Crypto integration, host/guest clearance and snack acceptance/refusal replay. Twenty focused browser checks passed across all four profiles for six-to-fourteen menu persistence, real non-Manhattan orders, both snack outcomes and hints turning off on the next night. The desktop suite and focused retests also exercised the existing story, cleanup, input and save flows. Content validation, formatting, lint, type checking and the production build passed. The complete four-project browser suite for the final release candidate and release preparation remain pending. Further 0.0.3 work may continue before the version is declared ready.
 
 ## Playable scope
 
@@ -37,7 +41,7 @@ The browser matrix uses desktop Chromium (1440 × 1000), desktop Firefox, Galaxy
 
 Service checks each required ingredient: ±18% for ml, at least 1 ml allowance, and exact authored discrete quantities/ranges. Taste scoring retains its stricter ±5% / 1 ml quantity margin. Overpours and overmixed drinks do not earn a completion tick; optional garnish requires no addition.
 
-The regression suite also covers save sealing against standard SHA/HMAC implementations, backup round trips and tampering, malformed saves, party payment replay, fractional stock costs, surplus restocking, cancelled drink snack bills, and store clock/queue pauses. Story browser tests import signed fixture backups through the player's import UI; fresh-game browser tests still exercise normal randomness.
+The regression suite also covers save sealing against standard SHA/HMAC implementations, backup round trips and tampering, malformed saves, party payment replay, fractional stock costs, surplus restocking, cancelled drink snack bills, and store clock/queue pauses. Story browser tests import signed fixture backups through the player's import UI; a Manhattan story is an explicitly authored fixture, not a live-order assumption. Live-order tests use the player's menu UI. Snack decision tests control only the random-source boundary to cover both outcomes reliably; they do not replace the renderer or mutate production game state.
 
 GitHub Actions runs formatting, content validation, lint, TypeScript, unit tests and one production build, followed by all four browser projects in parallel on separate runners. Main deployments publish only after these checks. Dependabot proposes grouped updates without automatic merges. Preview publication and a passing pull request do not imply a merge to main.
 

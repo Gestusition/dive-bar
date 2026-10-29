@@ -141,7 +141,7 @@ describe('inventory and transactions', () => {
   });
   it('preserves the snack charge when the drink is served afterwards', () => {
     let s = ordered();
-    s = reduceGame(s, { type: 'guest', id: 1, operation: 'food', foodType: 'toastie' });
+    s = reduceGame(s, { type: 'guest', id: 1, operation: 'food', foodType: 'toastie' }, () => 0);
     for (let i = 0; i < 19; i++) s = reduceGame(s, { type: 'tick', dt: 1 });
     s = reduceGame(s, { type: 'guest', id: 1, operation: 'food' });
     expect(s.guests[0].charge).toBe(700);

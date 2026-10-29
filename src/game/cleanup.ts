@@ -17,7 +17,7 @@ export const cleanupInfo: Record<
 };
 export function cleanupTarget(job: CleanupJob): FloorPoint {
   return job.stage === 'carrying' || job.stage === 'emptying'
-    ? [entrance[0] + 0.8, entrance[2]]
+    ? [entrance[0] + 1.2, entrance[2]]
     : cleanupInfo[job.kind].position;
 }
 export function cleanupLabel(job: CleanupJob): string {

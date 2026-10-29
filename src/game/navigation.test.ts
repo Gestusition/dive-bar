@@ -13,8 +13,11 @@ import {
   stepAlong,
   walkingRoute,
   walkingSpeed,
+  walkAvoidingPeople,
+  personClearance,
   type FloorPoint,
 } from './navigation';
+import { hostHome } from './host';
 
 const targets: FloorPoint[] = [
   [-4.4, 5.4],
@@ -119,6 +122,46 @@ function walkGuest(from: FloorPoint, to: FloorPoint) {
   throw new Error('Guest never arrives');
 }
 describe('guest walkway', () => {
+  it('routes departing guests from every seat around the host without crossing their body', () => {
+    const target: FloorPoint = [entrance[0], entrance[2]];
+    for (const [x, , z] of seats) {
+      let position: FloorPoint = [x, z];
+      let arrived = false;
+      for (let tick = 0; tick < 1000; tick++) {
+        position = walkAvoidingPeople(position, target, guestSpeed / 60, [hostHome]).position;
+        expect(
+          Math.hypot(position[0] - hostHome[0], position[1] - hostHome[1]),
+        ).toBeGreaterThanOrEqual(personClearance - 1e-6);
+        if (Math.hypot(position[0] - target[0], position[1] - target[1]) < 1e-6) {
+          expect(tick / 60).toBeLessThan(6);
+          arrived = true;
+          break;
+        }
+      }
+      expect(arrived, `Seat ${x},${z} must still reach the exit`).toBe(true);
+    }
+  });
+  it('waits for an occupied destination to clear instead of crossing a person', () => {
+    const from: FloorPoint = [-4, 6.3];
+    const to: FloorPoint = [-5.5, 6.3];
+    expect(walkAvoidingPeople(from, to, 1, [to]).position).toEqual(from);
+    expect(walkAvoidingPeople(from, to, 1, []).position).not.toEqual(from);
+  });
+  it('keeps a moving host and departing guest apart while both cross the entrance area', () => {
+    let host: FloorPoint = [...hostHome];
+    let guest: FloorPoint = [-4.4, 6.3];
+    const door: FloorPoint = [entrance[0], entrance[2]];
+    const hostTarget: FloorPoint = [entrance[0] + 1.2, entrance[2]];
+    for (let tick = 0; tick < 600; tick++) {
+      host = walkAvoidingPeople(host, hostTarget, guestSpeed / 60, [guest]).position;
+      guest = walkAvoidingPeople(guest, door, guestSpeed / 60, [host]).position;
+      expect(Math.hypot(host[0] - guest[0], host[1] - guest[1])).toBeGreaterThanOrEqual(
+        personClearance - 1e-6,
+      );
+    }
+    expect(host).toEqual(hostTarget);
+    expect(guest).toEqual(door);
+  });
   const door: FloorPoint = [entrance[0], entrance[2]];
   const chairs = seats.map(([x, , z]): FloorPoint => [x, z]);
   const waiting: FloorPoint = [-4.4, 6.3];

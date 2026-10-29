@@ -21,7 +21,7 @@ export function hostDestination(
   if (!guest || !visit) return { visit: null, target: hostHome };
   if (guest.status === 'waiting') {
     const [x, , z] = guestPosition(guest);
-    return { visit, target: [x - 0.7, z] };
+    return { visit, target: [x - 1, z] };
   }
   const target = seatApproach[guest.seat];
   if (

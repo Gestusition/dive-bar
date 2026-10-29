@@ -35,6 +35,28 @@ afterEach(() => {
 });
 
 describe('service clock and queue', () => {
+  it('draws actual opening and later guest orders from Web Crypto instead of replaying the save seed', () => {
+    let word = 0xffffffff;
+    const entropy = vi.spyOn(crypto, 'getRandomValues').mockImplementation((array) => {
+      (array as Uint32Array)[0] = word;
+      return array;
+    });
+    try {
+      useGame.setState({ game: newGame() });
+      useGame.getState().act({ type: 'open' });
+      expect(useGame.getState().game.guests[0].recipeId).toBe(newGame().activeMenu.at(-1));
+      const game = newGame();
+      game.phase = 'service';
+      game.spawnIn = 0;
+      word = 0;
+      useGame.setState({ game });
+      vi.advanceTimersByTime(250);
+      expect(useGame.getState().game.guests[0].recipeId).toBe(game.activeMenu[0]);
+      expect(entropy.mock.calls.length).toBeGreaterThan(2);
+    } finally {
+      entropy.mockRestore();
+    }
+  });
   function closing(host = false) {
     const game = newGame();
     game.phase = 'closing';

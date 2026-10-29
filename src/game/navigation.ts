@@ -232,15 +232,42 @@ function nearestApproach(p: FloorPoint) {
   return seatApproach.reduce((best, a) => (distance(p, a) < distance(p, best) ? a : best));
 }
 /** The shortest furniture-free walk from one floor point to another. */
-export function guestPath(from: FloorPoint, to: FloorPoint): FloorPoint[] {
+export const personClearance = 0.9;
+export function guestPath(
+  from: FloorPoint,
+  to: FloorPoint,
+  people: FloorPoint[] = [],
+): FloorPoint[] {
   if (distance(from, to) < 1e-6) return [];
-  const network = graphNodes();
+  const extra: Rect[] = people
+    .filter((p) => distance(from, p) >= personClearance - 1e-6)
+    .map(([x, z]) => [x, z, personClearance * 2, personClearance * 2]);
+  const isClear = (a: FloorPoint, b: FloorPoint) =>
+    clear(a, b) && !extra.some((r) => crosses(a, b, r));
+  if (extra.some((r) => inside(to, r))) return [];
+  const network = [
+    ...graphNodes(),
+    ...extra.flatMap(([x, z, w, d]): FloorPoint[] => [
+      [x - w / 2 - 0.06, z - d / 2 - 0.06],
+      [x + w / 2 + 0.06, z - d / 2 - 0.06],
+      [x - w / 2 - 0.06, z + d / 2 + 0.06],
+      [x + w / 2 + 0.06, z + d / 2 + 0.06],
+    ]),
+  ].filter(
+    (p) =>
+      !blocked(p) &&
+      !extra.some((r) => inside(p, r)) &&
+      p[0] >= doorX + 0.3 &&
+      p[0] <= -doorX - 0.3 &&
+      p[1] >= -4.2 &&
+      p[1] <= 7.3,
+  );
   // A seat sits inside its own chair, so step out to (or in from) the spot in front of it.
   const start = blocked(from) ? nearestApproach(from) : from;
   const end = blocked(to) ? nearestApproach(to) : to;
   const before: FloorPoint[] = start === from ? [] : [start];
   const after: FloorPoint[] = end === to ? [] : [to];
-  if (distance(start, end) < 1e-6 || clear(start, end))
+  if (distance(start, end) < 1e-6 || isClear(start, end))
     return [...before, ...(distance(start, end) < 1e-6 ? [] : [end]), ...after];
   const nodes = [start, end, ...network];
   const best = nodes.map(() => Infinity);
@@ -254,7 +281,7 @@ export function guestPath(from: FloorPoint, to: FloorPoint): FloorPoint[] {
     if (i < 0 || i === 1) break;
     done[i] = true;
     for (let j = 0; j < nodes.length; j++) {
-      if (done[j] || !clear(nodes[i], nodes[j])) continue;
+      if (done[j] || !isClear(nodes[i], nodes[j])) continue;
       const cost = best[i] + distance(nodes[i], nodes[j]);
       if (cost < best[j]) {
         best[j] = cost;
@@ -263,10 +290,37 @@ export function guestPath(from: FloorPoint, to: FloorPoint): FloorPoint[] {
     }
   }
   // No clear route (should not happen in this room): walk straight rather than freeze.
-  if (best[1] === Infinity) return [...before, end, ...after];
+  if (best[1] === Infinity) return people.length ? [] : [...before, end, ...after];
   const route: FloorPoint[] = [];
   for (let i = 1; i > 0; i = previous[i]) route.unshift(nodes[i]);
   return [...before, ...route, ...after];
+}
+
+/** Replan around live characters and never step through a moving person's body. */
+export function walkAvoidingPeople(
+  from: FloorPoint,
+  to: FloorPoint,
+  step: number,
+  people: FloorPoint[],
+  planned?: FloorPoint[],
+): { position: FloorPoint; path: FloorPoint[]; blocked?: boolean } {
+  const next = stepAlong(from, planned ?? guestPath(from, to, people), step);
+  for (const p of people) {
+    const dx = next.position[0] - from[0],
+      dz = next.position[1] - from[1];
+    const length = dx * dx + dz * dz;
+    const t = length
+      ? Math.max(0, Math.min(1, ((p[0] - from[0]) * dx + (p[1] - from[1]) * dz) / length))
+      : 0;
+    const nearest = Math.hypot(from[0] + t * dx - p[0], from[1] + t * dz - p[1]);
+    const start = distance(from, p);
+    if (
+      (start >= personClearance && nearest < personClearance - 1e-6) ||
+      (start < personClearance && distance(next.position, p) <= start)
+    )
+      return { position: [...from], path: [], blocked: true };
+  }
+  return next;
 }
 /** Move along a path, returning the new position and what is left of the path. */
 export function stepAlong(

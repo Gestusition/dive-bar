@@ -27,7 +27,7 @@ describe('hired host', () => {
     const guest = game.guests[0];
     let next = hostDestination(game.guests, null, hostHome);
     expect(next.visit).toEqual({ id: guest.id, escorting: false });
-    expect(next.target[0]).toBeCloseTo(-5.1);
+    expect(next.target[0]).toBeCloseTo(-5.4);
     expect(next.target[1]).toBeCloseTo(6.3);
     const greeted = stepAlong(hostHome, guestPath(hostHome, next.target), 100).position;
     Object.assign(guest, { status: 'reading', seat: 0 });

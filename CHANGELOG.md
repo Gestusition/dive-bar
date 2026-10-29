@@ -10,8 +10,17 @@ In development and not ready for release. The changes below belong to the ongoin
 
 - Timed cleanup jobs with staff walking, a wiping sponge, a working sink and glass-washing animation, a carried trash bag, and visible progress. Hired hosts automatically handle closing cleanup; otherwise the bartender performs requested jobs. Work pauses with the game and reading dialogs.
 
+### Changed
+
+- Fresh bars start with six menu drinks; menus and validated saves support all fourteen recipes.
+- Bartending hints switch off automatically at the next night, while remaining available in Settings.
+- Removed the em dash from the opening menu instruction.
+
 ### Fixed
 
+- Departing guests and the host avoid one another instead of crossing through each other's bodies.
+- Drink orders no longer favour regulars' default recipes. Live selections draw fresh Web Crypto randomness; deterministic story fixtures do not assume live Manhattan orders.
+- Snack offers can be declined, and repeat offers cannot reroll a refusal. Accepted snacks consume stock and add a serving charge only once.
 - Restocking no longer blocks closing the bar, including when the till cannot cover more supplies. Cleanup ticks appear only after the worker completes the job.
 - Fresh profiles and new games no longer receive every decor upgrade and the host for free. New game clears transient service state and immediately replaces the previous local save.
 - The hired host is positioned inside the room independently of responsive side walls and walks to greet guests, escort them to their seats and return.

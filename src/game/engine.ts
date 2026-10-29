@@ -54,7 +54,7 @@ export interface Guest {
   foodType: 'pretzel' | 'toastie';
   quality: number;
   prep: Prep;
-  food: 'none' | 'ordered' | 'warming' | 'ready' | 'served';
+  food: 'none' | 'ordered' | 'warming' | 'ready' | 'served' | 'declined';
   foodTime: number;
   talked: boolean;
   /** Guests who came in together share a group number; 0 is on their own. */
@@ -227,7 +227,7 @@ export function newGame(): Game {
     visitCount: {},
     rapport: {},
     wasteHistory: [],
-    activeMenu: ['old_fashioned', 'margarita', 'manhattan'],
+    activeMenu: recipes.slice(0, 6).map((r) => r.id),
     foodStock: { pretzel: 12, toastie: 8 },
   };
 }
@@ -252,9 +252,12 @@ const commit = (s: Game, token: string) => {
   if (s.committed.length > 500) s.committed = s.committed.slice(-500);
 };
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
+export type RandomSource = () => number;
+// Runtime entropy belongs to this reducer call, never to serialized save data.
+const randomSources = new WeakMap<Game, RandomSource>();
 const rand = (s: Game) => {
   s.random = (Math.imul(s.random, 1664525) + 1013904223) >>> 0;
-  return s.random / 4294967296;
+  return randomSources.get(s)?.() ?? s.random / 4294967296;
 };
 /** Scramble a seed so that even close seeds start far apart (MurmurHash3 finaliser). */
 const mix32 = (n: number) => {
@@ -326,20 +329,16 @@ function seatParty(s: Game, g: Guest) {
   return true;
 }
 const names = (list: Guest[]) => list.map((g) => g.name).join(' and ');
-/** A guest's favourite comes up often, but anything on the menu can catch their eye. */
-function chooseRecipe(s: Game, customerId: string) {
-  const favourite = roster.find((c) => c.id === customerId)?.defaultRecipeId;
-  if (favourite && s.activeMenu.includes(favourite) && rand(s) < 0.35) return favourite;
-  const last = s.history[customerId + '|lastOrder'];
-  const options = s.activeMenu.filter((id) => id !== last);
-  return pick(s, options.length ? options : s.activeMenu);
+/** Every drink on tonight's menu has the same chance, including repeat orders. */
+function chooseRecipe(s: Game) {
+  return pick(s, s.activeMenu);
 }
 function newGuest(s: Game, customerId: string, group: number, lead: boolean): Guest {
   return {
     id: s.nextId++,
     customerId,
     name: roster.find((c) => c.id === customerId)!.name,
-    recipeId: chooseRecipe(s, customerId),
+    recipeId: chooseRecipe(s),
     status: 'waiting',
     seat: -1,
     remaining: 90,
@@ -508,8 +507,9 @@ const declines = [
   'Not tonight. Just the {drink}, please.',
 ];
 
-export function reduceGame(current: Game, a: Action): Game {
+export function reduceGame(current: Game, a: Action, random?: RandomSource): Game {
   const s = structuredClone(current);
+  if (random) randomSources.set(s, random);
   const note = (message: string) => {
     s.notice = message;
   };
@@ -526,8 +526,7 @@ export function reduceGame(current: Game, a: Action): Game {
     if (s.activeMenu.includes(a.id)) {
       if (s.activeMenu.length > 1) s.activeMenu = s.activeMenu.filter((id) => id !== a.id);
       else note('Keep at least one drink on the menu.');
-    } else if (s.activeMenu.length < 6) s.activeMenu.push(a.id);
-    else note('Six drinks is a comfortable menu. Remove one first.');
+    } else if (s.activeMenu.length < recipes.length) s.activeMenu.push(a.id);
   }
   if (a.type === 'purchase') {
     const rows = Object.entries(a.items);
@@ -580,6 +579,7 @@ export function reduceGame(current: Game, a: Action): Game {
   }
   if (a.type === 'nextDay') {
     s.day++;
+    s.settings.hints = false;
     s.phase = 'opening';
     s.seconds = 0;
     s.guests = [];
@@ -797,7 +797,8 @@ export function reduceGame(current: Game, a: Action): Game {
       );
     }
     if (a.operation === 'food') {
-      if (g.food === 'none' && ['ordered', 'drinking', 'pay'].includes(g.status)) {
+      if (g.paid || g.status === 'leaving') return current;
+      if (g.food === 'none' && ['ordered', 'drinking'].includes(g.status)) {
         if (s.seconds >= 360) {
           note('The kitchen has taken its last orders for tonight.');
           return s;
@@ -809,6 +810,12 @@ export function reduceGame(current: Game, a: Action): Game {
         }
         if (s.foodStock[snack.id] <= 0) {
           note('That snack is sold out for tonight.');
+          return s;
+        }
+        if (rand(s) >= 0.55) {
+          g.foodType = snack.id;
+          g.food = 'declined';
+          note(g.name + ': “No snack for me, thanks.”');
           return s;
         }
         s.foodStock[snack.id]--;

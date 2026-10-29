@@ -11,7 +11,10 @@ export function MenuPanel() {
   return (
     <>
       <p className="hint">
-        Pick 1 to 6 drinks. <b>{game.activeMenu.length}/6 selected</b>
+        Pick 1 to {recipes.length} drinks.{' '}
+        <b>
+          {game.activeMenu.length}/{recipes.length} selected
+        </b>
       </p>
       <div className="menu-catalogue">
         {recipes.map((r) => (
