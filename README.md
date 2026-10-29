@@ -2,11 +2,13 @@
 
 A small voxel neighbourhood bar. Real measures, familiar faces, and the occasional little white lie.
 
-**Play it:** https://gestusition.github.io/dive-bar/ · **Latest release:** [v0.0.2](https://github.com/Gestusition/dive-bar/releases/tag/v0.0.2)
+**Play it:** https://gestusition.github.io/dive-bar/ · **Latest release:** [v0.0.3](https://github.com/Gestusition/dive-bar/releases/tag/v0.0.3)
 
 ![Title screen](docs/screenshots/title.jpg)
 
 ## Screenshots
+
+Captured from the production build with all seven upgrades owned, including the host, and the red Cherry theme selected. These showcase saves are separate from a new bar, which starts without purchased upgrades.
 
 | Getting ready for the night                           | Guests show what they need                             |
 | ----------------------------------------------------- | ------------------------------------------------------ |
@@ -66,7 +68,7 @@ Escape closes a drawer or window, or pauses. Windows pause service. The pause me
 - Warm pretzels and cheese toasties with one warming slot, snack stock and charges.
 - Pairs who pay together and ask for one bill or a split, integer money, idempotent settlement, and tips that follow the drink's score, the conversation, how fast it came and the room.
 - Guests choose each menu drink with equal probability using fresh Web Crypto randomness on desktop and mobile. Favourites do not bias orders; repeat orders remain possible. Deterministic story tests explicitly import their chosen recipe instead of assuming a live guest orders Manhattan.
-- Snacks are offers, not guaranteed sales. Guests can decline; that decision lasts for the visit and survives saves, so repeated clicks or switching snacks cannot reroll it. Accepted snacks consume stock once and add their price once, on serving.
+- Snacks are offers, not guaranteed sales. Acceptance and refusal are equally likely; guests may ask for the other snack instead. A refusal lasts for the visit and survives saves, so repeated clicks or switching snacks cannot reroll it. Accepted snacks consume stock once and add their price once, on serving.
 - Authored English conversations, plausible sweet lies, saved rapport and story callbacks.
 - Cleaning, washing, trash, editable restocking, ice refills and a closing recap.
 - Real recorded bar sounds (shop door bell, till drawer and coins, pouring, ice, shaking, stirring, a glass set down) and a jukebox playing "Bossa Antigua" by Kevin MacLeod. Credits and licences are in `public/licenses/sounds.txt`.
@@ -113,7 +115,7 @@ bun run test:e2e
 
 For a quick browser iteration, run `bun run test:e2e --project=desktop`. Run the full matrix before release. The clock helper preserves every 250 ms service tick while coalescing redundant animation callbacks; held-input tests retain all 100 ms input ticks. Story journeys import a normal signed fixture backup so random orders do not select a different story. The production game has no test speed mode.
 
-Refresh the six real production-build screenshots with `UPDATE_SCREENSHOTS=1 bun run test:e2e --project=desktop --project=touch` (PowerShell: set `$env:UPDATE_SCREENSHOTS='1'` first). Captures show a fresh local bar and a fixture-backed Manhattan story, rather than a live player's save.
+Refresh the six real production-build screenshots with `UPDATE_SCREENSHOTS=1 bun run test:e2e e2e/readme.spec.ts --project=desktop --project=touch` (PowerShell: set `$env:UPDATE_SCREENSHOTS='1'` first, then remove it after capture). Captures import normal signed showcase backups with every upgrade owned and the red Cherry theme selected. The counter images show an actual Manhattan preparation after animation frames have painted the resized WebGL scene. No live player's save is used.
 
 Vitest is the unit runner; use `bun run test:unit` rather than `bun test`. Playwright tests the production build in Firefox, Chrome, a Galaxy S8 in landscape (Chromium) and an iPhone 13 in landscape (WebKit). Emulation is not a physical-phone performance certification.
 

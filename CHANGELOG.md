@@ -2,18 +2,19 @@
 
 All notable changes are recorded here. Versions describe tagged source releases; GitHub Pages follows `main` and may show a different revision. This project is still an early playable release.
 
-## Unreleased — planned 0.0.3
-
-In development and not ready for release. The changes below belong to the ongoing 0.0.3 update; they do not represent a tagged or published version.
+## [0.0.3] - 2026-10-29
 
 ### Added
 
 - Timed cleanup jobs with staff walking, a wiping sponge, a working sink and glass-washing animation, a carried trash bag, and visible progress. Hired hosts automatically handle closing cleanup; otherwise the bartender performs requested jobs. Work pauses with the game and reading dialogs.
+- Guests can ask for the other snack instead of the one offered.
 
 ### Changed
 
 - Fresh bars start with six menu drinks; menus and validated saves support all fourteen recipes.
 - Bartending hints switch off automatically at the next night, while remaining available in Settings.
+- Snack offers are equally likely to be accepted or declined.
+- Shortened snack offer labels to fit the guest card.
 - Removed the em dash from the opening menu instruction.
 
 ### Fixed
@@ -63,5 +64,6 @@ In development and not ready for release. The changes below belong to the ongoin
 
 Initial tagged playable release: fourteen recipes, a voxel bar, manual cocktail preparation, service and dialogue, stock and integer-money accounting, shift closing, local saves, desktop/touch controls and GitHub Pages delivery.
 
+[0.0.3]: https://github.com/Gestusition/dive-bar/compare/v0.0.2...v0.0.3
 [0.0.2]: https://github.com/Gestusition/dive-bar/compare/v0.0.1...v0.0.2
 [0.0.1]: https://github.com/Gestusition/dive-bar/releases/tag/v0.0.1

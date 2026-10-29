@@ -27,4 +27,20 @@ if (process.argv.includes('--closing')) {
   game.cash = 0;
   game.upgrades.barback = process.argv.includes('--host');
 }
+if (process.argv.includes('--showcase')) {
+  for (const upgrade of Object.keys(game.upgrades) as (keyof typeof game.upgrades)[])
+    game.upgrades[upgrade] = true;
+  game.settings.theme = 'rose';
+  game.settings.sound = false;
+  game.settings.music = false;
+  if (process.argv.includes('--opening')) {
+    game.phase = 'opening';
+    game.guests = [];
+    game.notice = 'A little bar. A good story. Your kind of night.';
+  } else {
+    game.guests[0].status = 'ordered';
+    game.guests[0].seat = 0;
+    game.notice = 'Mara ordered a Manhattan.';
+  }
+}
 process.stdout.write(new Uint8Array(await (await encodeBackup(game)).arrayBuffer()));
