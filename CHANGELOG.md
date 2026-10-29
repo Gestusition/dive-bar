@@ -8,6 +8,7 @@ All notable changes are recorded here. Versions describe tagged source releases;
 
 - Service no longer stutters once the host is hired. Guests, the host and the bartender plan their walks when their destination changes, and around other people a few times a second, instead of on almost every frame while someone else was moving or in the way.
 - A guest and the host who stop just clear of each other no longer wait for each other indefinitely; the one who is moving first steps away and walks round.
+- Guests escorted by the host always sit down in their seat. A route refreshed on the way into the chair no longer sends them back out, and the host no longer waits for good when its return spot is beside a guest.
 - Each character's body is built once per game rather than for every arriving guest, so arrivals no longer stall a frame or leave old bodies on the graphics card.
 - The same drink is never ordered by more than four guests in a row while the menu has another drink. Repeat orders are still possible.
 

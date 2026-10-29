@@ -6,6 +6,7 @@ import {
   entrance,
   guestObstacles,
   guestPath,
+  guestPosition,
   guestRadius,
   guestSpeed,
   seatApproach,
@@ -21,7 +22,8 @@ import {
   blockedReplan,
   type FloorPoint,
 } from './navigation';
-import { hostHome } from './host';
+import { hostDestination, hostHome, type HostVisit } from './host';
+import type { Guest } from './engine';
 
 const targets: FloorPoint[] = [
   [-4.4, 5.4],
@@ -272,6 +274,36 @@ describe('route planning budget', () => {
       }
       expect(guest.position, `guest from ${seat} reaches the door`).toEqual(door);
       expect(host.position, `host reaches ${seat}`).toEqual(hostTarget);
+    }
+  });
+  it('sits every escorted guest in their own seat while the others are taken', () => {
+    // As in the scene: the host greets at the door and escorts the party in, routing
+    // round everyone seated; the guest routes round the host. Both refresh routes on
+    // the way, which once sent a guest stepping back out of the chair they sat in.
+    for (let seat = 0; seat < seats.length; seat++) {
+      const guest = { id: 1, status: 'waiting', seat: -1, lead: true } as Guest;
+      const seated = seats.filter((_, i) => i !== seat).map(([x, , z]): FloorPoint => [x, z]);
+      const host = newWalker(hostHome);
+      const walker = newWalker([entrance[0], entrance[2]]);
+      let visit: HostVisit | null = null;
+      let hostTarget: FloorPoint = hostHome;
+      let sat = false;
+      for (let frame = 0; frame < 60 * 10 && !sat; frame++) {
+        if (frame === 120) Object.assign(guest, { status: 'reading', seat });
+        // The store moves the host's goal on its 250 ms clock.
+        if (frame % 15 === 0)
+          ({ visit, target: hostTarget } = hostDestination([guest], visit, host.position));
+        const [x, , z] = guestPosition(guest);
+        walkFrame(host, hostTarget, guestSpeed / 60, 1 / 60, [walker.position, ...seated]);
+        walkFrame(walker, [x, z], guestSpeed / 60, 1 / 60, [host.position]);
+        expect(
+          Math.hypot(host.position[0] - walker.position[0], host.position[1] - walker.position[1]),
+        ).toBeGreaterThanOrEqual(personClearance - 1e-6);
+        sat =
+          guest.status === 'reading' &&
+          Math.hypot(walker.position[0] - x, walker.position[1] - z) < 1e-6;
+      }
+      expect(sat, `seat ${seat} is reached`).toBe(true);
     }
   });
   it('does not plan at all for someone already where they want to be', () => {

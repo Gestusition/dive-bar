@@ -242,6 +242,9 @@ export function guestPath(
   stepAway = true,
 ): FloorPoint[] {
   if (distance(from, to) < 1e-6) return [];
+  // Already part-way into the chair being sat on: carry on rather than step back out,
+  // or a route refreshed on the way in would keep a guest from ever sitting down.
+  if (blocked(from) && blocked(to) && nearestApproach(from) === nearestApproach(to)) return [to];
   // Just clear of someone but inside the square kept free around them, every route
   // would start by crossing that square and none would be found, leaving both people
   // waiting for each other. Step straight away from them first: moving away never
@@ -261,12 +264,23 @@ export function guestPath(
     ];
     if (!blocked(out) && clear(from, out)) return [out, ...guestPath(out, to, people, false)];
   }
+  // A destination is taken only when it is within someone's clearance. One that is
+  // merely inside the square kept free around them is still reached, or the host and
+  // a guest standing near each other's spots would wait for each other for good.
+  const arrival = blocked(to) ? nearestApproach(to) : to;
+  if (
+    people.some(
+      (p) =>
+        distance(from, p) >= personClearance - 1e-6 && distance(to, p) < personClearance - 1e-6,
+    )
+  )
+    return [];
   const extra: Rect[] = people
     .filter((p) => distance(from, p) >= personClearance - 1e-6)
-    .map(([x, z]) => [x, z, personClearance * 2, personClearance * 2]);
+    .map(([x, z]): Rect => [x, z, personClearance * 2, personClearance * 2])
+    .filter((r) => !inside(to, r) && !inside(arrival, r));
   const isClear = (a: FloorPoint, b: FloorPoint) =>
     clear(a, b) && !extra.some((r) => crosses(a, b, r));
-  if (extra.some((r) => inside(to, r))) return [];
   const network = [
     ...graphNodes(),
     ...extra.flatMap(([x, z, w, d]): FloorPoint[] => [
