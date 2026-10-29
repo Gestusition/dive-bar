@@ -338,7 +338,7 @@ function SettingsPanel() {
             e.target.value = '';
             if (!file) return;
             try {
-              await importSave(await file.text());
+              await importSave(file);
               setError('');
             } catch (e) {
               setError(e instanceof Error ? e.message : 'Could not read that save.');

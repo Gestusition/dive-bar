@@ -70,7 +70,8 @@ export interface Guest {
 export type Upgrade =
   'barback' | 'plant' | 'neon' | 'doorLights' | 'jukebox' | 'counterDecor' | 'wallArt';
 export interface Game {
-  version: 1;
+  /** Saves from earlier versions are not loaded; the game starts a fresh bar. */
+  version: 2;
   phase: Phase;
   day: number;
   seconds: number;
@@ -184,7 +185,7 @@ export const emptyPrep = (): Prep => ({
 });
 export function newGame(): Game {
   return {
-    version: 1,
+    version: 2,
     phase: 'title',
     day: 1,
     seconds: 0,
@@ -245,6 +246,11 @@ export const ambience = (s: Game) =>
     (n, k) => n + (s.upgrades[k] ? upgradeInfo[k].tip : 0),
     0,
   );
+/** Remember that something happened once; only the recent past is kept. */
+const commit = (s: Game, token: string) => {
+  s.committed.push(token);
+  if (s.committed.length > 500) s.committed = s.committed.slice(-500);
+};
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
 const rand = (s: Game) => {
   s.random = (Math.imul(s.random, 1664525) + 1013904223) >>> 0;
@@ -752,7 +758,7 @@ export function reduceGame(current: Game, a: Action): Game {
         return s;
       }
       if (a.paymentId && s.committed.includes(a.paymentId)) return current;
-      if (a.paymentId) s.committed.push(a.paymentId);
+      if (a.paymentId) commit(s, a.paymentId);
       const ask = paying.find((x) => x.lead)?.splitAsk ?? 'one';
       const together = paying.length > 1;
       const right = !together || !a.split || a.split === ask;
@@ -847,6 +853,10 @@ export function reduceGame(current: Game, a: Action): Game {
         return s;
       }
       if (i.unit !== 'ml' && i.unit !== 'dash') {
+        if ((p.amounts[i.id] ?? 0) >= 20) {
+          note('That’s plenty of ' + i.name.toLowerCase() + '.');
+          return s;
+        }
         if (spend(i.id, 1)) {
           p.amounts[i.id] = (p.amounts[i.id] ?? 0) + 1;
           p.log.push('Added ' + i.name);
@@ -954,6 +964,10 @@ export function reduceGame(current: Game, a: Action): Game {
       );
     }
     if (a.operation === 'garnish' && a.ingredient) {
+      if ((p.garnish[a.ingredient] ?? 0) >= 10) {
+        note('There’s no room for more of that on the glass.');
+        return s;
+      }
       if (spend(a.ingredient, 1)) {
         p.garnish[a.ingredient] = (p.garnish[a.ingredient] ?? 0) + 1;
         note('Added ' + a.ingredient.replaceAll('_', ' '));
@@ -965,6 +979,15 @@ export function reduceGame(current: Game, a: Action): Game {
       if (!p.garnish[a.ingredient]) delete p.garnish[a.ingredient];
       note('Took off the ' + a.ingredient.replaceAll('_', ' ') + '.');
     }
+  }
+  // Keep a long practice session's history small. The steps the taste check reads
+  // (ice, dissolving) are always kept, in order.
+  if (a.type === 'prep') {
+    const p = a.id === -1 ? s.practice : s.guests.find((g) => g.id === a.id)?.prep;
+    if (p && p.log.length > 200)
+      p.log = p.log.filter(
+        (e, i) => i >= p.log.length - 150 || e === 'ice' || e.startsWith('Sugar dissolved'),
+      );
   }
   if (a.type === 'choice') {
     const g = s.guests.find((g) => g.id === a.id);
@@ -981,7 +1004,7 @@ export function reduceGame(current: Game, a: Action): Game {
       g.status !== 'ordered'
     )
       return current;
-    s.committed.push(token);
+    commit(s, token);
     s.rapport[g.customerId] = clamp((s.rapport[g.customerId] ?? 0) + ch.trust, -5, 5);
     g.tipDelta = clamp(g.tipDelta + ch.tip, -0.1, 0.15);
     g.remaining += ch.patience * 8;

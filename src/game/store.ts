@@ -10,7 +10,7 @@ import {
 } from './engine';
 import { conversations } from './content';
 import { play, setMusic, setSoundSwitch } from './audio';
-import { decodeBackup, loadSave, saveGame } from './storage';
+import { clearSave, decodeBackup, loadSave, MAX_BACKUP_BYTES, OldSave, saveGame } from './storage';
 import {
   advanceWalk,
   bartenderHome,
@@ -60,7 +60,7 @@ interface Store {
     extra?: { foodType?: 'pretzel' | 'toastie'; split?: 'one' | 'split' },
   ) => void;
   cancelTasks: () => void;
-  importSave: (text: string) => Promise<void>;
+  importSave: (file: File) => Promise<void>;
   setMixing: (m: Store['mixing']) => void;
 }
 const reading = new Set<Panel>([
@@ -170,9 +170,14 @@ export const useGame = create<Store>((set, get) => ({
     try {
       const game = await loadSave();
       if (game) set({ game, hasSave: game.phase !== 'title' });
-    } catch {
+    } catch (e) {
+      // An old or altered save is not loaded; the bar starts fresh instead.
+      await clearSave().catch(() => {});
       set({
-        saveError: 'A saved night could not be loaded. You can start fresh or import a backup.',
+        saveError:
+          e instanceof OldSave
+            ? 'This version of Dive Bar starts with a fresh bar. Saves from earlier versions can’t be loaded.'
+            : 'The saved night was changed outside the game, so it can’t be loaded. Start a new bar.',
       });
     }
     set({ loaded: true });
@@ -220,8 +225,10 @@ export const useGame = create<Store>((set, get) => ({
   },
   cancelTasks: () => set({ tasks: [] }),
   setMixing: (mixing) => set({ mixing }),
-  importSave: async (text) => {
-    const game = await decodeBackup(text);
+  importSave: async (file) => {
+    // Checked before the file is read, so a huge file never reaches memory.
+    if (file.size > MAX_BACKUP_BYTES) throw Error('That file is too big to be a Dive Bar save.');
+    const game = await decodeBackup(await file.text());
     set({
       game,
       title: true,
