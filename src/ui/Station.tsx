@@ -493,7 +493,12 @@ export default function Station() {
       }
       disabled={!!busy && busy !== motion}
       onPointerDown={(e) => {
-        e.currentTarget.setPointerCapture(e.pointerId);
+        // Keep the hold even if the finger slides off the tile.
+        try {
+          e.currentTarget.setPointerCapture(e.pointerId);
+        } catch {
+          /* Not every pointer can be captured; the hold still works. */
+        }
         startMotion(motion);
       }}
       onPointerUp={finishMotion}

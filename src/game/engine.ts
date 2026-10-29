@@ -354,7 +354,10 @@ function newGuest(s: Game, customerId: string, group: number, lead: boolean): Gu
 function spawn(s: Game, alone = false) {
   if (s.guests.some((g) => g.status === 'waiting') || s.seconds >= 360) return [];
   const here = new Set(s.guests.map((g) => g.customerId));
-  const pool = roster.map((c) => c.id).filter((id) => !here.has(id));
+  const free = roster.map((c) => c.id).filter((id) => !here.has(id));
+  // Someone who already came in tonight only comes back once everyone else has.
+  const fresh = free.filter((id) => s.history[id + '|night'] !== String(s.day));
+  const pool = fresh.length ? fresh : free;
   if (!pool.length) return [];
   const chance = s.settings.mode === 'rush' ? 0.45 : s.settings.mode === 'chill' ? 0.25 : 0.35;
   const size = !alone && pool.length > 1 && rand(s) < chance ? 2 : 1;
@@ -363,6 +366,7 @@ function spawn(s: Game, alone = false) {
   for (let i = 0; i < size; i++) {
     const id = pool.splice(Math.floor(rand(s) * pool.length), 1)[0];
     arrived.push(newGuest(s, id, group, i === 0));
+    s.history[id + '|night'] = String(s.day);
   }
   s.guests.push(...arrived);
   return arrived;

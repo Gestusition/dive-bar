@@ -4,7 +4,7 @@ import { ContactShadows } from '@react-three/drei';
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { useGame } from '../game/store';
-import { volume, type Guest } from '../game/engine';
+import type { Guest } from '../game/engine';
 import {
   advanceWalk,
   bartenderHome,
@@ -21,6 +21,8 @@ import {
   type FloorPoint,
 } from '../game/navigation';
 import { cornerPlantParts } from '../game/room-layout';
+import { money } from '../game/content';
+import DrinkStage from './DrinkStage';
 import { CocktailArt, CoinArt, HeartArt } from '../ui/art';
 import { GuestActions, patience } from '../ui/GuestActions';
 type Part = [number, number, number, number, number, number, string];
@@ -105,6 +107,7 @@ function SideWalls() {
     <>
       <group ref={left}>
         <mesh geometry={leftGeometry} material={material} receiveShadow castShadow />
+        <DoorDecor />
       </group>
       <group ref={right}>
         <mesh geometry={rightGeometry} material={material} receiveShadow castShadow />
@@ -183,7 +186,7 @@ function roomParts() {
       box(x, 0.45, z + offset, 0.8, 0.16, 0.7, dark);
       box(x, 0.56, z + offset, 0.7, 0.13, 0.61, '#a9555b');
       for (const dx of [-0.27, 0.27]) box(x + dx, 0.2, z + offset, 0.09, 0.42, 0.5, dark);
-      if (offset > 0) box(x, 0.88, z + offset + 0.26, 0.8, 0.7, 0.1, dark);
+      box(x, 0.88, z + offset + Math.sign(offset) * 0.26, 0.8, 0.7, 0.1, dark);
     }
   }
   for (const x of [-1.2, 1.2]) {
@@ -369,8 +372,9 @@ function Camera() {
     // from the bar sign down to the front door. The side walls follow the
     // screen edges, so nothing outside the bar is ever on screen. The side
     // drawer slides over the scene; the camera never moves for it.
+    // At the counter, close in on the drink being made.
     const zoom = station
-      ? Math.min(size.width / 6.3, size.height / 5.4)
+      ? Math.min(size.width / 3.9, size.height / 3.2)
       : Math.min(size.width / 15.8, size.height / 10.3);
     // The drawer is already eased, so follow it closely; ease the bigger jump
     // to and from the counter more gently.
@@ -382,10 +386,10 @@ function Camera() {
     const top = up * 3.3 + back * 4.4 + 0.5;
     const centre = top - size.height / camera.zoom / 2;
     const target = station
-      ? new THREE.Vector3(0, 1, -1.7)
+      ? new THREE.Vector3(-0.1, 1.55, -1.55)
       : new THREE.Vector3(0, 1, (up - centre) / back);
     const position = station
-      ? new THREE.Vector3(0, 8, 9)
+      ? target.clone().add(new THREE.Vector3(0, 6, 9.2))
       : target.clone().add(new THREE.Vector3(0, 13, 16.25));
     camera.position.lerp(position, reduced ? 1 : 1 - Math.exp(-dt * (station ? 4 : 16)));
     camera.lookAt(target);
@@ -393,50 +397,6 @@ function Camera() {
   });
   return null;
 }
-function PreparationDisplay() {
-  const selected = useGame((s) => s.selected);
-  const p = useGame((s) =>
-    s.selected === -1 ? s.game.practice : s.game.guests.find((g) => g.id === selected)?.prep,
-  );
-  if (!p) return null;
-  const fill = Math.min(0.4, volume(p) / 200);
-  return (
-    <group position={[0.15, 1.28, -1.7]}>
-      <mesh position={[0, 0.27, 0]}>
-        <cylinderGeometry args={[0.2, 0.16, 0.54, 8]} />
-        <meshStandardMaterial color="#c5d9cb" transparent opacity={0.45} />
-      </mesh>
-      {fill > 0 && (
-        <mesh position={[0, fill / 2, 0]}>
-          <cylinderGeometry args={[0.18, 0.14, fill, 8]} />
-          <meshStandardMaterial
-            color={
-              p.amounts.sweet_red_vermouth
-                ? '#a7524b'
-                : p.amounts.fresh_lime_juice
-                  ? '#cbd895'
-                  : '#c78b49'
-            }
-          />
-        </mesh>
-      )}
-      {p.ice &&
-        [0, 1, 2].map((i) => (
-          <mesh key={i} position={[(i - 1) * 0.09, 0.25 + i * 0.03, 0]} rotation={[0.2, i, 0.3]}>
-            <boxGeometry args={[0.12, 0.12, 0.12]} />
-            <meshStandardMaterial color="#d0e9df" transparent opacity={0.8} />
-          </mesh>
-        ))}
-      {p.garnish.cocktail_cherry > 0 && (
-        <mesh position={[0.13, 0.52, 0]}>
-          <boxGeometry args={[0.09, 0.09, 0.09]} />
-          <meshStandardMaterial color="#b54556" />
-        </mesh>
-      )}
-    </group>
-  );
-}
-
 function Sign({ lit }: { lit: boolean }) {
   const texture = useMemo(() => {
     const canvas = document.createElement('canvas');
@@ -464,6 +424,139 @@ function Sign({ lit }: { lit: boolean }) {
     </mesh>
   );
 }
+const glow = (color: string) => (
+  <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.55} />
+);
+/** Things by the front door: the host, and string lights once they are bought. */
+function DoorDecor() {
+  const host = useGame((s) => s.game.upgrades.barback);
+  const lights = useGame((s) => s.game.upgrades.doorLights);
+  const body = useMemo(() => geometry(personParts('host')), []);
+  const bulbs = useMemo(() => {
+    const list: [number, number, string][] = [];
+    const colors = ['#ffd36b', '#ff7a85', '#7fe3d4', '#ffd36b', '#b8a4ff'];
+    let n = 0;
+    for (let y = 0.7; y < 2.45; y += 0.35) list.push([5.72, y, colors[n++ % 5]]);
+    for (let z = 5.72; z <= 7.28; z += 0.26)
+      list.push([z, 2.55 - Math.sin(((z - 5.72) / 1.56) * Math.PI) * 0.12, colors[n++ % 5]]);
+    for (let y = 2.45; y > 0.6; y -= 0.35) list.push([7.28, y, colors[n++ % 5]]);
+    return list;
+  }, []);
+  return (
+    <>
+      {host && (
+        <group position={[0.95, 0, 5.15]} rotation={[0, Math.PI / 2, 0]}>
+          <mesh geometry={body} material={material} castShadow />
+        </group>
+      )}
+      {lights &&
+        bulbs.map(([z, y, color], i) => (
+          <mesh key={i} position={[0.22, y, z]}>
+            <sphereGeometry args={[0.055, 8, 6]} />
+            {glow(color)}
+          </mesh>
+        ))}
+    </>
+  );
+}
+/** Decor bought from the shop, placed around the room. */
+function Decor() {
+  const jukebox = useGame((s) => s.game.upgrades.jukebox);
+  const candles = useGame((s) => s.game.upgrades.counterDecor);
+  const art = useGame((s) => s.game.upgrades.wallArt);
+  const flame = useRef<THREE.Group>(null);
+  useFrame(({ clock }) => {
+    if (!flame.current || useGame.getState().game.settings.reducedMotion) return;
+    flame.current.children.forEach((c, i) => {
+      c.scale.y = 1 + Math.sin(clock.elapsedTime * 11 + i * 2) * 0.18;
+    });
+  });
+  return (
+    <>
+      {jukebox && (
+        <group position={[-4.8, 0, -0.88]}>
+          {/* Glowing tubes up the front corners and over the top. */}
+          {[-0.37, 0.37].map((x, i) => (
+            <mesh key={x} position={[x, 0.66, 0.03]}>
+              <boxGeometry args={[0.07, 1.22, 0.07]} />
+              {glow(i ? '#7fe3d4' : '#ff7a85')}
+            </mesh>
+          ))}
+          <mesh position={[0, 1.31, 0.03]}>
+            <boxGeometry args={[0.81, 0.07, 0.07]} />
+            {glow('#ffd36b')}
+          </mesh>
+        </group>
+      )}
+      {candles && (
+        <group>
+          <group ref={flame}>
+            {[-3.5, 1.75].map((x) => (
+              <mesh key={x} position={[x, 1.47, -1.45]}>
+                <coneGeometry args={[0.035, 0.09, 8]} />
+                {glow('#ffc54d')}
+              </mesh>
+            ))}
+          </group>
+          {[-3.5, 1.75].map((x) => (
+            <mesh key={x} position={[x, 1.34, -1.45]} castShadow>
+              <cylinderGeometry args={[0.055, 0.06, 0.16, 12]} />
+              <meshStandardMaterial color="#fbf0dc" />
+            </mesh>
+          ))}
+          <mesh position={[2.35, 1.37, -1.5]} castShadow>
+            <cylinderGeometry args={[0.07, 0.09, 0.22, 12]} />
+            <meshStandardMaterial color="#5fb3a6" />
+          </mesh>
+          {(
+            [
+              [2.3, '#e04f5f'],
+              [2.4, '#f6b545'],
+              [2.35, '#ef7d8c'],
+            ] as const
+          ).map(([x, c], i) => (
+            <mesh key={i} position={[x, 1.56 + (i % 2) * 0.06, -1.5 + (i - 1) * 0.05]}>
+              <sphereGeometry args={[0.05, 8, 6]} />
+              <meshStandardMaterial color={c} />
+            </mesh>
+          ))}
+        </group>
+      )}
+      {art && (
+        <group>
+          <mesh position={[6.3, 2.05, -4.36]}>
+            <boxGeometry args={[1.15, 0.95, 0.08]} />
+            <meshStandardMaterial color="#f6b545" />
+          </mesh>
+          <mesh position={[6.3, 2.05, -4.3]}>
+            <boxGeometry args={[0.95, 0.75, 0.03]} />
+            <meshStandardMaterial color="#7cc6e0" />
+          </mesh>
+          <mesh position={[6.3, 1.86, -4.27]}>
+            <boxGeometry args={[0.95, 0.36, 0.03]} />
+            <meshStandardMaterial color="#3fae9c" />
+          </mesh>
+          <mesh position={[6.55, 2.2, -4.26]}>
+            <boxGeometry args={[0.16, 0.16, 0.02]} />
+            <meshStandardMaterial color="#fbf3e4" />
+          </mesh>
+          <mesh position={[-7.15, 2.3, -4.36]}>
+            <boxGeometry args={[0.62, 0.62, 0.08]} />
+            <meshStandardMaterial color="#e04f5f" />
+          </mesh>
+          <mesh position={[-7.15, 2.3, -4.3]}>
+            <boxGeometry args={[0.46, 0.46, 0.03]} />
+            <meshStandardMaterial color="#fbf3e4" />
+          </mesh>
+          <mesh position={[-7.15, 2.3, -4.27]}>
+            <boxGeometry args={[0.24, 0.24, 0.02]} />
+            <meshStandardMaterial color="#f6b545" />
+          </mesh>
+        </group>
+      )}
+    </>
+  );
+}
 function Room({ guestGroups }: { guestGroups: SceneRefs['guestGroups'] }) {
   const theme = useGame((s) => s.game.settings.theme);
   const room = useMemo(() => {
@@ -476,7 +569,6 @@ function Room({ guestGroups }: { guestGroups: SceneRefs['guestGroups'] }) {
       }
     return geometry(parts);
   }, [theme]);
-  const helper = useMemo(() => geometry(personParts('helper')), []);
   const game = useGame((s) => s.game);
   return (
     <>
@@ -501,7 +593,8 @@ function Room({ guestGroups }: { guestGroups: SceneRefs['guestGroups'] }) {
       {game.guests.map((g) => (
         <Person guest={g} guestGroups={guestGroups} key={g.id} />
       ))}
-      <PreparationDisplay />
+      <DrinkStage />
+      <Decor />
       {game.mess > 0 && (
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[1, 1.262, -1.5]}>
           <circleGeometry args={[0.15 + game.mess * 0.03, 12]} />
@@ -518,11 +611,6 @@ function Room({ guestGroups }: { guestGroups: SceneRefs['guestGroups'] }) {
             <boxGeometry args={[0.8, 0.65, 0.7]} />
             <meshStandardMaterial color="#7c9a65" />
           </mesh>
-        </group>
-      )}
-      {game.upgrades.barback && (
-        <group position={[3.9, 0, -2.8]}>
-          <mesh geometry={helper} material={material} />
         </group>
       )}
       <ContactShadows
@@ -613,6 +701,11 @@ function SceneLabels({ elements }: { elements: SceneRefs['elements'] }) {
             }
           >
             {open && <GuestActions guest={guest} />}
+            {guest.paid && guest.status === 'leaving' && (
+              <span className={'tip-float ' + (guest.tip ? '' : 'none')} aria-hidden="true">
+                {guest.tip ? '+' + money(guest.tip) + ' tip' : 'No tip'}
+              </span>
+            )}
             <button
               className={'guest-bubble ' + guest.status}
               onClick={() => select(isSelected ? null : guest.id)}
