@@ -21,16 +21,17 @@ On a phone held sideways (Galaxy S8+, 740 x 360):
 ## How to play
 
 1. Tap **Get ready** on the side rail. Check tonight's menu, practise if you like, then **Open the bar**.
-2. A guest walks in through the front door. Tap their bubble and **Seat guest**.
+2. Guests walk in through the front door, on their own or in pairs; the door bell tells you. Tap their bubble and **Seat guest**. Pairs share a table.
 3. When their bubble shows **?**, take the order. **Chat** if they have something to say.
 4. Tap **Make drink** and work through the counter's four steps:
    - **Prep:** pick what to build the drink in and the glass to serve it in.
-   - **Pour:** each ingredient in the recipe has its own row; set the amount and tap **Pour**.
-   - **Mix:** add ice, then shake, stir or muddle as the recipe asks.
-   - **Garnish:** finish it off, then **Strain & serve**.
-5. Let them enjoy it, then settle their tab.
+   - **Pour:** each ingredient in the recipe has its own row; set the amount and tap **Pour**. Where sugar must dissolve first, hold **Muddle** before the spirit goes in.
+   - **Mix:** add ice, then hold **Shake** or **Stir** and let go while the meter is green.
+   - **Garnish:** finish it off (the minus takes one off again), then **Strain & serve**.
+   - The drink builds up on the counter as you go, and bartending hints point at the next step (switch them off in Settings).
+5. Let them enjoy it, then settle up. Friends say whether they want one bill or to split it; listen, it shows in the tip. The tip pops up over the guest as they pay.
 6. Call **Last orders** from **Bar tools**. At closing time wipe, empty the trash, restock and wash glasses, then close the bar.
-7. Between nights, decorate the bar or play a round of house dice.
+7. Between nights, decorate the bar. Decor lifts tips; the host seats guests for you.
 
 A step is ticked only when it is really done. Pours count within 40% of the target; the **Taste check** scores the fine detail.
 
@@ -42,11 +43,11 @@ Escape closes a drawer or window, or pauses. Windows pause service. The pause me
 
 - React 19 and React Three Fiber 9 / Three.js voxel room and characters, framed straight on and filling the screen.
 - Four tables and a front door; guests plan paths around the furniture on the way in and out.
-- Decor themes that change the room, plants and neon, and a working barback upgrade.
+- Decor themes that change the room, and decor with real effects: jukebox music, door lights that draw guests in, counter candles, wall prints, a plant and neon, plus a host who seats guests at the door.
 
 **The interface**
 
-- A compact side rail for the night, cash and time, with tiles that slide out drawers: Get ready / Bar tools / Closing, Recipes, Tabs and Decorate.
+- A compact side rail for the night, cash and time, with tiles that slide out drawers: Get ready / Bar tools / Closing, Recipes and Decorate.
 - Speech bubbles over guests show what they need; tap one for its action card.
 - Illustrated icons for drinks, glassware, bottles, garnishes and bar tools, drawn in each drink's real colour.
 - Neon-sign title screen, hand-lettered headings (Caveat Brush) and Inter body text.
@@ -63,10 +64,11 @@ Escape closes a drawer or window, or pauses. Windows pause service. The pause me
 
 - Guest arrival, seating, menu reading, orders, preparation, drinking, tabs, payment and last call.
 - Warm pretzels and cheese toasties with one warming slot, snack stock and charges.
-- Split-payment tabs, integer money, idempotent settlement and one final tip.
+- Pairs who pay together and ask for one bill or a split, integer money, idempotent settlement, and tips that follow the drink's score, the conversation, how fast it came and the room.
+- Guests choose from the whole menu and can turn your suggestions down; every night is shuffled with fresh randomness.
 - Authored English conversations, plausible sweet lies, saved rapport and story callbacks.
 - Cleaning, washing, trash, editable restocking, ice refills and a closing recap.
-- Optional after-hours dice and a small scripted stool wobble.
+- Bar sounds built from the real thing (door bell, till, pour, ice, shaker, glass on wood). Drop a recording into `public/sounds/<name>.mp3` (`door`, `register`, `coin`, `pour`, `ice`, `shake`, `stir`, `muddle`, `glass`, `garnish`, `page`) to replace one.
 
 **Phones**
 
@@ -75,7 +77,7 @@ Escape closes a drawer or window, or pauses. Windows pause service. The pause me
 
 **Saving**
 
-- IndexedDB saves and validated JSON import and export.
+- IndexedDB saves, and backups as a compressed, checksummed `.divebar` file that refuses to load if damaged. Older JSON backups still import.
 
 The conversation banks hold 24 encounters and 96 responses. The game picks social encounters that fit the moment; service-draft encounters stay in the source rather than appearing in the wrong situation. There is no ingredient-provenance screen or truth/lie badge.
 
@@ -121,7 +123,8 @@ The site is a static Next.js export, with Turbopack for development and producti
 - `src/game/engine.ts`: deterministic service, stock, money, dialogue effects and shift transitions.
 - `src/game/quality.ts`: recipe and technique scoring and taste notes.
 - `src/game/navigation.ts`: the bartender's counter-safe route and the guests' furniture-aware pathfinding.
-- `src/game/store.ts`: React bridge, clock, action queue, saving and sound.
+- `src/game/store.ts`: React bridge, clock, action queue and saving.
+- `src/game/audio.ts`: bar sounds and the jukebox.
 - `src/game/storage.ts`: IndexedDB and save validation.
 - `src/view/BarScene.tsx`: voxel geometry, scene, actors, camera and guest bubbles.
 - `src/ui/App.tsx`: title screen, side rail and drawers, windows and the pause menu.
