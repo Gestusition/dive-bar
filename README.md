@@ -28,7 +28,7 @@ On a phone held sideways (Galaxy S8+, 740 x 360):
    - **Pour:** each ingredient in the recipe has its own row; set the amount and tap **Pour**. Where sugar must dissolve first, hold **Muddle** before the spirit goes in.
    - **Mix:** add ice, then hold **Shake** or **Stir** and let go while the meter is green.
    - **Garnish:** finish it off (the minus takes one off again), then **Strain & serve**.
-   - The drink builds up on the counter as you go, and bartending hints point at the next step (switch them off in Settings).
+   - The drink builds up on the counter as you go, and bartending hints point at the next step (switch them off in Settings). On the first two nights a line at the top also says what to do next on the floor.
 5. Let them enjoy it, then settle up. Friends say whether they want one bill or to split it; listen, it shows in the tip. The tip pops up over the guest as they pay.
 6. Call **Last orders** from **Bar tools**. At closing time wipe, empty the trash, restock and wash glasses, then close the bar.
 7. Between nights, decorate the bar. Decor lifts tips; the host seats guests for you.

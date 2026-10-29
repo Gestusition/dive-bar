@@ -195,10 +195,10 @@ function roomParts() {
     box(x, 0.08, -0.25, 0.62, 0.08, 0.62, brass);
   }
   // Jukebox, rug and a leafy plant.
-  box(-4.8, 0.65, -1.3, 0.8, 1.3, 0.75, '#883f4b');
-  box(-4.8, 0.89, -0.9, 0.58, 0.64, 0.05, cream);
-  box(-4.8, 0.91, -0.86, 0.42, 0.4, 0.05, '#5f9b92');
-  for (let i = 0; i < 5; i++) box(-4.8, 0.2 + i * 0.07, -0.9, 0.55, 0.03, 0.04, brass);
+  box(-6.4, 0.65, -1.3, 0.8, 1.3, 0.75, '#883f4b');
+  box(-6.4, 0.89, -0.9, 0.58, 0.64, 0.05, cream);
+  box(-6.4, 0.91, -0.86, 0.42, 0.4, 0.05, '#5f9b92');
+  for (let i = 0; i < 5; i++) box(-6.4, 0.2 + i * 0.07, -0.9, 0.55, 0.03, 0.04, brass);
   box(0, 0.09, 2.3, 1.9, 0.018, 3.3, '#9b5650');
   for (let x = -0.8; x < 1; x += 0.4) box(x, 0.11, 2.3, 0.06, 0.01, 3, '#d5a169');
   p.push(...cornerPlantParts);
@@ -474,7 +474,7 @@ function Decor() {
   return (
     <>
       {jukebox && (
-        <group position={[-4.8, 0, -0.88]}>
+        <group position={[-6.4, 0, -0.88]}>
           {/* Glowing tubes up the front corners and over the top. */}
           {[-0.37, 0.37].map((x, i) => (
             <mesh key={x} position={[x, 0.66, 0.03]}>
@@ -492,31 +492,31 @@ function Decor() {
         <group>
           <group ref={flame}>
             {[-3.5, 1.75].map((x) => (
-              <mesh key={x} position={[x, 1.47, -1.45]}>
-                <coneGeometry args={[0.035, 0.09, 8]} />
+              <mesh key={x} position={[x, 1.6, -1.45]}>
+                <coneGeometry args={[0.05, 0.13, 8]} />
                 {glow('#ffc54d')}
               </mesh>
             ))}
           </group>
           {[-3.5, 1.75].map((x) => (
-            <mesh key={x} position={[x, 1.34, -1.45]} castShadow>
-              <cylinderGeometry args={[0.055, 0.06, 0.16, 12]} />
+            <mesh key={x} position={[x, 1.39, -1.45]} castShadow>
+              <cylinderGeometry args={[0.08, 0.09, 0.26, 12]} />
               <meshStandardMaterial color="#fbf0dc" />
             </mesh>
           ))}
-          <mesh position={[2.35, 1.37, -1.5]} castShadow>
-            <cylinderGeometry args={[0.07, 0.09, 0.22, 12]} />
+          <mesh position={[2.35, 1.42, -1.5]} castShadow>
+            <cylinderGeometry args={[0.1, 0.12, 0.32, 12]} />
             <meshStandardMaterial color="#5fb3a6" />
           </mesh>
           {(
             [
-              [2.3, '#e04f5f'],
-              [2.4, '#f6b545'],
+              [2.27, '#e04f5f'],
+              [2.43, '#f6b545'],
               [2.35, '#ef7d8c'],
             ] as const
           ).map(([x, c], i) => (
-            <mesh key={i} position={[x, 1.56 + (i % 2) * 0.06, -1.5 + (i - 1) * 0.05]}>
-              <sphereGeometry args={[0.05, 8, 6]} />
+            <mesh key={i} position={[x, 1.66 + (i % 2) * 0.08, -1.5 + (i - 1) * 0.07]}>
+              <sphereGeometry args={[0.075, 8, 6]} />
               <meshStandardMaterial color={c} />
             </mesh>
           ))}
@@ -651,7 +651,16 @@ function SceneProjector({ elements, guestGroups }: SceneRefs) {
       const nudge = x < half ? half - x : x > size.width - half ? size.width - half - x : 0;
       // The card is zoomed, so its own offsets are in unscaled pixels.
       element.style.setProperty('--nudge', nudge / scale + 'px');
-      element.dataset.below = String(y < 330 * scale);
+      // Open the card on the side with room for it, and slide it to stay on screen
+      // when neither side has enough (short phones).
+      const card = element.querySelector<HTMLElement>('.guest-card');
+      const tall = (card?.offsetHeight ?? 200) * scale;
+      const above = y - 134 * scale - tall;
+      const below = size.height - (y + 30 * scale + tall);
+      const under = above < 8 && below > above;
+      const shift = under ? Math.min(0, below - 8) : Math.max(0, 8 - above);
+      element.dataset.below = String(under);
+      element.style.setProperty('--lift', shift / scale + 'px');
     };
 
     for (const [id, element] of elements.current.guests) {

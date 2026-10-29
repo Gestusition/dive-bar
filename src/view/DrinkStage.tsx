@@ -22,7 +22,7 @@ const glassShapes: Record<GlassId, { outer: Profile; floor: number; capacity: nu
       [0.2, 0.33],
     ],
     floor: 0.205,
-    capacity: 120,
+    capacity: 105,
   },
   old_fashioned_glass: {
     outer: [
@@ -30,7 +30,7 @@ const glassShapes: Record<GlassId, { outer: Profile; floor: number; capacity: nu
       [0.175, 0.3],
     ],
     floor: 0.035,
-    capacity: 240,
+    capacity: 170,
   },
   highball: {
     outer: [
@@ -38,7 +38,7 @@ const glassShapes: Record<GlassId, { outer: Profile; floor: number; capacity: nu
       [0.128, 0.5],
     ],
     floor: 0.03,
-    capacity: 330,
+    capacity: 300,
   },
   mug: {
     outer: [
@@ -46,7 +46,7 @@ const glassShapes: Record<GlassId, { outer: Profile; floor: number; capacity: nu
       [0.158, 0.33],
     ],
     floor: 0.03,
-    capacity: 380,
+    capacity: 250,
   },
   hurricane: {
     outer: [
@@ -59,7 +59,7 @@ const glassShapes: Record<GlassId, { outer: Profile; floor: number; capacity: nu
       [0.15, 0.5],
     ],
     floor: 0.1,
-    capacity: 420,
+    capacity: 220,
   },
 };
 const vessels: Record<
@@ -104,10 +104,14 @@ const shell = (p: Profile) => [
   new THREE.Vector2(0, 0),
   ...p.map(([r, y]) => new THREE.Vector2(r, y)),
 ];
-const mix = (layers: { color: string; amount: number }[]) => {
-  const total = layers.reduce((n, l) => n + l.amount, 0) || 1;
+// Water barely tints a drink; syrups, juices and spirits give it its colour.
+const clear = new Set(['sparkling_water', 'plain_water']);
+const mix = (layers: { id?: string; color: string; amount: number }[]) => {
+  const weight = (l: { id?: string; amount: number }) =>
+    l.amount * (clear.has(l.id ?? '') ? 0.03 : 1);
+  const total = layers.reduce((n, l) => n + weight(l), 0) || 1;
   const c = new THREE.Color(0, 0, 0);
-  for (const l of layers) c.add(new THREE.Color(l.color).multiplyScalar(l.amount / total));
+  for (const l of layers) c.add(new THREE.Color(l.color).multiplyScalar(weight(l) / total));
   return '#' + c.getHexString();
 };
 function liquidLayers(p: Prep) {
@@ -133,7 +137,7 @@ function Container({
   liquidRef,
 }: {
   shape: { outer: Profile; floor: number; capacity: number };
-  layers: { color: string; amount: number }[];
+  layers: { id?: string; color: string; amount: number }[];
   blended: boolean;
   ice: boolean;
   chilled: boolean;
@@ -174,7 +178,7 @@ function Container({
         <meshStandardMaterial
           color={chilled ? '#f2fbff' : '#dff0ee'}
           transparent
-          opacity={chilled ? 0.5 : 0.28}
+          opacity={chilled ? 0.38 : 0.16}
           roughness={chilled ? 0.6 : 0.08}
           side={THREE.DoubleSide}
           depthWrite={false}
@@ -184,7 +188,14 @@ function Container({
         {parts.map((part, i) => (
           <mesh key={i + part.color}>
             <latheGeometry args={[part.points, 24]} />
-            <meshStandardMaterial color={part.color} roughness={0.25} transparent opacity={0.9} />
+            <meshStandardMaterial
+              color={part.color}
+              emissive={part.color}
+              emissiveIntensity={0.18}
+              roughness={0.25}
+              transparent
+              opacity={0.92}
+            />
           </mesh>
         ))}
       </group>
@@ -225,12 +236,13 @@ function Garnishes({ p, glass, level }: { p: Prep; glass: GlassId; level: number
     ] as const
   ).forEach(([id, color], k) => {
     for (let i = 0; i < count(id); i++) {
-      const angle = 0.5 + k * 1.1 + i * 0.5;
+      // Round the back of the rim, so they never hide the drink from the front.
+      const angle = -0.35 - k * 0.55 - i * 0.3;
       items.push(
         <mesh
           key={id + i}
           position={[Math.cos(angle) * rimR, rimY - 0.01, Math.sin(angle) * rimR]}
-          rotation={[0, -angle, Math.PI / 2]}
+          rotation={[0, Math.PI / 2 - angle, Math.PI / 2]}
         >
           <cylinderGeometry args={[0.075, 0.075, 0.016, 16]} />
           <meshStandardMaterial color={color} roughness={0.5} />
@@ -251,9 +263,14 @@ function Garnishes({ p, glass, level }: { p: Prep; glass: GlassId; level: number
     );
   if (count('half_salt_rim'))
     items.push(
-      <mesh key="salt" position={[0, rimY, 0]} rotation={[Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[rimR, 0.013, 6, 24, Math.PI]} />
-        <meshStandardMaterial color="#fbfbf6" roughness={0.9} />
+      <mesh key="salt" position={[0, rimY + 0.006, 0]} rotation={[Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[rimR, 0.024, 8, 28, Math.PI]} />
+        <meshStandardMaterial
+          color="#ffffff"
+          emissive="#ffffff"
+          emissiveIntensity={0.25}
+          roughness={1}
+        />
       </mesh>,
     );
   for (let i = 0; i < count('mint_sprig'); i++)
@@ -283,6 +300,8 @@ function Garnishes({ p, glass, level }: { p: Prep; glass: GlassId; level: number
 
 export default function DrinkStage() {
   const selected = useGame((s) => s.selected);
+  // Only while you are making it; a half-made drink doesn't sit on the bar all night.
+  const atCounter = useGame((s) => s.panel === 'station' || s.panel === 'recipe');
   const p = useGame((s) =>
     s.selected === -1
       ? s.game.practice
@@ -335,7 +354,7 @@ export default function DrinkStage() {
     shown.current.rise = still ? 1 : THREE.MathUtils.damp(shown.current.rise, 1, 6, delta);
     if (liquidRef.current) liquidRef.current.scale.y = Math.max(0.02, shown.current.rise);
   });
-  if (!p || selected === null) return null;
+  if (!p || selected === null || !atCounter) return null;
   const inGlass = p.tool === 'build_glass' || p.tool === 'old_fashioned_glass';
   const vesselShape = inGlass
     ? glassShapes[p.tool === 'old_fashioned_glass' ? 'old_fashioned_glass' : p.glass]
@@ -357,9 +376,9 @@ export default function DrinkStage() {
   })();
   const vesselTop = top(vesselShape.outer)[1];
   return (
-    <group position={[-0.1, 1.27, -1.55]} scale={1.35}>
+    <group position={[-0.1, 1.27, -1.55]} scale={1.7}>
       {!inGlass && (
-        <group position={[-0.33, 0, 0]}>
+        <group position={[-0.3, 0, 0]}>
           <group ref={vesselRef}>
             <Container
               shape={vesselShape}
@@ -405,7 +424,7 @@ export default function DrinkStage() {
           </mesh>
         </group>
       )}
-      <group position={[inGlass ? 0 : 0.33, 0, 0]}>
+      <group position={[inGlass ? 0 : 0.3, 0, 0]}>
         <Container
           shape={glassShape}
           layers={inGlass ? layers : strained ? layers : []}

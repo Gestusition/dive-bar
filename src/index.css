@@ -973,6 +973,28 @@ a {
   zoom: var(--drawer-scale);
 }
 /* While making a drink the guest's card would only hide the counter. */
+/* At the counter the drink is the focus: guest bubbles step aside. */
+.station-mode .guest-anchor {
+  visibility: hidden !important;
+}
+.floor-guide {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: min(560px, 92vw);
+  padding: 7px 14px;
+  background: var(--accent-soft);
+  border: var(--line-thin);
+  border-radius: 999px;
+  box-shadow: 0 3px 0 var(--ink);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.3;
+  pointer-events: none;
+}
+.floor-guide svg {
+  flex-shrink: 0;
+}
 .station-mode .guest-card {
   display: none;
 }
@@ -980,7 +1002,7 @@ a {
   position: absolute;
   left: 0;
   bottom: 134px;
-  transform: translateX(calc(-50% + var(--nudge, 0px)));
+  transform: translate(calc(-50% + var(--nudge, 0px)), var(--lift, 0px));
   pointer-events: auto;
   width: 236px;
   display: flex;
@@ -2656,4 +2678,14 @@ a {
   .rail-tile small {
     display: none;
   }
+}
+
+/* How many more jobs are lined up after the current one. */
+.task-more {
+  padding: 1px 8px;
+  background: var(--paper);
+  border: var(--line-thin);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
 }

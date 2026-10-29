@@ -130,7 +130,8 @@ export function GuestActions({ guest }: { guest: Guest }) {
             </Button>
           ))}
       </div>
-      {tabOpen && guest.food !== 'served' && (
+      {/* Snacks are offered while they drink; once paying, only one already on its way. */}
+      {tabOpen && guest.food !== 'served' && (guest.status !== 'pay' || guest.food !== 'none') && (
         <div className="guest-card-snacks">
           {guest.food === 'none' ? (
             <>

@@ -250,6 +250,12 @@ const rand = (s: Game) => {
   s.random = (Math.imul(s.random, 1664525) + 1013904223) >>> 0;
   return s.random / 4294967296;
 };
+/** Scramble a seed so that even close seeds start far apart (MurmurHash3 finaliser). */
+const mix32 = (n: number) => {
+  n = Math.imul(n ^ (n >>> 16), 0x85ebca6b);
+  n = Math.imul(n ^ (n >>> 13), 0xc2b2ae35);
+  return (n ^ (n >>> 16)) >>> 0;
+};
 const pick = <T>(s: Game, list: T[]) => list[Math.floor(rand(s) * list.length)];
 const active = (s: Game) => s.guests.filter((g) => !['waiting', 'leaving'].includes(g.status));
 export const work = (s: Game) =>
@@ -415,6 +421,19 @@ export function tipFor(s: Game, g: Guest, bonus = 0) {
   if (g.remaining <= 0) rate -= 0.05;
   return Math.round((g.charge * clamp(rate, 0, 0.35)) / 25) * 25;
 }
+/** The main reasons behind a tip, in the guest's terms, for the payment note. */
+export function tipReasons(s: Game, g: Guest) {
+  const why: string[] = [];
+  if (g.quality >= 90) why.push('a great drink');
+  else if (g.quality < 75) why.push('the drink was only so-so');
+  if (g.tipDelta >= 0.04) why.push('a good chat');
+  else if (g.tipDelta <= -0.04) why.push('an awkward chat');
+  if (g.waited >= 0.7) why.push('quick service');
+  else if (g.waited <= 0.3) why.push('a long wait');
+  if (ambience(s) >= 0.03) why.push('a lovely room');
+  if (g.remaining <= 0) why.push('waiting to pay');
+  return why;
+}
 function tick(s: Game, dt: number) {
   if (!['service', 'finishing'].includes(s.phase)) return;
   const speed = s.settings.mode === 'chill' ? 0.85 : 1;
@@ -492,7 +511,7 @@ export function reduceGame(current: Game, a: Action): Game {
   const note = (message: string) => {
     s.notice = message;
   };
-  if ('seed' in a && a.seed) s.random = (s.random ^ a.seed) >>> 0 || 9173;
+  if ('seed' in a && a.seed) s.random = mix32(s.random ^ a.seed) || 9173;
   if (a.type === 'tick') {
     tick(s, a.dt ?? 0.25);
     return s;
@@ -538,7 +557,7 @@ export function reduceGame(current: Game, a: Action): Game {
   }
   if (a.type === 'start') {
     s.phase = 'opening';
-    note('Your bar, your pace. Check the menu, then open the doors.');
+    note('Your bar, your pace.');
   }
   if (a.type === 'open') {
     s.phase = 'service';
@@ -546,9 +565,7 @@ export function reduceGame(current: Game, a: Action): Game {
     s.spawnIn = 38;
     const first = spawn(s, true);
     note(
-      first.length
-        ? first[0].name + ' is at the door. Tap them to offer a seat.'
-        : 'The doors are open.',
+      first.length ? 'The doors are open. ' + first[0].name + ' walks in.' : 'The doors are open.',
     );
   }
   if (a.type === 'setting') {
@@ -677,7 +694,9 @@ export function reduceGame(current: Game, a: Action): Game {
           ': “' +
           (drinks.length > 1 && drinks[0] === drinks[1]
             ? 'Two ' + drinks[0] + 's'
-            : drinks.map((d) => (/^[AEIOU]/.test(d) ? 'An ' : 'A ') + d).join(' and ')) +
+            : drinks
+                .map((d, i) => (/^[AEIOU]/.test(d) ? 'an ' : 'a ').replace(/^a/, i ? 'a' : 'A') + d)
+                .join(' and ')) +
           ', please.”',
       );
     }
@@ -739,6 +758,7 @@ export function reduceGame(current: Game, a: Action): Game {
       const right = !together || !a.split || a.split === ask;
       let total = 0,
         tips = 0;
+      const why = [...new Set(paying.flatMap((x) => tipReasons(s, x)))];
       for (const x of paying) {
         const amount = x.charge - x.paidAmount;
         x.paidAmount += amount;
@@ -760,7 +780,8 @@ export function reduceGame(current: Game, a: Action): Game {
           : '“We said ' + (ask === 'split' ? 'separate bills' : 'one bill') + '.” ' + 'Settled') +
           ' · ' +
           amount(total) +
-          (tips ? ' + ' + amount(tips) + ' tip' : ' · no tip'),
+          (tips ? ' + ' + amount(tips) + ' tip' : ' · no tip') +
+          (why.length ? ' (' + why.slice(0, 3).join(', ') + ')' : ''),
       );
     }
     if (a.operation === 'food') {
@@ -887,6 +908,8 @@ export function reduceGame(current: Game, a: Action): Game {
         return s;
       }
       p.tool = a.value as Tool;
+      // Built in the rocks glass, the drink is served in it too.
+      if (p.tool === 'old_fashioned_glass') p.glass = 'old_fashioned_glass';
       note('Selected ' + String(a.value).replaceAll('_', ' '));
     }
     if (a.operation === 'glass') p.glass = a.value as Prep['glass'];

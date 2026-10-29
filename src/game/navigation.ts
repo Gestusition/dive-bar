@@ -61,9 +61,14 @@ export function servicePosition(g: Guest): FloorPoint {
     return [seats[g.seat][0], bartenderHome[1]];
   return [guestPosition(g)[0], g.status === 'waiting' ? 5.4 : frontAisle];
 }
-// The counter ends at x=4; 0.6 clearance accommodates the bartender's arms.
-// Keep the front crossing between the stools and the table chairs. Only the
-// right-hand opening is walkable: the jukebox blocks the left-hand opening.
+// The counter ends at x=±4; 0.6 clearance accommodates the bartender's arms.
+// Keep the front crossing between the stools and the table chairs. Both ends of the
+// counter are open, and the bartender goes round whichever end is shorter.
+const pickAisle = (fromX: number, toX: number) =>
+  Math.abs(fromX + sideAisle) + Math.abs(toX + sideAisle) <
+  Math.abs(fromX - sideAisle) + Math.abs(toX - sideAisle)
+    ? -sideAisle
+    : sideAisle;
 export function walkingRoute(from: FloorPoint, to: FloorPoint): FloorPoint[] {
   if (Math.hypot(from[0] - to[0], from[1] - to[1]) < 0.00001) return [];
   if (
@@ -71,17 +76,22 @@ export function walkingRoute(from: FloorPoint, to: FloorPoint): FloorPoint[] {
     (Math.abs(from[0] - to[0]) < 0.00001 && from[1] >= frontAisle && to[1] >= frontAisle)
   )
     return [to];
+  const behind = (p: FloorPoint) => p[1] <= backEdge;
+  // Part-way round one end of the counter, between the back and the front.
+  const atEnd = (p: FloorPoint) =>
+    Math.abs(p[0]) >= 4.45 && !behind(p) && p[1] < frontAisle - 0.00001;
   const points: FloorPoint[] = [];
-  if (to[1] <= backEdge) {
-    if (from[1] > backEdge) {
-      if (from[0] < 4.45) points.push([from[0], frontAisle], [sideAisle, frontAisle]);
-      else points.push([sideAisle, from[1]]);
-      points.push([sideAisle, bartenderHome[1]]);
+  if (behind(to)) {
+    if (!behind(from)) {
+      const aisle = atEnd(from) ? Math.sign(from[0]) * sideAisle : pickAisle(from[0], to[0]);
+      if (!atEnd(from)) points.push([from[0], frontAisle], [aisle, frontAisle]);
+      points.push([aisle, bartenderHome[1]]);
     }
   } else {
-    if (from[1] <= backEdge) points.push([sideAisle, from[1]], [sideAisle, frontAisle]);
-    else if (from[0] >= 4.45 && from[1] < frontAisle - 0.00001)
-      points.push([sideAisle, frontAisle]);
+    if (behind(from)) {
+      const aisle = pickAisle(from[0], to[0]);
+      points.push([aisle, from[1]], [aisle, frontAisle]);
+    } else if (atEnd(from)) points.push([Math.sign(from[0]) * sideAisle, frontAisle]);
     else points.push([from[0], frontAisle]);
     points.push([to[0], frontAisle]);
   }
@@ -138,7 +148,7 @@ export const guestObstacles: Rect[] = [
   [-1.2, -0.25, 0.7, 0.7],
   [1.2, -0.25, 0.7, 0.7],
   [0, -1.8, 8, 1.35],
-  [-4.8, -1.3, 0.8, 0.75],
+  [-6.4, -1.3, 0.8, 0.75],
 ];
 // Each seat is reached from a clear spot just in front of it.
 const tableZ = new Map(tables.map(([x, z]) => [x, z]));

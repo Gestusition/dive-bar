@@ -1,6 +1,16 @@
 import Station from './Station';
 import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from 'react';
-import { ArrowRight, Check, ChevronRight, Download, Home, Play, Upload, X } from 'lucide-react';
+import {
+  ArrowRight,
+  Check,
+  ChevronRight,
+  Download,
+  Home,
+  Lightbulb,
+  Play,
+  Upload,
+  X,
+} from 'lucide-react';
 import * as Switch from '@radix-ui/react-switch';
 import { Button } from '../components/ui/button';
 import { Dialog } from '../components/ui/dialog';
@@ -13,7 +23,7 @@ import {
   recipeMethod,
   recipes,
 } from '../game/content';
-import { ambience, upgradeInfo, type Upgrade } from '../game/engine';
+import { ambience, upgradeInfo, type Game, type Guest, type Upgrade } from '../game/engine';
 import { backupName, encodeBackup } from '../game/storage';
 import { startClock, useGame, type Panel } from '../game/store';
 import { MenuPanel, StockPanel } from './Management';
@@ -26,11 +36,11 @@ import {
   CocktailArt,
   CoinsArt,
   DrinkArt,
-  DiceArt,
   FrameArt,
   GearArt,
   GlassArt,
   GlassShapeArt,
+  HeartArt,
   HelpArt,
   HostArt,
   IceArt,
@@ -312,7 +322,7 @@ function SettingsPanel() {
         <h4>Save file</h4>
         <div className="backup-actions">
           <Button variant="secondary" size="sm" onClick={download}>
-            <Download size={16} /> Export
+            <Download size={16} /> Export backup
           </Button>
           <Button variant="secondary" size="sm" onClick={() => input.current?.click()}>
             <Upload size={16} /> Import
@@ -779,7 +789,7 @@ function Hud({
         : phase === 'recap'
           ? {
               label: 'Night done',
-              art: <DiceArt size={40} />,
+              art: <HeartArt size={40} />,
               title: 'Night ' + game.day + ' complete',
             }
           : { label: 'Bar tools', art: <SpongeArt size={40} />, title: 'Bar tools' };
@@ -894,6 +904,31 @@ function Hud({
       </div>
     </aside>
   );
+}
+/**
+ * On the first two nights a single line at the top says what to do next on the
+ * floor, following whoever needs you most. It goes quiet while you walk.
+ */
+function floorGuide(game: Game, walking: boolean): string | null {
+  if (!game.settings.hints || game.day > 2) return null;
+  if (game.phase === 'opening')
+    return 'Open “Get ready”, check tonight’s menu, then tap Open the bar.';
+  if (game.phase === 'closing') return 'Open “Closing” and tick off every job, then close the bar.';
+  if (game.phase === 'recap')
+    return 'Night done! Decor raises your tips. Start the next night when you’re ready.';
+  if (walking) return null;
+  const here = game.guests.filter((g) => g.status !== 'leaving');
+  const first = (status: Guest['status']) => here.find((g) => g.status === status);
+  const pay = first('pay'),
+    ready = first('ready'),
+    ordered = here.find((g) => g.status === 'ordered' && !g.served),
+    waiting = first('waiting');
+  if (pay) return pay.name + ' wants to pay. Tap the coin bubble and settle up.';
+  if (ready) return ready.name + ' is ready. Tap the ? bubble to take the order.';
+  if (ordered) return 'Tap ' + ordered.name + '’s bubble, then Make drink.';
+  if (waiting) return waiting.name + ' is at the door. Tap the ! bubble, then Seat guest.';
+  if (here.length) return 'Let them settle in. Their bubble changes when they need you.';
+  return 'The doors are open. Someone will walk in soon.';
 }
 /** On phones, go full screen and hold landscape where the browser allows it. */
 let wantFullScreen = false;
@@ -1060,6 +1095,12 @@ export default function App() {
           <BarScene />
         </Suspense>
         <div className="top-center">
+          {!atStation && floorGuide(game, tasks.length > 0) && (
+            <p className="floor-guide" role="status">
+              <Lightbulb size={16} strokeWidth={2.5} />
+              {floorGuide(game, tasks.length > 0)}
+            </p>
+          )}
           {tasks.length > 0 && (
             <div className="task-pill">
               <span className="walking-dot" />
@@ -1073,6 +1114,9 @@ export default function App() {
                       ? 'Bringing food to'
                       : 'Walking to'}{' '}
               {game.guests.find((g) => g.id === tasks[0].id)?.name}
+              {tasks.length > 1 && (
+                <small className="task-more">then {tasks.length - 1} more</small>
+              )}
               <button onClick={cancelTasks} aria-label="Cancel queued tasks">
                 <X size={14} strokeWidth={3} />
               </button>

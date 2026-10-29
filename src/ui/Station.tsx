@@ -81,6 +81,8 @@ const glassName = Object.fromEntries(glasses.map(([id, label]) => [id, label.toL
 // ideal waters the drink down; letting go too soon leaves it under-mixed.
 const motionTime: Record<Motion, number> = { shake: 3, stir: 2.5, muddle: 1.5 };
 const sweetZone = [0.7, 1.35];
+const plural = (n: number, unit: string) =>
+  n === 1 || unit === 'ml' ? unit : unit === 'dash' ? 'dashes' : unit + 's';
 const spirits = new Set(ingredients.filter((i) => i.kind === 'spirit').map((i) => i.id));
 function Group({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -149,10 +151,17 @@ export default function Station() {
     prepAction('transfer');
   }, [prepAction]);
   // Shake, stir and muddle happen while the button is held down.
-  const held = useRef<{ motion: Motion; elapsed: number } | null>(null);
+  const held = useRef<{ motion: Motion; elapsed: number; at: number } | null>(null);
+  // Count real time held, so a busy phone that skips timer ticks still mixes fairly.
+  const advance = (h: { elapsed: number; at: number }) => {
+    const now = performance.now();
+    h.elapsed += Math.min(0.3, (now - h.at) / 1000);
+    h.at = now;
+  };
   const finishMotion = useCallback(() => {
     const h = held.current;
     if (!h) return;
+    if (!useGame.getState().paused) advance(h);
     held.current = null;
     setBusy(null);
     setMixing(null);
@@ -166,7 +175,7 @@ export default function Station() {
   }, [prepAction, setMixing]);
   const startMotion = (motion: Motion) => {
     if (held.current || pour.current) return;
-    held.current = { motion, elapsed: 0 };
+    held.current = { motion, elapsed: 0, at: performance.now() };
     setBusy(motion);
     setMixing(motion);
     setProgress(0);
@@ -176,8 +185,12 @@ export default function Station() {
     const interval = setInterval(() => {
       const s = useGame.getState();
       const h = held.current;
-      if (!h || s.paused || s.panel !== 'station') return;
-      h.elapsed += 0.1;
+      if (!h) return;
+      if (s.paused || s.panel !== 'station') {
+        h.at = performance.now();
+        return;
+      }
+      advance(h);
       const share = h.elapsed / motionTime[h.motion];
       setProgress(share);
       // The clip repeats as soon as the last one ends, for as long as the hold lasts.
@@ -252,7 +265,11 @@ export default function Station() {
     spirit: r.allowed.some((a) => spirits.has(a)),
     bottle: r.allowed.find((a) => (prep.amounts[a] ?? 0) > 0) ?? r.allowed[0],
     label: r.allowed.map((a) => names[a]).join(' or '),
-    target: r.quantity,
+    // "2–3 dashes" style amounts aim for the middle and accept the whole range.
+    target: r.quantity ?? r.gameTarget?.preferred ?? null,
+    low: r.gameTarget?.acceptedMin,
+    high: r.gameTarget?.acceptedMax,
+    optional: !!r.optional,
     unit: r.unit,
     have: poured(r.allowed),
   }));
@@ -275,6 +292,9 @@ export default function Station() {
             bottle: i.id,
             label: i.name,
             target: null as number | null,
+            low: undefined as number | undefined,
+            high: undefined as number | undefined,
+            optional: false,
             unit: i.unit,
             have: poured([i.id]),
           }))
@@ -282,9 +302,17 @@ export default function Station() {
   ];
   type Row = (typeof rows)[number];
   // Close enough to tick: the taste score judges the fine detail.
-  const isDone = (r: Row) =>
-    r.recipe &&
-    (r.target === null ? r.have > 0 : r.have > 0 && Math.abs(r.have - r.target) <= r.target * 0.4);
+  // A row is right within the taste check's own tolerance; a heavy hand is "over"
+  // (it costs points, and the row stops asking for more).
+  const pourState = (r: Row): 'empty' | 'short' | 'good' | 'over' => {
+    if (r.have === 0) return r.optional ? 'good' : 'empty';
+    if (r.target === null) return 'good';
+    const tol = r.unit === 'ml' ? Math.max(1, r.target * 0.05) : 0;
+    const low = (r.low ?? r.target) - tol,
+      high = (r.high ?? r.target) + tol;
+    return r.have < low - 1e-6 ? 'short' : r.have > high + 1e-6 ? 'over' : 'good';
+  };
+  const isDone = (r: Row) => r.recipe && ['good', 'over'].includes(pourState(r));
   const muddleFirst = dissolve === 'before_spirit' && !prep.dissolved;
   const nextRow = rows.find(
     (r) =>
@@ -349,13 +377,23 @@ export default function Station() {
         </>
       ) : nextRow ? (
         <>
-          Pour the <b>{nextRow.label}</b>
-          {nextRow.target ? (
+          {nextRow.have > 0 && nextRow.target ? (
             <>
-              : {nextRow.target} {nextRow.unit}
+              A little more <b>{nextRow.label}</b>:{' '}
+              {Number((nextRow.target - nextRow.have).toFixed(1))}{' '}
+              {plural(nextRow.target - nextRow.have, nextRow.unit)} to go.
             </>
-          ) : null}
-          .
+          ) : (
+            <>
+              Pour the <b>{nextRow.label}</b>
+              {nextRow.target ? (
+                <>
+                  : {nextRow.target} {plural(nextRow.target, nextRow.unit)}
+                </>
+              ) : null}
+              .
+            </>
+          )}
         </>
       ) : (
         <>
@@ -393,11 +431,15 @@ export default function Station() {
     ),
   };
   const pourRow = (r: Row) => {
+    const state = pourState(r);
     const done = isDone(r);
     const ml = r.unit === 'ml';
     const remaining = r.target === null ? 0 : Math.max(0, r.target - r.have);
     const amount =
-      amounts[r.key] ?? (ml ? Math.min(50, Math.max(5, Math.round(remaining / 5) * 5)) : 1);
+      amounts[r.key] ??
+      (ml
+        ? Math.min(50, Math.max(5, Math.round(remaining / 5) * 5))
+        : Math.min(5, Math.max(1, Math.round(remaining))));
     const scale = Math.max(r.target ?? 0, r.have, ml ? 10 : 3);
     const free = game.settings.pourStyle === 'free' && ml;
     const step = ml ? 5 : 1;
@@ -407,6 +449,7 @@ export default function Station() {
         className={
           'pour-row ' +
           (done ? 'done ' : '') +
+          (state === 'over' ? 'over ' : '') +
           (r === nextRow ? 'next ' : '') +
           (coach && r === nextRow ? 'coach' : '')
         }
@@ -424,13 +467,19 @@ export default function Station() {
             {r.target !== null && <b style={{ left: (r.target / scale) * 100 + '%' }} />}
           </div>
           <small>
-            {Number(r.have.toFixed(1))} / {r.target ?? (r.recipe ? '2–3' : '–')} {r.unit}
+            {Number(r.have.toFixed(1))} /{' '}
+            {r.low !== undefined && r.low !== r.high ? r.low + '–' + r.high : (r.target ?? '–')}{' '}
+            {r.unit}
+            {r.optional && ' · optional'}
             {!practice && ' · ' + Math.floor(game.inventory[r.bottle] ?? 0) + ' left'}
           </small>
         </div>
         {done ? (
-          <span className="pour-check">
-            <Check size={15} strokeWidth={4} />
+          <span
+            className="pour-check"
+            title={state === 'over' ? 'A little too much' : 'Just right'}
+          >
+            {state === 'over' ? '!' : <Check size={15} strokeWidth={4} />}
           </span>
         ) : free ? (
           <span />

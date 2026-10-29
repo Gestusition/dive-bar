@@ -508,3 +508,13 @@
   min-width: 30px;
   color: #c0303f;
 }
+
+/* Poured a little too much: still usable, but the taste check will notice. */
+.pour-row.over {
+  background: #fbe6c8;
+}
+.pour-row.over .pour-check {
+  background: var(--sun);
+  color: var(--ink);
+  font-weight: 800;
+}
