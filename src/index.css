@@ -405,9 +405,10 @@ a {
 .rail > * {
   --u: min(1.03cqh, 11cqw);
 }
+/* A tile's picture and label size from the tile itself, so they fill it. */
 .rail .rail-tile svg {
-  width: calc(var(--u) * 5.6);
-  height: calc(var(--u) * 5.6);
+  width: min(60cqh, 62cqw);
+  height: min(60cqh, 62cqw);
 }
 .rail svg {
   width: calc(var(--u) * 4.4);
@@ -467,12 +468,19 @@ a {
   border-top: 3px dashed var(--blush-deep);
   margin: 2px 0;
 }
+/* The three tiles share the rail's spare height, so there is no empty gap above
+   the small buttons; capped so they stay button-sized on tall screens. */
 .rail-tile {
   position: relative;
+  flex: 1 1 0;
+  min-height: 0;
+  max-height: calc(var(--u) * 21);
+  container-type: size;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
+  justify-content: center;
+  gap: calc(var(--u) * 0.5);
   padding: calc(var(--u) * 0.7) 2px calc(var(--u) * 0.5);
   background: var(--paper);
   border: var(--line);
@@ -481,7 +489,7 @@ a {
   transition: transform 0.08s;
 }
 .rail-tile small {
-  font-size: clamp(10px, calc(var(--u) * 1.45), 14px);
+  font-size: clamp(11px, min(18cqh, 19cqw), 17px);
   font-weight: 600;
   white-space: nowrap;
 }
@@ -2449,10 +2457,13 @@ a {
     font-size: 14px;
   }
   .rail-tile {
+    flex: 0 0 auto;
+    max-height: none;
+    container-type: normal;
     min-width: 58px;
     padding: 4px 2px;
   }
-  .rail-tile svg {
+  .rail .rail-tile svg {
     width: 28px;
     height: 28px;
   }
@@ -2671,10 +2682,6 @@ a {
     content: 'Night ';
     font-size: 0.7em;
     font-weight: 600;
-  }
-  .rail .rail-tile svg {
-    width: calc(var(--u) * 5);
-    height: calc(var(--u) * 5);
   }
 }
 /* Shortest screens: the tiles keep their pictures, the labels go to tooltips. */
