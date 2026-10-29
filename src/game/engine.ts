@@ -1,5 +1,5 @@
 import { quality } from './quality';
-import { seats } from './navigation';
+import { counterSeats, seatPairs, seats } from './navigation';
 // Long enough for a guest to walk from the far table out of the front door.
 const leaveTime = 6;
 export { quality } from './quality';
@@ -20,6 +20,7 @@ import {
 export type Phase = 'title' | 'opening' | 'service' | 'finishing' | 'closing' | 'recap';
 export type Status = 'waiting' | 'reading' | 'ready' | 'ordered' | 'drinking' | 'pay' | 'leaving';
 export type Tool = 'shaker' | 'mixing_glass' | 'old_fashioned_glass' | 'build_glass';
+export type Split = 'one' | 'split';
 export interface Prep {
   amounts: Record<string, number>;
   measure: { id: string; quantity: number } | null;
@@ -29,6 +30,8 @@ export interface Prep {
   ice: boolean;
   dissolved: boolean;
   technique: 'none' | 'shake' | 'stir';
+  /** How long it was shaken or stirred, as a share of the ideal time. */
+  mix: number;
   garnish: Record<string, number>;
   log: string[];
   attempts: number;
@@ -54,9 +57,21 @@ export interface Guest {
   food: 'none' | 'ordered' | 'warming' | 'ready' | 'served';
   foodTime: number;
   talked: boolean;
+  /** Guests who came in together share a group number; 0 is on their own. */
+  group: number;
+  /** The guest who speaks for the group, and the only one when alone. */
+  lead: boolean;
+  /** How the group wants to pay; the lead says so at the end. */
+  splitAsk: Split;
+  /** Share of their patience left when the drink arrived. */
+  waited: number;
+  tip: number;
 }
+export type Upgrade =
+  'barback' | 'plant' | 'neon' | 'doorLights' | 'jukebox' | 'counterDecor' | 'wallArt';
 export interface Game {
-  version: 1;
+  /** Saves from earlier versions are not loaded; the game starts a fresh bar. */
+  version: 2;
   phase: Phase;
   day: number;
   seconds: number;
@@ -75,10 +90,12 @@ export interface Game {
   committed: string[];
   stats: { served: number; cancelled: number; earnings: number; tips: number; waste: number };
   closing: { wipe: boolean; trash: boolean; restock: boolean };
-  upgrades: { barback: boolean; plant: boolean; neon: boolean };
+  upgrades: Record<Upgrade, boolean>;
   settings: {
     mode: 'chill' | 'house' | 'rush';
     sound: boolean;
+    music: boolean;
+    hints: boolean;
     reducedMotion: boolean;
     theme: 'amber' | 'mint' | 'rose';
     pourStyle: 'marked' | 'free';
@@ -86,15 +103,6 @@ export interface Game {
   notice: string;
   practice: Prep;
   visitCount: Record<string, number>;
-  dice: {
-    values: number[];
-    kept: boolean[];
-    rolled: number;
-    opponent: number;
-    result: string;
-    playedDay: number;
-  };
-  tokens: number;
   rapport: Record<string, number>;
   wasteHistory: {
     day: number;
@@ -117,16 +125,17 @@ export type Action =
         | 'wash'
         | 'refillIce'
         | 'restock'
-        | 'finish'
-        | 'rollDice';
+        | 'finish';
       dt?: number;
+      /** Fresh randomness from the device, so every night plays out differently. */
+      seed?: number;
     }
   | {
       type: 'guest';
       id: number;
       operation: 'seat' | 'order' | 'serve' | 'pay' | 'food' | 'move';
-      amountMinor?: number;
       paymentId?: string;
+      split?: Split;
       foodType?: 'pretzel' | 'toastie';
     }
   | { type: 'toggleMenu'; id: string }
@@ -146,19 +155,19 @@ export type Action =
         | 'muddle'
         | 'shake'
         | 'stir'
-        | 'garnish';
+        | 'garnish'
+        | 'ungarnish';
       ingredient?: string;
       amount?: number;
       value?: string;
     }
   | { type: 'choice'; id: number; conversationId: string; nodeId: string; choiceId: string }
-  | { type: 'buy'; item: 'barback' | 'plant' | 'neon' }
+  | { type: 'buy'; item: Upgrade }
   | {
       type: 'setting';
       key: keyof Game['settings'];
       value: Game['settings'][keyof Game['settings']];
-    }
-  | { type: 'keepDie'; index: number };
+    };
 
 export const emptyPrep = (): Prep => ({
   amounts: {},
@@ -169,13 +178,14 @@ export const emptyPrep = (): Prep => ({
   ice: false,
   dissolved: false,
   technique: 'none',
+  mix: 0,
   garnish: {},
   log: [],
   attempts: 0,
 });
 export function newGame(): Game {
   return {
-    version: 1,
+    version: 2,
     phase: 'title',
     day: 1,
     seconds: 0,
@@ -194,10 +204,20 @@ export function newGame(): Game {
     committed: [],
     stats: { served: 0, cancelled: 0, earnings: 0, tips: 0, waste: 0 },
     closing: { wipe: false, trash: false, restock: false },
-    upgrades: { barback: false, plant: false, neon: true },
+    upgrades: {
+      barback: true,
+      plant: true,
+      neon: true,
+      doorLights: true,
+      jukebox: true,
+      counterDecor: true,
+      wallArt: true,
+    },
     settings: {
       mode: 'house',
       sound: true,
+      music: true,
+      hints: true,
       reducedMotion: false,
       theme: 'amber',
       pourStyle: 'marked',
@@ -205,24 +225,53 @@ export function newGame(): Game {
     notice: 'A little bar. A good story. Your kind of night.',
     practice: emptyPrep(),
     visitCount: {},
-    dice: { values: [], kept: [], rolled: 0, opponent: 0, result: '', playedDay: 0 },
-    tokens: 0,
     rapport: {},
     wasteHistory: [],
     activeMenu: ['old_fashioned', 'margarita', 'manhattan'],
     foodStock: { pretzel: 12, toastie: 8 },
   };
 }
+/** What each upgrade costs, and how much it lifts tips by making the room nicer. */
+export const upgradeInfo: Record<Upgrade, { cost: number; tip: number }> = {
+  plant: { cost: 1500, tip: 0.01 },
+  neon: { cost: 2500, tip: 0.01 },
+  doorLights: { cost: 2000, tip: 0.005 },
+  counterDecor: { cost: 1800, tip: 0.01 },
+  wallArt: { cost: 2200, tip: 0.01 },
+  jukebox: { cost: 4500, tip: 0.02 },
+  barback: { cost: 6000, tip: 0 },
+};
+export const ambience = (s: Game) =>
+  (Object.keys(upgradeInfo) as Upgrade[]).reduce(
+    (n, k) => n + (s.upgrades[k] ? upgradeInfo[k].tip : 0),
+    0,
+  );
+/** Remember that something happened once; only the recent past is kept. */
+const commit = (s: Game, token: string) => {
+  s.committed.push(token);
+  if (s.committed.length > 500) s.committed = s.committed.slice(-500);
+};
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
 const rand = (s: Game) => {
   s.random = (Math.imul(s.random, 1664525) + 1013904223) >>> 0;
   return s.random / 4294967296;
 };
+/** Scramble a seed so that even close seeds start far apart (MurmurHash3 finaliser). */
+const mix32 = (n: number) => {
+  n = Math.imul(n ^ (n >>> 16), 0x85ebca6b);
+  n = Math.imul(n ^ (n >>> 13), 0xc2b2ae35);
+  return (n ^ (n >>> 16)) >>> 0;
+};
+const pick = <T>(s: Game, list: T[]) => list[Math.floor(rand(s) * list.length)];
 const active = (s: Game) => s.guests.filter((g) => !['waiting', 'leaving'].includes(g.status));
 export const work = (s: Game) =>
   s.guests.filter((g) => ['reading', 'ready', 'ordered'].includes(g.status)).length;
-export const cap = (s: Game) =>
-  s.settings.mode === 'rush' ? 4 : s.settings.mode === 'chill' ? 2 : 3;
+/** How many guests can be in at once. */
+export const seatCap = (s: Game) =>
+  s.settings.mode === 'rush' ? 6 : s.settings.mode === 'chill' ? 3 : 4;
+const orderPatience = (s: Game, g: Guest) =>
+  (s.settings.mode === 'chill' ? 260 : s.settings.mode === 'rush' ? 144 : 160) +
+  (s.rapport[g.customerId] ?? 0) * 6;
 export const volume = (p: Prep) =>
   Object.entries(p.amounts).reduce(
     (n, [id, q]) =>
@@ -235,31 +284,62 @@ export const volume = (p: Prep) =>
             : 0),
     0,
   );
-function spawn(s: Game) {
-  if (s.guests.some((g) => g.status === 'waiting') || s.seconds >= 360) return;
-  const order = [
-    'mara',
-    'len',
-    'nadia',
-    'eli',
-    'priya',
-    'cass',
-    'sam',
-    'alex',
-    'lena',
-    'owen',
-    'theo',
-    'june',
-  ];
-  const id = order[(s.nextId - 1) % order.length];
-  const c = roster.find((c) => c.id === id)!;
-  s.guests.push({
+/** Everyone who came in with this guest, the guest included. */
+export const party = (s: Game, g: Guest) =>
+  g.group ? s.guests.filter((x) => x.group === g.group && x.status !== 'leaving') : [g];
+function openSeats(s: Game, size: number, random = false): number[] | null {
+  const used = new Set(active(s).map((g) => g.seat));
+  if (size > 1) {
+    const free = seatPairs.filter((pair) => pair.every((i) => !used.has(i)));
+    return free.length ? (random ? pick(s, free) : free[0]) : null;
+  }
+  // On their own, guests take a stool first, then the near chair at a table.
+  const stools = counterSeats.filter((i) => !used.has(i));
+  const tables = seatPairs
+    .filter((pair) => !counterSeats.includes(pair[0]) && !used.has(pair[0]))
+    .map((pair) => pair[0]);
+  const choice = stools.length ? stools : tables;
+  if (!choice.length) return null;
+  return [random ? pick(s, choice) : choice[0]];
+}
+/** Why a guest at the door cannot be seated yet, or null when they can. */
+export function seatProblem(s: Game, g: Guest): string | null {
+  if (g.status !== 'waiting') return null;
+  const group = s.guests.filter((x) => x.status === 'waiting' && x.group === g.group && g.group);
+  const size = Math.max(1, group.length);
+  if (active(s).length + size > seatCap(s))
+    return 'The bar is full for now. Settle a tab to free a seat.';
+  if (!openSeats(s, size)) return size > 1 ? 'No free table for two yet.' : 'No free seat yet.';
+  return null;
+}
+function seatParty(s: Game, g: Guest) {
+  const group = g.group
+    ? s.guests.filter((x) => x.status === 'waiting' && x.group === g.group)
+    : [g];
+  const places = openSeats(s, group.length, true);
+  if (!places) return false;
+  group.forEach((x, i) => {
+    x.seat = places[i];
+    x.status = 'reading';
+    x.remaining = 8 + i * 3;
+  });
+  return true;
+}
+const names = (list: Guest[]) => list.map((g) => g.name).join(' and ');
+/** A guest's favourite comes up often, but anything on the menu can catch their eye. */
+function chooseRecipe(s: Game, customerId: string) {
+  const favourite = roster.find((c) => c.id === customerId)?.defaultRecipeId;
+  if (favourite && s.activeMenu.includes(favourite) && rand(s) < 0.35) return favourite;
+  const last = s.history[customerId + '|lastOrder'];
+  const options = s.activeMenu.filter((id) => id !== last);
+  return pick(s, options.length ? options : s.activeMenu);
+}
+function newGuest(s: Game, customerId: string, group: number, lead: boolean): Guest {
+  return {
     id: s.nextId++,
-    customerId: id,
-    name: c.name,
-    recipeId: s.activeMenu.includes(c.defaultRecipeId)
-      ? c.defaultRecipeId
-      : s.activeMenu[(s.nextId - 2 + s.activeMenu.length) % s.activeMenu.length],
+    customerId,
+    name: roster.find((c) => c.id === customerId)!.name,
+    recipeId: chooseRecipe(s, customerId),
     status: 'waiting',
     seat: -1,
     remaining: 90,
@@ -276,7 +356,32 @@ function spawn(s: Game) {
     food: 'none',
     foodTime: 0,
     talked: false,
-  });
+    group,
+    lead,
+    splitAsk: rand(s) < 0.55 ? 'split' : 'one',
+    waited: 0.5,
+    tip: 0,
+  };
+}
+function spawn(s: Game, alone = false) {
+  if (s.guests.some((g) => g.status === 'waiting') || s.seconds >= 360) return [];
+  const here = new Set(s.guests.map((g) => g.customerId));
+  const free = roster.map((c) => c.id).filter((id) => !here.has(id));
+  // Someone who already came in tonight only comes back once everyone else has.
+  const fresh = free.filter((id) => s.history[id + '|night'] !== String(s.day));
+  const pool = fresh.length ? fresh : free;
+  if (!pool.length) return [];
+  const chance = s.settings.mode === 'rush' ? 0.45 : s.settings.mode === 'chill' ? 0.25 : 0.35;
+  const size = !alone && pool.length > 1 && rand(s) < chance ? 2 : 1;
+  const group = size > 1 ? s.nextId : 0;
+  const arrived: Guest[] = [];
+  for (let i = 0; i < size; i++) {
+    const id = pool.splice(Math.floor(rand(s) * pool.length), 1)[0];
+    arrived.push(newGuest(s, id, group, i === 0));
+    s.history[id + '|night'] = String(s.day);
+  }
+  s.guests.push(...arrived);
+  return arrived;
 }
 export function conversationFor(s: Game, g: Guest) {
   if (
@@ -307,7 +412,33 @@ export function conversationFor(s: Game, g: Guest) {
       ) &&
       !['wrong_drink', 'music_volume', 'menu_wait', 'closing_time'].includes(c.id),
   );
-  return pool[(s.day - 1) % Math.max(1, pool.length)];
+  return pool[(s.day + g.id) % Math.max(1, pool.length)];
+}
+/**
+ * A tip follows the drink first: a remake-level drink earns nothing, an excellent one
+ * around a fifth of the bill. Conversation, quick service, a nice room and paying the
+ * way the guest asked move it up or down, with a little chance on top.
+ */
+export function tipFor(s: Game, g: Guest, bonus = 0) {
+  if (!g.served || g.charge <= 0 || g.quality < 55) return 0;
+  let rate = g.quality < 55 ? 0 : 0.04 + ((g.quality - 55) / 45) * 0.16;
+  rate += g.tipDelta + (g.waited - 0.5) * 0.08 + ambience(s) + bonus + (rand(s) - 0.5) * 0.04;
+  // Left waiting at the till.
+  if (g.remaining <= 0) rate -= 0.05;
+  return Math.round((g.charge * clamp(rate, 0, 0.35)) / 25) * 25;
+}
+/** The main reasons behind a tip, in the guest's terms, for the payment note. */
+export function tipReasons(s: Game, g: Guest) {
+  const why: string[] = [];
+  if (g.quality >= 90) why.push('a great drink');
+  else if (g.quality < 75) why.push('the drink was only so-so');
+  if (g.tipDelta >= 0.04) why.push('a good chat');
+  else if (g.tipDelta <= -0.04) why.push('an awkward chat');
+  if (g.waited >= 0.7) why.push('quick service');
+  else if (g.waited <= 0.3) why.push('a long wait');
+  if (ambience(s) >= 0.03) why.push('a lovely room');
+  if (g.remaining <= 0) why.push('waiting to pay');
+  return why;
 }
 function tick(s: Game, dt: number) {
   if (!['service', 'finishing'].includes(s.phase)) return;
@@ -319,7 +450,10 @@ function tick(s: Game, dt: number) {
   if (s.spawnIn <= 0 && s.seconds < 360) {
     spawn(s);
     s.spawnIn =
-      (s.settings.mode === 'rush' ? 44 : s.settings.mode === 'chill' ? 75 : 58) + rand(s) * 8 - 4;
+      ((s.settings.mode === 'rush' ? 44 : s.settings.mode === 'chill' ? 75 : 58) +
+        rand(s) * 16 -
+        8) *
+      (s.upgrades.doorLights ? 0.85 : 1);
   }
   for (const g of s.guests) {
     g.remaining -= t;
@@ -355,17 +489,15 @@ function tick(s: Game, dt: number) {
     }
   }
   s.guests = s.guests.filter((g) => g.status !== 'leaving' || g.remaining > 0);
+  // The host greets guests at the door, shows them to a seat and keeps glasses washed.
   if (s.upgrades.barback) {
+    const door = s.guests.find((g) => g.status === 'waiting' && g.lead && g.remaining < 87);
+    if (door && !seatProblem(s, door) && seatParty(s, door))
+      s.notice = 'Your host showed ' + names(party(s, door)) + ' to a seat.';
     if (s.dirtyGlasses > 0 && Math.floor(s.seconds / 4) !== Math.floor((s.seconds - t) / 4)) {
       s.dirtyGlasses--;
       s.cleanGlasses++;
     }
-    if (s.ice < 5 && s.cash >= (12 - s.ice) * 2) {
-      const cost = (12 - s.ice) * 2;
-      s.cash -= cost;
-      s.ice = 12;
-    }
-    if (s.trash > 3) s.trash = 0;
   }
   if (s.seconds >= 360 && !s.guests.some((g) => g.status !== 'leaving')) {
     s.phase = 'closing';
@@ -373,12 +505,19 @@ function tick(s: Game, dt: number) {
     s.notice = 'Last glass, best glass. Let’s put the bar to bed.';
   }
 }
+const declines = [
+  'Hmm, I’ll stick with the {drink}, thanks.',
+  'Tempting, but I came for the {drink}.',
+  'Maybe next time. The {drink} is fine.',
+  'Not tonight. Just the {drink}, please.',
+];
 
 export function reduceGame(current: Game, a: Action): Game {
   const s = structuredClone(current);
   const note = (message: string) => {
     s.notice = message;
   };
+  if ('seed' in a && a.seed) s.random = mix32(s.random ^ a.seed) || 9173;
   if (a.type === 'tick') {
     tick(s, a.dt ?? 0.25);
     return s;
@@ -402,7 +541,12 @@ export function reduceGame(current: Game, a: Action): Game {
         : stockItems.find((i) => i.id === id)?.costMinorPerUnit;
     if (
       rows.some(
-        ([id, q]) => itemCost(id) === undefined || !Number.isFinite(q) || q < 0 || q > 10000,
+        ([id, q]) =>
+          itemCost(id) === undefined ||
+          !Number.isFinite(q) ||
+          q < 0 ||
+          q > 10000 ||
+          (id.startsWith('snack_') && !Number.isInteger(q)),
       )
     )
       return current;
@@ -424,14 +568,16 @@ export function reduceGame(current: Game, a: Action): Game {
   }
   if (a.type === 'start') {
     s.phase = 'opening';
-    note('Your bar, your pace. Check the menu, then open the doors.');
+    note('Your bar, your pace.');
   }
   if (a.type === 'open') {
     s.phase = 'service';
     s.seconds = 0;
     s.spawnIn = 38;
-    spawn(s);
-    note('Mara is at the door. Tap her to offer a seat.');
+    const first = spawn(s, true);
+    note(
+      first.length ? 'The doors are open. ' + first[0].name + ' walks in.' : 'The doors are open.',
+    );
   }
   if (a.type === 'setting') {
     (s.settings[a.key] as typeof a.value) = a.value;
@@ -476,13 +622,15 @@ export function reduceGame(current: Game, a: Action): Game {
     const cost = rows.reduce(
       (n, [id, par]) =>
         n +
-        Math.ceil(Math.max(0, par - (s.inventory[id] ?? 0))) *
-          (stockItems.find((i) => i.id === id)?.costMinorPerUnit ?? 0),
+        Math.ceil(
+          Math.max(0, par - (s.inventory[id] ?? 0)) *
+            (stockItems.find((i) => i.id === id)?.costMinorPerUnit ?? 0),
+        ),
       0,
     );
     if (s.cash >= cost) {
       s.cash -= cost;
-      s.inventory = { ...initialInventory };
+      for (const [id, par] of rows) s.inventory[id] = Math.max(s.inventory[id] ?? 0, par);
       s.closing.restock = true;
       note('Shelves restored to par. Cost: $' + (cost / 100).toFixed(2));
     } else {
@@ -517,80 +665,53 @@ export function reduceGame(current: Game, a: Action): Game {
     }
   }
   if (a.type === 'buy') {
-    const costs = { plant: 1500, neon: 2500, barback: 6000 };
-    if (!s.upgrades[a.item] && s.cash >= costs[a.item]) {
-      s.cash -= costs[a.item];
+    const cost = upgradeInfo[a.item]?.cost;
+    if (cost === undefined) return current;
+    if (!s.upgrades[a.item] && s.cash >= cost) {
+      s.cash -= cost;
       s.upgrades[a.item] = true;
       note(
         a.item === 'barback'
-          ? 'Meet your barback. Clean glasses, ice and trash are covered.'
-          : 'A little more like your own place.',
+          ? 'Meet your host. Guests at the door get a seat, and glasses stay washed.'
+          : a.item === 'jukebox'
+            ? 'The jukebox hums into life.'
+            : 'A little more like your own place.',
       );
     } else
       note(
         s.upgrades[a.item] ? 'Already part of your bar.' : 'Save a little more for this upgrade.',
       );
   }
-  if (a.type === 'keepDie') {
-    if (s.dice.rolled === 1) s.dice.kept[a.index] = !s.dice.kept[a.index];
-  }
-  if (a.type === 'rollDice') {
-    if (s.dice.playedDay === s.day && s.dice.result) {
-      note('One friendly round per night. Come back after the next shift.');
-      return s;
-    }
-    if (s.dice.rolled === 0 || s.dice.result)
-      s.dice = {
-        values: Array.from({ length: 5 }, () => 1 + Math.floor(rand(s) * 6)),
-        kept: [false, false, false, false, false],
-        rolled: 1,
-        opponent: 0,
-        result: '',
-        playedDay: 0,
-      };
-    else {
-      s.dice.values = s.dice.values.map((v, i) =>
-        s.dice.kept[i] ? v : 1 + Math.floor(rand(s) * 6),
-      );
-      s.dice.opponent = Array.from({ length: 5 }, () => 1 + Math.floor(rand(s) * 6)).reduce(
-        (x, y) => x + y,
-        0,
-      );
-      const total = s.dice.values.reduce((x, y) => x + y, 0);
-      s.dice.result =
-        total > s.dice.opponent
-          ? 'You win! One house token.'
-          : total === s.dice.opponent
-            ? 'A friendly tie.'
-            : 'Len wins this round. Another night?';
-      if (total > s.dice.opponent) s.tokens++;
-      s.dice.rolled = 2;
-      s.dice.playedDay = s.day;
-    }
-  }
   if (a.type === 'guest') {
     const g = s.guests.find((g) => g.id === a.id);
     if (!g) return current;
     if (a.operation === 'seat' && g.status === 'waiting') {
-      if (active(s).length >= (s.settings.mode === 'rush' ? 3 : 2) || work(s) >= cap(s)) {
-        note('Finish a ticket first. Keep the bar comfortable.');
+      const problem = seatProblem(s, g);
+      if (problem || !seatParty(s, g)) {
+        note(problem ?? 'No free seat yet.');
         return s;
       }
-      const used = new Set(active(s).map((g) => g.seat));
-      g.seat =
-        Array.from({ length: seats.length }, (_, i) => (i + g.id - 1) % seats.length).find(
-          (i) => !used.has(i),
-        ) ?? 0;
-      g.status = 'reading';
-      g.remaining = 8;
-      note(g.name + ' has a menu. Give them a moment to choose.');
+      const seated = party(s, g);
+      note(names(seated) + (seated.length > 1 ? ' have' : ' has') + ' a menu. Give them a moment.');
     }
     if (a.operation === 'order' && g.status === 'ready') {
-      g.status = 'ordered';
-      g.remaining =
-        (s.settings.mode === 'chill' ? 260 : s.settings.mode === 'rush' ? 144 : 160) +
-        (s.rapport[g.customerId] ?? 0) * 6;
-      note(g.name + ': “A ' + recipeById(g.recipeId).name + ', please.”');
+      const ordering = party(s, g).filter((x) => x.status === 'ready');
+      for (const x of ordering) {
+        x.status = 'ordered';
+        x.remaining = orderPatience(s, x);
+        s.history[x.customerId + '|lastOrder'] = x.recipeId;
+      }
+      const drinks = ordering.map((x) => recipeById(x.recipeId).name);
+      note(
+        names(ordering) +
+          ': “' +
+          (drinks.length > 1 && drinks[0] === drinks[1]
+            ? 'Two ' + drinks[0] + 's'
+            : drinks
+                .map((d, i) => (/^[AEIOU]/.test(d) ? 'an ' : 'a ').replace(/^a/, i ? 'a' : 'A') + d)
+                .join(' and ')) +
+          ', please.”',
+      );
     }
     if (a.operation === 'serve' && g.status === 'ordered') {
       const q = quality(g.prep, recipeById(g.recipeId), g.extraCherry);
@@ -608,6 +729,7 @@ export function reduceGame(current: Game, a: Action): Game {
         return s;
       }
       g.served = true;
+      g.waited = clamp(g.remaining / orderPatience(s, g), 0, 1);
       g.charge =
         prices[g.recipeId] +
         (g.food === 'served' ? snacks.find((n) => n.id === g.foodType)!.price : 0);
@@ -619,7 +741,11 @@ export function reduceGame(current: Game, a: Action): Game {
       note(
         g.name +
           ': “' +
-          (q.score >= 90 ? 'That’s a lovely drink.' : 'Just what I needed.') +
+          (q.score >= 90
+            ? 'That’s a lovely drink.'
+            : q.score >= 75
+              ? 'Just what I needed.'
+              : 'Hm. It’ll do.') +
           '” ' +
           q.label +
           ' · ' +
@@ -628,34 +754,48 @@ export function reduceGame(current: Game, a: Action): Game {
       );
     }
     if (a.operation === 'pay' && g.status === 'pay' && !g.paid) {
-      if (g.food === 'warming' || g.food === 'ready') {
+      const paying = party(s, g).filter((x) => !x.paid);
+      const still = paying.find((x) => x.status !== 'pay');
+      if (still) {
+        note('Wait for ' + still.name + ' to finish. They’ll pay together.');
+        return s;
+      }
+      if (paying.some((x) => x.food === 'warming' || x.food === 'ready')) {
         note('Finish serving the snack before settling this tab.');
         return s;
       }
       if (a.paymentId && s.committed.includes(a.paymentId)) return current;
-      const amount = a.amountMinor ?? g.charge - g.paidAmount;
-      if (!Number.isSafeInteger(amount) || amount <= 0 || amount > g.charge - g.paidAmount) {
-        note('Payment must match an unpaid part of the tab.');
-        return s;
+      if (a.paymentId) commit(s, a.paymentId);
+      const ask = paying.find((x) => x.lead)?.splitAsk ?? 'one';
+      const together = paying.length > 1;
+      const right = !together || !a.split || a.split === ask;
+      let total = 0,
+        tips = 0;
+      const why = [...new Set(paying.flatMap((x) => tipReasons(s, x)))];
+      for (const x of paying) {
+        const amount = x.charge - x.paidAmount;
+        x.paidAmount += amount;
+        total += amount;
+        x.tip = tipFor(s, x, together ? (right ? 0.03 : -0.04) : 0);
+        tips += x.tip;
+        x.paid = true;
+        x.status = 'leaving';
+        x.remaining = leaveTime;
+        s.visitCount[x.customerId] = (s.visitCount[x.customerId] ?? 0) + 1;
       }
-      if (a.paymentId) s.committed.push(a.paymentId);
-      g.paidAmount += amount;
-      s.cash += amount;
-      s.stats.earnings += amount;
-      if (g.paidAmount < g.charge) {
-        note('Payment received. Remaining: $' + ((g.charge - g.paidAmount) / 100).toFixed(2));
-        return s;
-      }
-      const rate = g.remaining > 0 ? clamp(0.1 + g.tipDelta, 0, 0.25) : 0;
-      const tip = Math.round((g.served ? prices[g.recipeId] : 0) * rate);
-      s.cash += tip;
-      s.stats.earnings += tip;
-      s.stats.tips += tip;
-      g.paid = true;
-      g.status = 'leaving';
-      g.remaining = leaveTime;
-      s.visitCount[g.customerId] = (s.visitCount[g.customerId] ?? 0) + 1;
-      note(g.name + ' settled up. Tip: $' + (tip / 100).toFixed(2));
+      s.cash += total + tips;
+      s.stats.earnings += total + tips;
+      s.stats.tips += tips;
+      const amount = (n: number) => '$' + (n / 100).toFixed(2);
+      note(
+        (right
+          ? names(paying) + ' settled up'
+          : '“We said ' + (ask === 'split' ? 'separate bills' : 'one bill') + '.” ' + 'Settled') +
+          ' · ' +
+          amount(total) +
+          (tips ? ' + ' + amount(tips) + ' tip' : ' · no tip') +
+          (why.length ? ' (' + why.slice(0, 3).join(', ') + ')' : ''),
+      );
     }
     if (a.operation === 'food') {
       if (g.food === 'none' && ['ordered', 'drinking', 'pay'].includes(g.status)) {
@@ -684,13 +824,13 @@ export function reduceGame(current: Game, a: Action): Game {
         note(snack.name + ' served. Added $' + (snack.price / 100).toFixed(2) + ' to the tab.');
       }
     }
-    if (a.operation === 'move') {
+    if (a.operation === 'move' && !g.group) {
       const used = new Set(
         active(s)
           .filter((x) => x.id !== g.id)
           .map((x) => x.seat),
       );
-      const seat = seats.map((_, i) => i).find((i) => i !== g.seat && !used.has(i));
+      const seat = seats.map((_, i) => i).find((i) => i !== g.seat && i < 6 && !used.has(i));
       if (seat !== undefined) {
         g.seat = seat;
         note('A quieter corner for ' + g.name + '.');
@@ -720,6 +860,10 @@ export function reduceGame(current: Game, a: Action): Game {
         return s;
       }
       if (i.unit !== 'ml' && i.unit !== 'dash') {
+        if ((p.amounts[i.id] ?? 0) >= 20) {
+          note('That’s plenty of ' + i.name.toLowerCase() + '.');
+          return s;
+        }
         if (spend(i.id, 1)) {
           p.amounts[i.id] = (p.amounts[i.id] ?? 0) + 1;
           p.log.push('Added ' + i.name);
@@ -736,9 +880,7 @@ export function reduceGame(current: Game, a: Action): Game {
     if (a.operation === 'transfer' && p.measure) {
       const amount = p.measure.quantity;
       const addition =
-        p.measure.id === 'plain_water' || p.measure.id === 'angostura_bitters'
-          ? amount * 0.8
-          : amount;
+        ingredients.find((i) => i.id === p.measure!.id)?.unit === 'dash' ? amount * 0.8 : amount;
       if (volume(p) + addition > (p.tool === 'old_fashioned_glass' ? 250 : 440)) {
         note('The vessel is full. Discard or use another preparation.');
         return s;
@@ -747,6 +889,7 @@ export function reduceGame(current: Game, a: Action): Game {
       p.log.push('Added ' + amount + ' ' + p.measure.id);
       p.measure = null;
       p.technique = 'none';
+      p.mix = 0;
     }
     if (a.operation === 'discardMeasure') {
       if (p.measure && !practice) {
@@ -780,6 +923,8 @@ export function reduceGame(current: Game, a: Action): Game {
         return s;
       }
       p.tool = a.value as Tool;
+      // Built in the rocks glass, the drink is served in it too.
+      if (p.tool === 'old_fashioned_glass') p.glass = 'old_fashioned_glass';
       note('Selected ' + String(a.value).replaceAll('_', ' '));
     }
     if (a.operation === 'glass') p.glass = a.value as Prep['glass'];
@@ -811,19 +956,43 @@ export function reduceGame(current: Game, a: Action): Game {
     }
     if (a.operation === 'shake' || a.operation === 'stir') {
       p.technique = a.operation;
+      p.mix = Math.round(clamp(a.amount ?? 1, 0, 2) * 100) / 100;
       p.log.push(a.operation);
       note(
-        a.operation === 'shake'
-          ? 'A good shake. Strain into your serving glass.'
-          : 'Stirred gently. Ready for the finishing touches.',
+        p.mix < 0.7
+          ? 'Not quite long enough. Keep going next time.'
+          : p.mix > 1.35
+            ? 'That went on a while. It may be watery.'
+            : a.operation === 'shake'
+              ? 'A good shake. Strain into your serving glass.'
+              : 'Stirred gently. Ready for the finishing touches.',
       );
     }
     if (a.operation === 'garnish' && a.ingredient) {
+      if ((p.garnish[a.ingredient] ?? 0) >= 10) {
+        note('There’s no room for more of that on the glass.');
+        return s;
+      }
       if (spend(a.ingredient, 1)) {
         p.garnish[a.ingredient] = (p.garnish[a.ingredient] ?? 0) + 1;
         note('Added ' + a.ingredient.replaceAll('_', ' '));
       }
     }
+    // A garnish taken back off is thrown away, not returned to the jar.
+    if (a.operation === 'ungarnish' && a.ingredient && (p.garnish[a.ingredient] ?? 0) > 0) {
+      p.garnish[a.ingredient]--;
+      if (!p.garnish[a.ingredient]) delete p.garnish[a.ingredient];
+      note('Took off the ' + a.ingredient.replaceAll('_', ' ') + '.');
+    }
+  }
+  // Keep a long practice session's history small. The steps the taste check reads
+  // (ice, dissolving) are always kept, in order.
+  if (a.type === 'prep') {
+    const p = a.id === -1 ? s.practice : s.guests.find((g) => g.id === a.id)?.prep;
+    if (p && p.log.length > 200)
+      p.log = p.log.filter(
+        (e, i) => i >= p.log.length - 150 || e === 'ice' || e.startsWith('Sugar dissolved'),
+      );
   }
   if (a.type === 'choice') {
     const g = s.guests.find((g) => g.id === a.id);
@@ -840,18 +1009,36 @@ export function reduceGame(current: Game, a: Action): Game {
       g.status !== 'ordered'
     )
       return current;
-    s.committed.push(token);
+    commit(s, token);
     s.rapport[g.customerId] = clamp((s.rapport[g.customerId] ?? 0) + ch.trust, -5, 5);
     g.tipDelta = clamp(g.tipDelta + ch.tip, -0.1, 0.15);
     g.remaining += ch.patience * 8;
     if (ch.storyId && c.storySubjectKey)
       s.history[c.customerId + '|' + c.storySubjectKey] = ch.storyId;
+    let reply = ch.reply;
     if (ch.orderChange === 'extra_cherry') g.extraCherry = true;
-    else if (ch.orderChange && recipes.some((r) => r.id === ch.orderChange))
-      g.recipeId = ch.orderChange;
+    else if (
+      ch.orderChange &&
+      ch.orderChange !== g.recipeId &&
+      recipes.some((r) => r.id === ch.orderChange)
+    ) {
+      // A suggestion is only a suggestion. Regulars who trust you, and guests offered
+      // their favourite, say yes more often.
+      const favourite = roster.find((r) => r.id === g.customerId)?.defaultRecipeId;
+      const chance = clamp(
+        0.35 +
+          (s.rapport[g.customerId] ?? 0) * 0.07 +
+          (favourite === ch.orderChange ? 0.3 : 0) +
+          ch.trust * 0.05,
+        0.15,
+        0.9,
+      );
+      if (rand(s) < chance) g.recipeId = ch.orderChange;
+      else reply = pick(s, declines).replace('{drink}', recipeById(g.recipeId).name);
+    }
     if (ch.result === 'cancel' || ch.result === 'decline') {
-      g.status = 'leaving';
-      g.remaining = leaveTime;
+      g.status = g.charge > g.paidAmount ? 'pay' : 'leaving';
+      g.remaining = g.status === 'pay' ? 90 : leaveTime;
       if (ch.result === 'cancel') {
         s.stats.cancelled++;
         s.spawnIn = Math.max(s.spawnIn, 35);
@@ -862,7 +1049,7 @@ export function reduceGame(current: Game, a: Action): Game {
       g.remaining = 75;
     }
     if (!ch.next) g.talked = true;
-    note(ch.reply);
+    note(reply);
   }
   return s;
 }

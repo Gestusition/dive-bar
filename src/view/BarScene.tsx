@@ -4,7 +4,7 @@ import { ContactShadows } from '@react-three/drei';
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { useGame } from '../game/store';
-import { volume, type Guest } from '../game/engine';
+import type { Guest } from '../game/engine';
 import {
   advanceWalk,
   bartenderHome,
@@ -13,13 +13,16 @@ import {
   guestPath,
   guestSpeed,
   roomEdge,
+  seatFacing,
   setDoorX,
   stepAlong,
   tables,
   walkingSpeed,
   type FloorPoint,
 } from '../game/navigation';
-import { cornerPlantParts } from '../game/room-layout';
+import { cornerPlantParts, floorPlantParts } from '../game/room-layout';
+import { money } from '../game/content';
+import DrinkStage from './DrinkStage';
 import { CocktailArt, CoinArt, HeartArt } from '../ui/art';
 import { GuestActions, patience } from '../ui/GuestActions';
 type Part = [number, number, number, number, number, number, string];
@@ -104,6 +107,7 @@ function SideWalls() {
     <>
       <group ref={left}>
         <mesh geometry={leftGeometry} material={material} receiveShadow castShadow />
+        <DoorDecor />
       </group>
       <group ref={right}>
         <mesh geometry={rightGeometry} material={material} receiveShadow castShadow />
@@ -143,7 +147,8 @@ function roomParts() {
     box(x, 1.15, -4.1, 1.9, 0.12, 0.5, brass);
   }
   // Bottle shelves: one merged mesh rather than a mesh for every voxel.
-  for (const y of [1.5, 2.25]) {
+  // Low enough that the top row of bottles stays under the sign.
+  for (const y of [1.45, 2.12]) {
     box(0, y, -4.05, 5.1, 0.13, 0.66, dark);
     for (let i = 0; i < 13; i++) {
       const x = -2.3 + i * 0.38;
@@ -181,7 +186,7 @@ function roomParts() {
       box(x, 0.45, z + offset, 0.8, 0.16, 0.7, dark);
       box(x, 0.56, z + offset, 0.7, 0.13, 0.61, '#a9555b');
       for (const dx of [-0.27, 0.27]) box(x + dx, 0.2, z + offset, 0.09, 0.42, 0.5, dark);
-      if (offset > 0) box(x, 0.88, z + offset + 0.26, 0.8, 0.7, 0.1, dark);
+      box(x, 0.88, z + offset + Math.sign(offset) * 0.26, 0.8, 0.7, 0.1, dark);
     }
   }
   for (const x of [-1.2, 1.2]) {
@@ -189,22 +194,26 @@ function roomParts() {
     box(x, 0.35, -0.25, 0.16, 0.7, 0.16, dark);
     box(x, 0.08, -0.25, 0.62, 0.08, 0.62, brass);
   }
-  // Jukebox, rug and a leafy plant.
-  box(-4.8, 0.65, -1.3, 0.8, 1.3, 0.75, '#883f4b');
-  box(-4.8, 0.89, -0.9, 0.58, 0.64, 0.05, cream);
-  box(-4.8, 0.91, -0.86, 0.42, 0.4, 0.05, '#5f9b92');
-  for (let i = 0; i < 5; i++) box(-4.8, 0.2 + i * 0.07, -0.9, 0.55, 0.03, 0.04, brass);
+  // Jukebox (plinth, body and a stepped crown), rug and a leafy plant.
+  box(-6.4, 0.06, -1.3, 0.86, 0.12, 0.8, dark);
+  box(-6.4, 0.66, -1.3, 0.8, 1.1, 0.75, '#883f4b');
+  box(-6.4, 1.27, -1.3, 0.66, 0.12, 0.7, '#883f4b');
+  box(-6.4, 1.37, -1.3, 0.44, 0.08, 0.64, '#883f4b');
+  box(-6.4, 0.89, -0.9, 0.58, 0.64, 0.05, cream);
+  box(-6.4, 0.91, -0.86, 0.42, 0.4, 0.05, '#5f9b92');
+  for (let i = 0; i < 5; i++) box(-6.4, 0.2 + i * 0.07, -0.9, 0.55, 0.03, 0.04, brass);
   box(0, 0.09, 2.3, 1.9, 0.018, 3.3, '#9b5650');
   for (let x = -0.8; x < 1; x += 0.4) box(x, 0.11, 2.3, 0.06, 0.01, 3, '#d5a169');
   p.push(...cornerPlantParts);
   // Amber lights, framed menu and coat hooks.
-  for (const x of [-12, -9.6, -7.2, -4.8, -2.4, 0, 2.4, 4.8, 7.2, 9.6, 12]) {
-    box(x, 2.85, -4.08, 0.2, 0.32, 0.18, brass);
-    box(x, 2.85, -3.96, 0.12, 0.2, 0.1, '#ffe2a3');
+  // Kept clear of the sign, the shelves and the window frames.
+  for (const x of [-12, -9.6, -7.4, -5.25, -2.75, 2.75, 5.25, 7.4, 9.6, 12]) {
+    box(x, 2.85, -4.36, 0.2, 0.32, 0.1, brass);
+    box(x, 2.85, -4.29, 0.12, 0.2, 0.05, '#ffe2a3');
   }
   // Framed menu between the left window and the shelves.
-  box(-6.2, 2.05, -4.38, 1, 1.3, 0.1, dark);
-  box(-6.2, 2.05, -4.31, 0.8, 1.1, 0.04, '#ddc594');
+  box(-6.2, 2.25, -4.38, 1, 1.3, 0.1, dark);
+  box(-6.2, 2.25, -4.31, 0.8, 1.1, 0.04, '#ddc594');
   return p;
 }
 const shirts = ['#669f8e', '#b97876', '#d2a054', '#8088a8', '#986d98', '#d6bd8b'];
@@ -261,6 +270,7 @@ function Person({ guest, guestGroups }: { guest: Guest; guestGroups: SceneRefs['
       : [guestPosition(guest)[0], guestPosition(guest)[2]],
   );
   const path = useRef<{ to: string; points: FloorPoint[] }>({ to: '', points: [] });
+  const step = useRef<FloorPoint>([0, 0]);
   useFrame(({ clock }, delta) => {
     if (!ref.current) return;
     const [tx, ty, tz] = guestPosition(guest);
@@ -271,11 +281,25 @@ function Person({ guest, guestGroups }: { guest: Guest; guestGroups: SceneRefs['
       if (path.current.to !== key)
         path.current = { to: key, points: guestPath(floor.current, [tx, tz]) };
       const next = stepAlong(floor.current, path.current.points, guestSpeed * Math.min(delta, 0.1));
+      step.current = [next.position[0] - floor.current[0], next.position[1] - floor.current[1]];
       floor.current = next.position;
       path.current.points = next.path;
     }
     const moving = Math.hypot(floor.current[0] - tx, floor.current[1] - tz) > 0.001;
     ref.current.position.set(floor.current[0], moving ? 0 : ty, floor.current[1]);
+    // Walk facing where they are going; sit facing the table or the counter.
+    const seated = !moving && !['waiting', 'leaving'].includes(guest.status);
+    const facing =
+      moving && Math.hypot(...step.current) > 1e-6
+        ? Math.atan2(step.current[0], step.current[1])
+        : seated
+          ? seatFacing(guest.seat)
+          : 0;
+    const turn = Math.atan2(
+      Math.sin(facing - ref.current.rotation.y),
+      Math.cos(facing - ref.current.rotation.y),
+    );
+    ref.current.rotation.y += turn * (1 - Math.exp(-Math.min(delta, 0.1) * 10));
     ref.current.rotation.z = moving
       ? Math.sin(clock.elapsedTime * 9) * 0.045
       : Math.sin(clock.elapsedTime * 1.5 + guest.id) * 0.009;
@@ -321,8 +345,9 @@ function Bartender() {
       ? s.bartenderPosition
       : advanceWalk([current.x, current.z], s.bartenderPosition, delta * walkingSpeed);
     const moving = Math.hypot(next[0] - current.x, next[1] - current.z) > 0.001;
-    if (moving) {
-      const angle = Math.atan2(next[0] - current.x, next[1] - current.z);
+    {
+      // Standing still, turn back to face the room.
+      const angle = moving ? Math.atan2(next[0] - current.x, next[1] - current.z) : 0;
       const difference = Math.atan2(
         Math.sin(angle - ref.current.rotation.y),
         Math.cos(angle - ref.current.rotation.y),
@@ -350,8 +375,9 @@ function Camera() {
     // from the bar sign down to the front door. The side walls follow the
     // screen edges, so nothing outside the bar is ever on screen. The side
     // drawer slides over the scene; the camera never moves for it.
+    // At the counter, close in on the drink being made.
     const zoom = station
-      ? Math.min(size.width / 6.3, size.height / 5.4)
+      ? Math.min(size.width / 3.9, size.height / 3.2)
       : Math.min(size.width / 15.8, size.height / 10.3);
     // The drawer is already eased, so follow it closely; ease the bigger jump
     // to and from the counter more gently.
@@ -363,10 +389,10 @@ function Camera() {
     const top = up * 3.3 + back * 4.4 + 0.5;
     const centre = top - size.height / camera.zoom / 2;
     const target = station
-      ? new THREE.Vector3(0, 1, -1.7)
+      ? new THREE.Vector3(-0.1, 1.55, -1.55)
       : new THREE.Vector3(0, 1, (up - centre) / back);
     const position = station
-      ? new THREE.Vector3(0, 8, 9)
+      ? target.clone().add(new THREE.Vector3(0, 6, 9.2))
       : target.clone().add(new THREE.Vector3(0, 13, 16.25));
     camera.position.lerp(position, reduced ? 1 : 1 - Math.exp(-dt * (station ? 4 : 16)));
     camera.lookAt(target);
@@ -374,75 +400,167 @@ function Camera() {
   });
   return null;
 }
-function PreparationDisplay() {
-  const selected = useGame((s) => s.selected);
-  const p = useGame((s) =>
-    s.selected === -1 ? s.game.practice : s.game.guests.find((g) => g.id === selected)?.prep,
-  );
-  if (!p) return null;
-  const fill = Math.min(0.4, volume(p) / 200);
-  return (
-    <group position={[0.15, 1.28, -1.7]}>
-      <mesh position={[0, 0.27, 0]}>
-        <cylinderGeometry args={[0.2, 0.16, 0.54, 8]} />
-        <meshStandardMaterial color="#c5d9cb" transparent opacity={0.45} />
-      </mesh>
-      {fill > 0 && (
-        <mesh position={[0, fill / 2, 0]}>
-          <cylinderGeometry args={[0.18, 0.14, fill, 8]} />
-          <meshStandardMaterial
-            color={
-              p.amounts.sweet_red_vermouth
-                ? '#a7524b'
-                : p.amounts.fresh_lime_juice
-                  ? '#cbd895'
-                  : '#c78b49'
-            }
-          />
-        </mesh>
-      )}
-      {p.ice &&
-        [0, 1, 2].map((i) => (
-          <mesh key={i} position={[(i - 1) * 0.09, 0.25 + i * 0.03, 0]} rotation={[0.2, i, 0.3]}>
-            <boxGeometry args={[0.12, 0.12, 0.12]} />
-            <meshStandardMaterial color="#d0e9df" transparent opacity={0.8} />
-          </mesh>
-        ))}
-      {p.garnish.cocktail_cherry > 0 && (
-        <mesh position={[0.13, 0.52, 0]}>
-          <boxGeometry args={[0.09, 0.09, 0.09]} />
-          <meshStandardMaterial color="#b54556" />
-        </mesh>
-      )}
-    </group>
-  );
-}
-
 function Sign({ lit }: { lit: boolean }) {
   const texture = useMemo(() => {
     const canvas = document.createElement('canvas');
     canvas.width = 768;
-    canvas.height = 180;
+    canvas.height = 162;
     const c = canvas.getContext('2d')!;
     c.fillStyle = '#493830';
-    c.fillRect(0, 0, 768, 180);
+    c.fillRect(0, 0, 768, 162);
     c.strokeStyle = '#91b9a3';
     c.lineWidth = 5;
-    c.strokeRect(6, 6, 756, 168);
+    c.strokeRect(6, 6, 756, 150);
     c.textAlign = 'center';
     c.fillStyle = lit ? '#a8e3c9' : '#aea28b';
     c.font = '400 84px "Caveat Brush", sans-serif';
-    c.fillText('DIVE BAR', 384, 98);
+    c.fillText('DIVE BAR', 384, 90);
     c.fillStyle = '#e6cda1';
     c.font = '20px sans-serif';
-    c.fillText('GOOD DRINKS · BETTER STORIES', 384, 145);
+    c.fillText('GOOD DRINKS · BETTER STORIES', 384, 134);
     return new THREE.CanvasTexture(canvas);
   }, [lit]);
   return (
-    <mesh position={[0, 2.93, -4.12]}>
-      <planeGeometry args={[3.7, 0.87]} />
+    <mesh position={[0, 3.12, -4.12]}>
+      <planeGeometry args={[3.7, 0.78]} />
       <meshBasicMaterial map={texture} />
     </mesh>
+  );
+}
+const glow = (color: string) => (
+  <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.55} />
+);
+/** Things by the front door: the host, and string lights once they are bought. */
+function DoorDecor() {
+  const host = useGame((s) => s.game.upgrades.barback);
+  const lights = useGame((s) => s.game.upgrades.doorLights);
+  const body = useMemo(() => geometry(personParts('host')), []);
+  const bulbs = useMemo(() => {
+    const list: [number, number, string][] = [];
+    const colors = ['#ffd36b', '#ff7a85', '#7fe3d4', '#ffd36b', '#b8a4ff'];
+    let n = 0;
+    // Seen edge-on, a string up the back jamb would land on top of the one
+    // over the lintel, so the string runs over the lintel and down the front
+    // jamb only.
+    for (let z = 5.72; z <= 7.28; z += 0.26)
+      list.push([z, 2.55 - Math.sin(((z - 5.72) / 1.56) * Math.PI) * 0.12, colors[n++ % 5]]);
+    for (let y = 2.2; y > 0.6; y -= 0.3) list.push([7.28, y, colors[n++ % 5]]);
+    return list;
+  }, []);
+  return (
+    <>
+      {host && (
+        <group position={[0.95, 0, 5.15]} rotation={[0, Math.PI / 2, 0]}>
+          <mesh geometry={body} material={material} castShadow />
+        </group>
+      )}
+      {lights &&
+        bulbs.map(([z, y, color], i) => (
+          <mesh key={i} position={[0.22, y, z]}>
+            <sphereGeometry args={[0.055, 8, 6]} />
+            {glow(color)}
+          </mesh>
+        ))}
+    </>
+  );
+}
+/** Decor bought from the shop, placed around the room. */
+function Decor() {
+  const jukebox = useGame((s) => s.game.upgrades.jukebox);
+  const candles = useGame((s) => s.game.upgrades.counterDecor);
+  const art = useGame((s) => s.game.upgrades.wallArt);
+  const flame = useRef<THREE.Group>(null);
+  useFrame(({ clock }) => {
+    if (!flame.current || useGame.getState().game.settings.reducedMotion) return;
+    flame.current.children.forEach((c, i) => {
+      c.scale.y = 1 + Math.sin(clock.elapsedTime * 11 + i * 2) * 0.18;
+    });
+  });
+  return (
+    <>
+      {jukebox && (
+        <group position={[-6.4, 0, -0.9]}>
+          {/* Glowing tubes up the front corners and along the crown, set
+              against the cabinet front rather than floating off it. */}
+          {[-0.34, 0.34].map((x, i) => (
+            <mesh key={x} position={[x, 0.67, 0]}>
+              <boxGeometry args={[0.06, 1.06, 0.07]} />
+              {glow(i ? '#7fe3d4' : '#ff7a85')}
+            </mesh>
+          ))}
+          <mesh position={[0, 1.24, -0.03]}>
+            <boxGeometry args={[0.74, 0.06, 0.06]} />
+            {glow('#ffd36b')}
+          </mesh>
+        </group>
+      )}
+      {candles && (
+        <group>
+          <group ref={flame}>
+            {[-3.5, 1.75].map((x) => (
+              <mesh key={x} position={[x, 1.6, -1.45]}>
+                <coneGeometry args={[0.05, 0.13, 8]} />
+                {glow('#ffc54d')}
+              </mesh>
+            ))}
+          </group>
+          {[-3.5, 1.75].map((x) => (
+            <mesh key={x} position={[x, 1.39, -1.45]} castShadow>
+              <cylinderGeometry args={[0.08, 0.09, 0.26, 12]} />
+              <meshStandardMaterial color="#fbf0dc" />
+            </mesh>
+          ))}
+          <mesh position={[2.35, 1.42, -1.5]} castShadow>
+            <cylinderGeometry args={[0.1, 0.12, 0.32, 12]} />
+            <meshStandardMaterial color="#5fb3a6" />
+          </mesh>
+          {(
+            [
+              [2.27, '#e04f5f'],
+              [2.43, '#f6b545'],
+              [2.35, '#ef7d8c'],
+            ] as const
+          ).map(([x, c], i) => (
+            <mesh key={i} position={[x, 1.66 + (i % 2) * 0.08, -1.5 + (i - 1) * 0.07]}>
+              <sphereGeometry args={[0.075, 8, 6]} />
+              <meshStandardMaterial color={c} />
+            </mesh>
+          ))}
+        </group>
+      )}
+      {art && (
+        <group>
+          <mesh position={[6.3, 2.05, -4.36]}>
+            <boxGeometry args={[1.15, 0.95, 0.08]} />
+            <meshStandardMaterial color="#f6b545" />
+          </mesh>
+          <mesh position={[6.3, 2.05, -4.3]}>
+            <boxGeometry args={[0.95, 0.75, 0.03]} />
+            <meshStandardMaterial color="#7cc6e0" />
+          </mesh>
+          <mesh position={[6.3, 1.86, -4.27]}>
+            <boxGeometry args={[0.95, 0.36, 0.03]} />
+            <meshStandardMaterial color="#3fae9c" />
+          </mesh>
+          <mesh position={[6.55, 2.2, -4.26]}>
+            <boxGeometry args={[0.16, 0.16, 0.02]} />
+            <meshStandardMaterial color="#fbf3e4" />
+          </mesh>
+          <mesh position={[-7.2, 2.0, -4.36]}>
+            <boxGeometry args={[0.62, 0.62, 0.08]} />
+            <meshStandardMaterial color="#e04f5f" />
+          </mesh>
+          <mesh position={[-7.2, 2.0, -4.3]}>
+            <boxGeometry args={[0.46, 0.46, 0.03]} />
+            <meshStandardMaterial color="#fbf3e4" />
+          </mesh>
+          <mesh position={[-7.2, 2.0, -4.27]}>
+            <boxGeometry args={[0.24, 0.24, 0.02]} />
+            <meshStandardMaterial color="#f6b545" />
+          </mesh>
+        </group>
+      )}
+    </>
   );
 }
 function Room({ guestGroups }: { guestGroups: SceneRefs['guestGroups'] }) {
@@ -457,8 +575,8 @@ function Room({ guestGroups }: { guestGroups: SceneRefs['guestGroups'] }) {
       }
     return geometry(parts);
   }, [theme]);
-  const helper = useMemo(() => geometry(personParts('helper')), []);
   const game = useGame((s) => s.game);
+  const floorPlant = useMemo(() => geometry(floorPlantParts), []);
   return (
     <>
       <Camera />
@@ -482,7 +600,8 @@ function Room({ guestGroups }: { guestGroups: SceneRefs['guestGroups'] }) {
       {game.guests.map((g) => (
         <Person guest={g} guestGroups={guestGroups} key={g.id} />
       ))}
-      <PreparationDisplay />
+      <DrinkStage />
+      <Decor />
       {game.mess > 0 && (
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[1, 1.262, -1.5]}>
           <circleGeometry args={[0.15 + game.mess * 0.03, 12]} />
@@ -491,19 +610,7 @@ function Room({ guestGroups }: { guestGroups: SceneRefs['guestGroups'] }) {
       )}
       {game.upgrades.plant && (
         <group position={[7.2, 0, 4.6]}>
-          <mesh position={[0, 0.25, 0]}>
-            <boxGeometry args={[0.6, 0.5, 0.6]} />
-            <meshStandardMaterial color="#bc7960" />
-          </mesh>
-          <mesh position={[0, 0.8, 0]}>
-            <boxGeometry args={[0.8, 0.65, 0.7]} />
-            <meshStandardMaterial color="#7c9a65" />
-          </mesh>
-        </group>
-      )}
-      {game.upgrades.barback && (
-        <group position={[3.9, 0, -2.8]}>
-          <mesh geometry={helper} material={material} />
+          <mesh geometry={floorPlant} material={material} castShadow receiveShadow />
         </group>
       )}
       <ContactShadows
@@ -544,7 +651,16 @@ function SceneProjector({ elements, guestGroups }: SceneRefs) {
       const nudge = x < half ? half - x : x > size.width - half ? size.width - half - x : 0;
       // The card is zoomed, so its own offsets are in unscaled pixels.
       element.style.setProperty('--nudge', nudge / scale + 'px');
-      element.dataset.below = String(y < 330 * scale);
+      // Open the card on the side with room for it, and slide it to stay on screen
+      // when neither side has enough (short phones).
+      const card = element.querySelector<HTMLElement>('.guest-card');
+      const tall = (card?.offsetHeight ?? 200) * scale;
+      const above = y - 134 * scale - tall;
+      const below = size.height - (y + 30 * scale + tall);
+      const under = above < 8 && below > above;
+      const shift = under ? Math.min(0, below - 8) : Math.max(0, 8 - above);
+      element.dataset.below = String(under);
+      element.style.setProperty('--lift', shift / scale + 'px');
     };
 
     for (const [id, element] of elements.current.guests) {
@@ -594,6 +710,11 @@ function SceneLabels({ elements }: { elements: SceneRefs['elements'] }) {
             }
           >
             {open && <GuestActions guest={guest} />}
+            {guest.paid && guest.status === 'leaving' && (
+              <span className={'tip-float ' + (guest.tip ? '' : 'none')} aria-hidden="true">
+                {guest.tip ? '+' + money(guest.tip) + ' tip' : 'No tip'}
+              </span>
+            )}
             <button
               className={'guest-bubble ' + guest.status}
               onClick={() => select(isSelected ? null : guest.id)}

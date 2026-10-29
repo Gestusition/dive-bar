@@ -1,0 +1,23 @@
+Sounds in /sounds
+
+Sound effects: recordings by Joseph Sardin, BigSoundBank (https://bigsoundbank.com),
+released under CC0 1.0 (public domain). Trimmed, mixed to mono, softened and
+normalized for the game.
+
+  door.mp3       Shop doorbell chime                 https://bigsoundbank.com/shop-doorbell-chime-s3588.html
+  ice-1..3.mp3   Ice cubes in a glass #2, #4, #6     https://bigsoundbank.com/sound-2123-ice-cubes-in-a-glass-1.html
+  shake.mp3      Ice cubes in a glass #1-#6, layered into a shake
+  pour.mp3       Glass of water, filling #2          https://bigsoundbank.com/glass-of-water-filling-2-s1243.html
+  glass.mp3      Glass, placed on table              https://bigsoundbank.com/detail-1204-glass-placed-on-table.html
+  register.mp3   Wooden drawer, opening + Coin in cup #1
+                                                     https://bigsoundbank.com/sound-1499-wooden-drawer-opening.html
+                                                     https://bigsoundbank.com/detail-0339-coin-in-cup-1.html
+  coin.mp3       Coin in cup #2                      https://bigsoundbank.com/coin-in-cup-2-s0340.html
+  stir.mp3       Spoon into a mug of coffee          https://bigsoundbank.com/spoon-into-a-mug-of-coffee-s0410.html
+
+Music:
+
+  jukebox.mp3    "Bossa Antigua" Kevin MacLeod (incompetech.com)
+                 Licensed under Creative Commons: By Attribution 4.0 License
+                 http://creativecommons.org/licenses/by/4.0/
+                 Mixed to mono and re-encoded for the game.

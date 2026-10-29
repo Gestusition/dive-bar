@@ -8,10 +8,18 @@ import {
   type Game,
   type Prep,
 } from './engine';
-import { recipeById, recipes, recipeMethod } from './content';
+import { recipeById, recipes, recipeMethod, roster } from './content';
 import { validateSave } from './storage';
 function ordered(): Game {
   let s = reduceGame(newGame(), { type: 'open' });
+  s.guests = [s.guests[0]];
+  Object.assign(s.guests[0], {
+    customerId: 'mara',
+    name: roster.find((g) => g.id === 'mara')!.name,
+    recipeId: 'manhattan',
+    group: 0,
+    lead: true,
+  });
   s = reduceGame(s, { type: 'guest', id: 1, operation: 'seat' });
   for (let i = 0; i < 9; i++) s = reduceGame(s, { type: 'tick', dt: 1 });
   return reduceGame(s, { type: 'guest', id: 1, operation: 'order' });
@@ -22,6 +30,7 @@ const margarita = (): Prep => ({
   ice: true,
   chilled: true,
   technique: 'shake' as const,
+  mix: 1,
 });
 const oldFashioned = (): Prep => ({
   ...emptyPrep(),
@@ -29,6 +38,7 @@ const oldFashioned = (): Prep => ({
   ice: true,
   dissolved: true,
   technique: 'stir' as const,
+  mix: 1,
   tool: 'old_fashioned_glass' as const,
   glass: 'old_fashioned_glass' as const,
   garnish: { orange_zest: 1, cocktail_cherry: 1 },
@@ -45,6 +55,7 @@ describe('real recipe rules', () => {
         chilled: true,
         dissolved: true,
         technique: method.technique,
+        mix: 1,
       };
       for (const i of r.ingredients)
         p.amounts[i.allowed[0]] = i.quantity ?? i.gameTarget!.preferred;
@@ -118,25 +129,15 @@ describe('inventory and transactions', () => {
     expect(s.cash).toBe(12700);
     expect(s.stats.tips).toBe(0);
   });
-  it('collects three exact shares with a single tip and no replayed payment', () => {
+  it('settles a tab once and credits its actual calculated tip', () => {
     let s = ordered();
-    Object.assign(s.guests[0], { status: 'pay', served: true, charge: 1400 });
-    for (const [i, amount] of [466, 466, 468].entries()) {
-      const a = {
-        type: 'guest' as const,
-        id: 1,
-        operation: 'pay' as const,
-        amountMinor: amount,
-        paymentId: 'part-' + i,
-      };
-      s = reduceGame(s, a);
-      const cash = s.cash;
-      s = reduceGame(s, a);
-      expect(s.cash).toBe(cash);
-      if (i < 2) expect(s.stats.tips).toBe(0);
-    }
-    expect(s.cash).toBe(13540);
-    expect(s.guests[0].paid).toBe(true);
+    Object.assign(s.guests[0], { status: 'pay', served: true, quality: 100, charge: 1400 });
+    const action = { type: 'guest' as const, id: 1, operation: 'pay' as const, paymentId: 'tab-1' };
+    s = reduceGame(s, action);
+    expect(s.guests[0].paidAmount).toBe(1400);
+    expect(s.cash).toBe(13400 + s.guests[0].tip);
+    expect(s.stats.tips).toBe(s.guests[0].tip);
+    expect(reduceGame(s, action)).toEqual(s);
   });
   it('preserves the snack charge when the drink is served afterwards', () => {
     let s = ordered();
@@ -149,6 +150,7 @@ describe('inventory and transactions', () => {
       tool: 'mixing_glass',
       amounts: { rye_whiskey: 50, sweet_red_vermouth: 20, angostura_bitters: 1 },
       technique: 'stir',
+      mix: 1,
       ice: true,
       chilled: true,
       garnish: { cocktail_cherry: 1 },
@@ -224,7 +226,8 @@ describe('inventory and transactions', () => {
     const cash = s.cash;
     s = reduceGame(s, { type: 'guest', id: 1, operation: 'pay' });
     expect(s.cash).toBe(cash);
-    expect(s.stats.tips).toBe(140);
+    expect(s.stats.tips).toBe(s.guests[0].tip);
+    expect(s.cash).toBe(13400 + s.stats.tips);
   });
   it('does not overdraw stock during a held pour', () => {
     let s = ordered();

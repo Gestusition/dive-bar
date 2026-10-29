@@ -1,11 +1,8 @@
 name: Quality and Pages
 on:
-  # Documentation-only changes don't touch the game, so they skip the browser run.
   pull_request:
-    paths-ignore: ['README.md', 'docs/**']
   push:
     branches: [main]
-    paths-ignore: ['README.md', 'docs/**']
   workflow_dispatch:
 
 permissions:
@@ -18,8 +15,7 @@ concurrency:
 jobs:
   checks:
     runs-on: ubuntu-24.04
-    # Four browser projects take about 12 minutes; leave room for slow runners.
-    timeout-minutes: 30
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -39,28 +35,68 @@ jobs:
           BASE_PATH: /dive-bar
           NEXT_PUBLIC_BASE_PATH: /dive-bar
       - name: Record the source revision in the tested artifact
-        run: node -e "require('fs').writeFileSync('out/build-info.json', JSON.stringify({sourceCommit:process.env.GITHUB_SHA,branch:process.env.GITHUB_REF_NAME}))"
-      # The apt mirrors occasionally stall; give up on a hung install and try once more.
-      - name: Install Playwright browsers
-        timeout-minutes: 12
-        run: |
-          for attempt in 1 2; do
-            timeout 330 bunx playwright install --with-deps chromium firefox webkit && exit 0
-            echo "Browser install attempt $attempt failed or stalled; retrying."
-          done
-          exit 1
-      - run: xvfb-run -a bun run test:e2e
+        run: node -e "require('fs').writeFileSync('out/build-info.json', JSON.stringify({version:require('./package.json').version,sourceCommit:process.env.GITHUB_SHA,branch:process.env.GITHUB_REF_NAME}))"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: static-build
+          path: out/
+          include-hidden-files: true
+          retention-days: 7
+
+  browsers:
+    needs: checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - project: desktop
+            browser: chromium
+          - project: touch
+            browser: chromium
+          - project: firefox
+            browser: firefox
+          - project: webkit
+            browser: webkit
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.4.2
+      - run: bun install --frozen-lockfile
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: static-build
+          path: out/
+      - name: Install this project's browser
+        timeout-minutes: 6
+        run: timeout 330 bunx playwright install --with-deps ${{ matrix.browser }}
+      - run: xvfb-run -a bun run test:e2e --project=${{ matrix.project }}
         env:
           LIBGL_ALWAYS_SOFTWARE: '1'
           BASE_PATH: /dive-bar
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
-          name: browser-evidence
+          name: browser-evidence-${{ matrix.project }}
           path: |
             playwright-report/
             test-results/
           retention-days: 7
+
+  pages-artifact:
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: [checks, browsers]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: static-build
+          path: out/
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         if: success() && github.ref == 'refs/heads/main'
         with:
@@ -68,7 +104,7 @@ jobs:
 
   deploy:
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
-    needs: checks
+    needs: pages-artifact
     runs-on: ubuntu-latest
     permissions:
       pages: write

@@ -28,5 +28,5 @@ export default tseslint.config(
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
     },
   },
-  { files: ['*.js', 'scripts/*.mjs'], languageOptions: { globals: globals.node } },
+  { files: ['*.js', '*.mjs', 'scripts/*.mjs'], languageOptions: { globals: globals.node } },
 );

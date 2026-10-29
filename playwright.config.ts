@@ -4,9 +4,10 @@ export default defineConfig({
   testDir: './e2e',
   timeout: 90_000,
   expect: { timeout: 15_000 },
-  fullyParallel: false,
-  workers: 1,
+  fullyParallel: true,
+  workers: process.env.CI ? 1 : 2,
   retries: process.env.CI ? 1 : 0,
+  forbidOnly: !!process.env.CI,
   reporter: [['list'], ['html', { open: 'never' }]],
   use: {
     baseURL: process.env.PLAYWRIGHT_BASE_URL ?? `http://localhost:4173${basePath}/`,

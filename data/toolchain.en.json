@@ -1,22 +1,22 @@
 {
   "schemaVersion": 1,
   "status": "implemented_see_package_lock_and_ci",
-  "decisionDate": "2026-10-24",
+  "decisionDate": "2026-10-29",
   "application": {
     "kind": "client_only_static_game",
     "ui": "react",
     "language": "typescript_strict",
-    "devBuildTool": "vite",
+    "devBuildTool": "nextjs_static_export",
     "reactMajor": 19,
     "reactThreeFiberMajor": 9,
     "three": "compatible_stable_release",
     "uiStyles": "tailwindcss_v4",
-    "tailwindIntegration": "@tailwindcss/vite",
+    "tailwindIntegration": "@tailwindcss/postcss",
     "uiComponents": "shadcn_ui_selective",
     "state": "zustand_ui_bridge_and_framework_independent_domain",
     "sceneHelpers": "@react-three/drei_selective",
-    "serverFramework": null,
-    "turbopack": false
+    "serverFramework": "nextjs_build_only",
+    "turbopack": true
   },
   "runtime": {
     "toolRuntime": "node_24_lts",
@@ -32,7 +32,7 @@
       "firefox": 128
     },
     "webgl": "WebGL2_required",
-    "note": "The supported intersection also depends on Vite output, chosen libraries and actual-device verification. CSS floors are not full-game compatibility claims."
+    "note": "The supported intersection also depends on Next.js static output, chosen libraries and actual-device verification. CSS floors are not full-game compatibility claims."
   },
   "quality": {
     "lint": "eslint",

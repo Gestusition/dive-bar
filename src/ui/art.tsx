@@ -583,3 +583,56 @@ export const GarnishArt = ({ size, id }: ArtProps & { id: string }) => (
     )}
   </Art>
 );
+
+export const JukeboxArt = ({ size }: ArtProps) => (
+  <Art size={size}>
+    <path d="M12 58V26a20 20 0 0 1 40 0v32z" fill="#e04f5f" />
+    <path d="M19 30a13 13 0 0 1 26 0v8H19z" fill="#f6b545" />
+    <rect x="19" y="42" width="26" height="10" rx="2" fill="#5fb3a6" />
+    <path d="M23 47h18" />
+  </Art>
+);
+
+export const LightsArt = ({ size }: ArtProps) => (
+  <Art size={size}>
+    <path d="M6 14c12 12 40 12 52 0" fill="none" />
+    {[
+      [12, 21, '#f6b545'],
+      [22, 26, '#e04f5f'],
+      [32, 28, '#5fb3a6'],
+      [42, 26, '#f6b545'],
+      [52, 21, '#e04f5f'],
+    ].map(([x, y, c]) => (
+      <ellipse key={x} cx={x} cy={Number(y) + 7} rx="4.5" ry="6" fill={String(c)} />
+    ))}
+    <rect x="14" y="42" width="36" height="16" rx="3" fill="#fbf3e4" />
+    <path d="M32 42v16" />
+  </Art>
+);
+
+export const FrameArt = ({ size }: ArtProps) => (
+  <Art size={size}>
+    <rect x="9" y="10" width="46" height="40" rx="4" fill="#f6b545" />
+    <rect x="16" y="17" width="32" height="26" rx="2" fill="#7cc6e0" />
+    <path d="M16 39l10-10 7 7 5-4 10 10z" fill="#3fae9c" />
+    <circle cx="40" cy="24" r="3.5" fill="#fbf3e4" />
+    <path d="M24 10l8-6 8 6" fill="none" />
+  </Art>
+);
+
+export const CandleArt = ({ size }: ArtProps) => (
+  <Art size={size}>
+    <path d="M32 6c5 6 5 11 0 14-5-3-5-8 0-14z" fill="#f6b545" />
+    <rect x="25" y="22" width="14" height="26" rx="3" fill="#fbf3e4" />
+    <path d="M14 48h36l-4 10H18z" fill="#3fae9c" />
+  </Art>
+);
+
+export const HostArt = ({ size }: ArtProps) => (
+  <Art size={size}>
+    <path d="M14 58c0-12 8-20 18-20s18 8 18 20z" fill="#5fb3a6" />
+    <circle cx="32" cy="22" r="13" fill="#f0c7a1" />
+    <path d="M19 19c2-8 8-11 13-11s11 3 13 11c-5-3-21-3-26 0z" fill="#674143" />
+    <path d="M25 44l7 4 7-4-7 7z" fill="#e04f5f" />
+  </Art>
+);

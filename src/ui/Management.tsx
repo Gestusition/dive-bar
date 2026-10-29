@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Check, Receipt, GlassWater } from 'lucide-react';
-import { recipes, prices, recipeById, money, stockItems, names, snacks } from '../game/content';
+import { Check, GlassWater } from 'lucide-react';
+import { recipes, prices, money, stockItems, names, snacks } from '../game/content';
 import { useGame } from '../game/store';
 import { Button } from '../components/ui/button';
 import { DrinkArt } from './art';
@@ -122,85 +122,6 @@ export function StockPanel() {
       </Button>
       {total > game.cash && (
         <p className="error-text">Adjust the quantities to stay within the till.</p>
-      )}
-    </>
-  );
-}
-export function PosPanel() {
-  const { game, act } = useGame();
-  const [split, setSplit] = useState(1);
-  const tabs = game.guests.filter((g) => g.charge > 0 && !g.paid);
-  return (
-    <>
-      <p className="hint">
-        Split a bill or settle it in one go. Tips are added when the tab closes.
-      </p>
-      {tabs.length ? (
-        tabs.map((g) => (
-          <div className="pos-tab" key={g.id}>
-            <div>
-              <strong>{g.name}</strong>
-              <span>{money(g.charge)}</span>
-            </div>
-            <p>
-              {recipeById(g.recipeId).name}
-              {g.food === 'served' ? ' + ' + snacks.find((n) => n.id === g.foodType)!.name : ''}
-            </p>
-            <div className="segmented">
-              {[1, 2, 3].map((n) => (
-                <button
-                  disabled={g.paidAmount > 0}
-                  key={n}
-                  aria-pressed={split === n}
-                  onClick={() => setSplit(n)}
-                >
-                  {n === 1 ? 'One bill' : n + ' ways'}
-                </button>
-              ))}
-            </div>
-            <p className="hint">
-              Paid {money(g.paidAmount)} · Remaining {money(g.charge - g.paidAmount)}
-            </p>
-            <div className="payment-shares">
-              {Array.from({ length: split }, (_, index) => {
-                const amount =
-                  Math.floor(g.charge / split) + (index === split - 1 ? g.charge % split : 0);
-                const paymentId = [game.day, g.id, split, index].join(':share:');
-                const paid = game.committed.includes(paymentId);
-                return (
-                  <Button
-                    key={index}
-                    variant={paid ? 'ghost' : 'secondary'}
-                    disabled={
-                      paid || g.status !== 'pay' || g.food === 'warming' || g.food === 'ready'
-                    }
-                    onClick={() =>
-                      act({
-                        type: 'guest',
-                        id: g.id,
-                        operation: 'pay',
-                        amountMinor: amount,
-                        paymentId,
-                      })
-                    }
-                  >
-                    {paid ? <Check size={15} /> : <Receipt size={15} />}{' '}
-                    {split === 1 ? 'Settle tab' : 'Share ' + (index + 1)} · {money(amount)}
-                  </Button>
-                );
-              })}
-            </div>
-            {g.status !== 'pay' && (
-              <small className="hint">Still drinking — they’ll be ready soon.</small>
-            )}
-          </div>
-        ))
-      ) : (
-        <div className="quiet-state">
-          <Receipt size={30} />
-          <h3>No open tabs</h3>
-          <p>Everyone has paid.</p>
-        </div>
       )}
     </>
   );
