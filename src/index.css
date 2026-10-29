@@ -55,6 +55,10 @@ body {
   margin: 0;
   overflow: hidden;
 }
+/* When coming back from the background the body may be what goes full screen. */
+body:fullscreen {
+  background: var(--night);
+}
 button,
 a,
 input,

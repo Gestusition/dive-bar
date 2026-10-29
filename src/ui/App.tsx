@@ -942,32 +942,40 @@ const wantsFullScreen = () => {
     return wantFullScreen;
   }
 };
-/** Full screen for real: some phones still report it after the app was left. */
-const reallyFullScreen = () =>
-  !!document.fullscreenElement &&
-  window.innerWidth * window.innerHeight >= screen.width * screen.height * 0.9;
-let entering = false;
+// Whether we are really full screen, tracked by the game itself. A phone always
+// drops full screen when the browser goes to the background, but some still report
+// the page as full screen afterwards, so their word is not trusted on the way back.
+let fullScreen = false;
+let entering = 0;
 function lockLandscape() {
-  if (!window.matchMedia('(pointer: coarse)').matches || entering) return;
+  if (!window.matchMedia('(pointer: coarse)').matches) return;
   wantFullScreen = true;
   try {
     sessionStorage.setItem(fullScreenKey, '1');
   } catch {
     /* Still works for this page. */
   }
-  if (reallyFullScreen() || !document.documentElement.requestFullscreen) return;
+  // One request at a time, but never stuck waiting on one that went nowhere.
+  if (fullScreen || performance.now() - entering < 1500) return;
+  // Asking for the element the browser wrongly thinks is already full screen does
+  // nothing, so a stale state asks for the body instead.
+  const stale = document.fullscreenElement;
+  const target = stale === document.documentElement ? document.body : document.documentElement;
+  if (!target.requestFullscreen) return;
   const orientation = screen.orientation as ScreenOrientation & {
     lock?: (o: 'landscape') => Promise<void>;
   };
-  entering = true;
-  // Clear a stale full screen first, then ask again from this same tap.
-  (document.fullscreenElement ? document.exitFullscreen() : Promise.resolve())
-    .catch(() => {})
-    .then(() => document.documentElement.requestFullscreen({ navigationUI: 'hide' }))
-    .then(() => orientation.lock?.('landscape'))
+  entering = performance.now();
+  // Asked right inside the tap: the browser only allows it from one.
+  target
+    .requestFullscreen({ navigationUI: 'hide' })
+    .then(() => {
+      fullScreen = true;
+      return orientation.lock?.('landscape');
+    })
     .catch(() => {})
     .finally(() => {
-      entering = false;
+      entering = 0;
     });
 }
 /**
@@ -978,17 +986,24 @@ function lockLandscape() {
 function useFullScreenComeback() {
   useEffect(() => {
     const again = () => {
-      if (wantsFullScreen() && !reallyFullScreen()) lockLandscape();
+      if (wantsFullScreen() && !fullScreen) lockLandscape();
     };
-    // Leave full screen cleanly when the game is hidden, so coming back starts fresh.
+    const changed = () => {
+      fullScreen = !!document.fullscreenElement && !document.hidden;
+    };
     const hidden = () => {
-      if (document.hidden && document.fullscreenElement) document.exitFullscreen().catch(() => {});
+      if (document.hidden) {
+        fullScreen = false;
+        entering = 0;
+      }
     };
     const events = ['pointerup', 'touchend', 'click', 'keydown'] as const;
     for (const e of events) document.addEventListener(e, again, true);
+    document.addEventListener('fullscreenchange', changed);
     document.addEventListener('visibilitychange', hidden);
     return () => {
       for (const e of events) document.removeEventListener(e, again, true);
+      document.removeEventListener('fullscreenchange', changed);
       document.removeEventListener('visibilitychange', hidden);
     };
   }, []);
