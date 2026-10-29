@@ -35,6 +35,117 @@ afterEach(() => {
 });
 
 describe('service clock and queue', () => {
+  function closing(host = false) {
+    const game = newGame();
+    game.phase = 'closing';
+    game.cash = 0;
+    game.mess = 3;
+    game.trash = 2;
+    game.dirtyGlasses = 4;
+    game.cleanGlasses = 8;
+    game.upgrades.barback = host;
+    useGame.setState({ game });
+    return game;
+  }
+  it('walks and completes manual cleanup before applying effects, without requiring restock', () => {
+    const before = closing();
+    const state = useGame.getState();
+    state.act({ type: 'wipe' });
+    state.act({ type: 'wipe' });
+    state.act({ type: 'trash' });
+    state.act({ type: 'wash' });
+    expect(useGame.getState().cleanupQueue).toEqual(['wipe', 'trash', 'wash']);
+    expect(useGame.getState().game).toEqual(before);
+    vi.advanceTimersByTime(1000);
+    expect(useGame.getState().cleanupJob).toMatchObject({
+      kind: 'wipe',
+      actor: 'bartender',
+      stage: 'working',
+    });
+    expect(useGame.getState().game.mess).toBe(3);
+    state.act({ type: 'finish' });
+    expect(useGame.getState().game.phase).toBe('closing');
+    vi.advanceTimersByTime(60000);
+    expect(useGame.getState().cleanupJob).toBeNull();
+    expect(useGame.getState().game).toMatchObject({
+      mess: 0,
+      trash: 0,
+      dirtyGlasses: 0,
+      cleanGlasses: 12,
+      cash: 0,
+      closing: { wipe: true, trash: true, restock: false },
+    });
+    state.act({ type: 'finish' });
+    expect(useGame.getState().game.phase).toBe('recap');
+    expect(useGame.getState().game.inventory).toEqual(before.inventory);
+  });
+  it('automatically assigns closing jobs to the host and carries trash to the door before clearing it', () => {
+    closing(true);
+    vi.advanceTimersByTime(250);
+    expect(useGame.getState().cleanupJob).toMatchObject({
+      kind: 'wipe',
+      actor: 'host',
+      stage: 'walking',
+    });
+    expect(useGame.getState().game.mess).toBe(3);
+    expect(useGame.getState().bartenderPosition).toEqual(initial.bartenderPosition);
+    for (let i = 0; i < 160 && useGame.getState().cleanupJob?.stage !== 'carrying'; i++)
+      vi.advanceTimersByTime(250);
+    expect(useGame.getState().cleanupJob).toMatchObject({
+      kind: 'trash',
+      actor: 'host',
+      stage: 'carrying',
+    });
+    expect(useGame.getState().game.trash).toBe(2);
+    vi.advanceTimersByTime(60000);
+    expect(useGame.getState().game).toMatchObject({
+      mess: 0,
+      trash: 0,
+      dirtyGlasses: 0,
+      cleanGlasses: 12,
+    });
+    expect(useGame.getState().cleanupJob).toBeNull();
+    expect(useGame.getState().bartenderPosition).toEqual(initial.bartenderPosition);
+    useGame.getState().act({ type: 'finish' });
+    expect(useGame.getState().game.phase).toBe('recap');
+  });
+  it('pauses cleanup progress and worker movement in dialogs and on a hidden tab', () => {
+    closing(true);
+    vi.advanceTimersByTime(1000);
+    const before = structuredClone({
+      job: useGame.getState().cleanupJob,
+      position: useGame.getState().hostPosition,
+    });
+    useGame.getState().setPanel('settings');
+    vi.advanceTimersByTime(20000);
+    expect({
+      job: useGame.getState().cleanupJob,
+      position: useGame.getState().hostPosition,
+    }).toEqual(before);
+    useGame.getState().setPanel('floor');
+    documentStub.hidden = true;
+    documentStub.dispatchEvent(new Event('visibilitychange'));
+    vi.advanceTimersByTime(20000);
+    expect({
+      job: useGame.getState().cleanupJob,
+      position: useGame.getState().hostPosition,
+    }).toEqual(before);
+  });
+  it('assigns a requested service wash to the host and restores all dirty glassware after the work', () => {
+    const game = newGame();
+    game.phase = 'service';
+    game.spawnIn = 300;
+    game.upgrades.barback = true;
+    game.dirtyGlasses = 3;
+    game.cleanGlasses = 9;
+    useGame.setState({ game });
+    vi.advanceTimersByTime(250);
+    expect(useGame.getState().cleanupJob).toMatchObject({ kind: 'wash', actor: 'host' });
+    expect(useGame.getState().game.dirtyGlasses).toBe(3);
+    vi.advanceTimersByTime(20000);
+    expect(useGame.getState().game.dirtyGlasses).toBe(0);
+    expect(useGame.getState().game.cleanGlasses).toBe(12);
+  });
   it('replaces an upgraded save and transient work immediately when starting a new bar', async () => {
     const old = newGame();
     old.day = 9;
@@ -50,6 +161,8 @@ describe('service clock and queue', () => {
       mixing: 'shake',
       pouring: { id: 'gin', at: 1 },
       tasks: [{ id: 99, operation: 'seat', left: 1 }],
+      cleanupJob: { kind: 'wipe', actor: 'host', stage: 'working', left: 1 },
+      cleanupQueue: ['trash'],
       saveError: 'Old error',
     });
     useGame.getState().start(true);
@@ -69,6 +182,8 @@ describe('service clock and queue', () => {
       mixing: null,
       pouring: null,
       tasks: [],
+      cleanupJob: null,
+      cleanupQueue: [],
       saveError: '',
     });
     await vi.waitFor(() => expect(saveGame).toHaveBeenCalledWith(state.game));

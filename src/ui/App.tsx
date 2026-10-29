@@ -1,4 +1,5 @@
 import Station from './Station';
+import { cleanupInfo, cleanupLabel } from '../game/cleanup';
 import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   ArrowRight,
@@ -498,7 +499,11 @@ function HelpPanel() {
       'Get paid',
       'Settle the bill. Friends say how they want to split it, so listen. Tips show up as they pay.',
     ],
-    [<BellArt key="b" size={30} />, 'Close up', 'Clean, restock and start the next night.'],
+    [
+      <BellArt key="b" size={30} />,
+      'Close up',
+      'Finish cleanup and start the next night. Restocking is optional.',
+    ],
   ];
   return (
     <div className="help-content">
@@ -566,20 +571,20 @@ function OpeningCard() {
   );
 }
 function ClosingCard() {
-  const { game, setPanel, act } = useGame();
+  const { game, setPanel, act, cleanupJob, cleanupQueue } = useGame();
   const items = [
     {
       key: 'wipe',
       label: 'Wipe counter',
       art: <SpongeArt size={32} />,
-      done: game.closing.wipe,
+      done: game.closing.wipe && game.mess === 0,
       run: () => act({ type: 'wipe' }),
     },
     {
       key: 'trash',
       label: 'Take out trash',
       art: <TrashArt size={32} />,
-      done: game.closing.trash,
+      done: game.closing.trash && game.trash === 0,
       run: () => act({ type: 'trash' }),
     },
     {
@@ -601,19 +606,62 @@ function ClosingCard() {
     <Section title="Closing time">
       <div className="checklist">
         {items.map((item) => (
-          <button key={item.key} className={item.done ? 'done' : ''} onClick={item.run}>
+          <button
+            key={item.key}
+            className={item.done ? 'done' : ''}
+            onClick={item.run}
+            disabled={
+              item.key !== 'restock' &&
+              (item.done ||
+                cleanupJob?.kind === item.key ||
+                cleanupQueue.some((kind) => kind === item.key))
+            }
+          >
             {item.art}
-            <span>{item.label}</span>
+            <span>
+              {item.label}
+              {item.key === 'restock' && <small className="hint"> · Optional</small>}
+              {cleanupJob?.kind === item.key && <small className="hint"> · In progress</small>}
+              {cleanupQueue.some((kind) => kind === item.key) && (
+                <small className="hint"> · Queued</small>
+              )}
+            </span>
             <i>{item.done ? <Check size={16} strokeWidth={3} /> : null}</i>
           </button>
         ))}
       </div>
+      <CleanupStatus />
+      <p className="hint">
+        {game.upgrades.barback
+          ? 'Your host handles cleanup automatically.'
+          : 'The bartender walks over and completes each cleanup job.'}{' '}
+        Restock whenever you need supplies; it is optional for closing.
+      </p>
       <div className="section-actions">
-        <Button onClick={() => act({ type: 'finish' })}>
+        <Button
+          disabled={!!cleanupJob || cleanupQueue.length > 0}
+          onClick={() => act({ type: 'finish' })}
+        >
           Close the bar <ArrowRight size={16} />
         </Button>
       </div>
     </Section>
+  );
+}
+function CleanupStatus() {
+  const job = useGame((s) => s.cleanupJob);
+  if (!job) return null;
+  return (
+    <div className="cleanup-status" role="status" aria-live="polite">
+      <span>{cleanupLabel(job)}</span>
+      {(job.stage === 'working' || job.stage === 'emptying') && (
+        <progress
+          aria-label="Cleanup progress"
+          max={job.stage === 'emptying' ? 1.5 : cleanupInfo[job.kind].seconds}
+          value={(job.stage === 'emptying' ? 1.5 : cleanupInfo[job.kind].seconds) - job.left}
+        />
+      )}
+    </div>
   );
 }
 function RecapCard() {
@@ -913,7 +961,8 @@ function floorGuide(game: Game, walking: boolean): string | null {
   if (!game.settings.hints || game.day > 2) return null;
   if (game.phase === 'opening')
     return 'Open “Get ready”, check tonight’s menu, then tap Open the bar.';
-  if (game.phase === 'closing') return 'Open “Closing” and tick off every job, then close the bar.';
+  if (game.phase === 'closing')
+    return 'Finish cleanup, then close the bar. Restocking is optional.';
   if (game.phase === 'recap')
     return 'Night done! Decor raises your tips. Start the next night when you’re ready.';
   if (walking) return null;
@@ -1145,6 +1194,7 @@ export default function App() {
           <BarScene />
         </Suspense>
         <div className="top-center">
+          {game.phase !== 'closing' && <CleanupStatus />}
           {!atStation && floorGuide(game, tasks.length > 0) && (
             <p className="floor-guide" role="status">
               <Lightbulb size={16} strokeWidth={2.5} />

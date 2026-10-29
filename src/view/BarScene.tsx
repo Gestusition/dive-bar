@@ -5,7 +5,8 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { useGame } from '../game/store';
 import type { Guest } from '../game/engine';
-import { hostDestination, hostHome, type HostVisit } from '../game/host';
+import { hostHome } from '../game/host';
+import { cleanupInfo } from '../game/cleanup';
 import {
   advanceWalk,
   bartenderHome,
@@ -34,6 +35,7 @@ type SceneRefs = {
   elements: { current: OverlayElements };
   guestGroups: { current: Map<number, THREE.Group> };
 };
+type StaffRefs = { current: Partial<Record<'host' | 'bartender', THREE.Group | null>> };
 const oak = '#805137',
   dark = '#50352e',
   brass = '#c9995d',
@@ -335,20 +337,31 @@ function Person({ guest, guestGroups }: { guest: Guest; guestGroups: SceneRefs['
     </group>
   );
 }
-function Bartender() {
+function Bartender({ staff }: { staff: StaffRefs }) {
   const ref = useRef<THREE.Group>(null);
   const body = useMemo(() => geometry(personParts('bartender', true)), []);
   useFrame(({ clock }, delta) => {
     if (!ref.current) return;
     const s = useGame.getState();
+    if (s.title || s.paused || !['floor', 'station'].includes(s.panel)) return;
     const current = ref.current.position;
-    const next = s.game.settings.reducedMotion
-      ? s.bartenderPosition
-      : advanceWalk([current.x, current.z], s.bartenderPosition, delta * walkingSpeed);
+    const atCleanupStation =
+      s.cleanupJob?.actor === 'bartender' && ['working', 'emptying'].includes(s.cleanupJob.stage);
+    const next =
+      s.game.settings.reducedMotion || atCleanupStation
+        ? s.bartenderPosition
+        : s.cleanupJob?.actor === 'bartender'
+          ? stepAlong(
+              [current.x, current.z],
+              guestPath([current.x, current.z], s.bartenderPosition),
+              delta * walkingSpeed,
+            ).position
+          : advanceWalk([current.x, current.z], s.bartenderPosition, delta * walkingSpeed);
     const moving = Math.hypot(next[0] - current.x, next[1] - current.z) > 0.001;
     {
       // Standing still, turn back to face the room.
-      const angle = moving ? Math.atan2(next[0] - current.x, next[1] - current.z) : 0;
+      const angle =
+        moving && !atCleanupStation ? Math.atan2(next[0] - current.x, next[1] - current.z) : 0;
       const difference = Math.atan2(
         Math.sin(angle - ref.current.rotation.y),
         Math.cos(angle - ref.current.rotation.y),
@@ -358,9 +371,22 @@ function Bartender() {
     current.set(next[0], 0.08, next[1]);
     ref.current.rotation.z =
       moving && !s.game.settings.reducedMotion ? Math.sin(clock.elapsedTime * 10) * 0.04 : 0;
+    if (
+      s.cleanupJob?.actor === 'bartender' &&
+      s.cleanupJob.stage === 'working' &&
+      !s.paused &&
+      !s.game.settings.reducedMotion
+    )
+      ref.current.rotation.z = Math.sin(clock.elapsedTime * 8) * 0.07;
   });
   return (
-    <group ref={ref} position={[bartenderHome[0], 0.08, bartenderHome[1]]}>
+    <group
+      ref={(group) => {
+        ref.current = group;
+        staff.current.bartender = group;
+      }}
+      position={[bartenderHome[0], 0.08, bartenderHome[1]]}
+    >
       <mesh geometry={body} material={material} scale={[1, 1.2, 1]} castShadow />
     </group>
   );
@@ -432,37 +458,171 @@ const glow = (color: string) => (
   <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.55} />
 );
 /** The hired host walks inside the room, independently of the side walls. */
-function Host() {
+function Host({ staff }: { staff: StaffRefs }) {
   const ref = useRef<THREE.Group>(null);
   const body = useMemo(() => geometry(personParts('host')), []);
   const floor = useRef<FloorPoint>([...hostHome]);
-  const visit = useRef<HostVisit | null>(null);
   const path = useRef<{ to: string; points: FloorPoint[] }>({ to: '', points: [] });
   useFrame(({ clock }, delta) => {
     const state = useGame.getState();
     if (!ref.current || state.title || state.paused || !['floor', 'station'].includes(state.panel))
       return;
-    const next = hostDestination(state.game.guests, visit.current, floor.current);
-    visit.current = next.visit;
-    const key = next.target.join(',');
+    const target = state.hostPosition;
+    const key = target.join(',');
     if (path.current.to !== key)
-      path.current = { to: key, points: guestPath(floor.current, next.target) };
+      path.current = { to: key, points: guestPath(floor.current, target) };
     const before = floor.current;
     const walk = stepAlong(before, path.current.points, guestSpeed * Math.min(delta, 0.1));
-    floor.current = state.game.settings.reducedMotion ? [...next.target] : walk.position;
+    const atCleanupStation =
+      state.cleanupJob?.actor === 'host' &&
+      ['working', 'emptying'].includes(state.cleanupJob.stage);
+    floor.current =
+      state.game.settings.reducedMotion || atCleanupStation ? [...target] : walk.position;
     path.current.points = walk.path;
     const dx = floor.current[0] - before[0],
       dz = floor.current[1] - before[1];
     const moving = Math.hypot(dx, dz) > 1e-6;
     ref.current.position.set(floor.current[0], 0, floor.current[1]);
     if (moving) ref.current.rotation.y = Math.atan2(dx, dz);
+    if (atCleanupStation) ref.current.rotation.y = 0;
     ref.current.rotation.z =
       moving && !state.game.settings.reducedMotion ? Math.sin(clock.elapsedTime * 9) * 0.045 : 0;
+    if (
+      state.cleanupJob?.actor === 'host' &&
+      state.cleanupJob.stage === 'working' &&
+      !state.game.settings.reducedMotion
+    )
+      ref.current.rotation.z = Math.sin(clock.elapsedTime * 8) * 0.07;
   });
   return (
-    <group ref={ref} position={[hostHome[0], 0, hostHome[1]]}>
-      <mesh geometry={body} material={material} castShadow />
+    <group
+      ref={(group) => {
+        ref.current = group;
+        staff.current.host = group;
+      }}
+      position={[hostHome[0], 0, hostHome[1]]}
+    >
+      <mesh geometry={body} material={material} scale={[1, 1.2, 1]} castShadow />
     </group>
+  );
+}
+/** Physical tools make each maintenance job visible in the room. */
+function CleanupProps({ staff }: { staff: StaffRefs }) {
+  const job = useGame((s) => s.cleanupJob);
+  const dirty = useGame((s) => s.game.dirtyGlasses);
+  const trash = useGame((s) => s.game.trash);
+  const tool = useRef<THREE.Group>(null);
+  const elapsed = useRef(0);
+  useFrame((_, delta) => {
+    if (!tool.current || !job) return;
+    const state = useGame.getState();
+    if (!state.paused && !state.title && ['floor', 'station'].includes(state.panel))
+      elapsed.current += delta;
+    const t = state.game.settings.reducedMotion ? 0 : elapsed.current;
+    if (job.kind === 'trash') {
+      const position = job.actor === 'host' ? state.hostPosition : state.bartenderPosition;
+      const actor = staff.current[job.actor];
+      tool.current.position.set(
+        (actor?.position.x ?? position[0]) + 0.45,
+        0.5,
+        actor?.position.z ?? position[1],
+      );
+    } else {
+      const [x] = cleanupInfo[job.kind].position;
+      tool.current.position.set(
+        x + (job.kind === 'wipe' ? Math.sin(t * 7) * 0.75 : Math.sin(t * 5) * 0.12),
+        1.34,
+        -1.65,
+      );
+      tool.current.rotation.z = job.kind === 'wash' ? Math.sin(t * 6) * 0.25 : 0;
+    }
+  });
+  const working = job?.stage === 'working';
+  return (
+    <>
+      <group position={[-2.6, 1.28, -1.7]}>
+        <mesh>
+          <boxGeometry args={[0.9, 0.12, 0.65]} />
+          <meshStandardMaterial color="#819a98" />
+        </mesh>
+        <mesh position={[0, 0.065, 0]}>
+          <boxGeometry args={[0.68, 0.025, 0.45]} />
+          <meshStandardMaterial color={working && job.kind === 'wash' ? '#a7e7ec' : '#435d63'} />
+        </mesh>
+        <mesh position={[0, 0.3, -0.27]}>
+          <boxGeometry args={[0.06, 0.5, 0.06]} />
+          <meshStandardMaterial color="#c1d4cf" />
+        </mesh>
+        {working && job.kind === 'wash' && (
+          <mesh position={[0, 0.22, -0.12]}>
+            <cylinderGeometry args={[0.025, 0.035, 0.3, 8]} />
+            <meshStandardMaterial color="#a5e6ef" transparent opacity={0.7} />
+          </mesh>
+        )}
+        {dirty > 0 && (
+          <mesh position={[0.5, 0.14, 0]}>
+            <cylinderGeometry args={[0.12, 0.1, 0.25, 8]} />
+            <meshStandardMaterial color="#9da995" />
+          </mesh>
+        )}
+      </group>
+      <group position={[4.6, 0.4, -3.05]}>
+        <mesh>
+          <cylinderGeometry args={[0.3, 0.24, 0.8, 10]} />
+          <meshStandardMaterial color="#476c62" />
+        </mesh>
+        <mesh position={[0, 0.42, 0]}>
+          <cylinderGeometry args={[0.33, 0.33, 0.06, 10]} />
+          <meshStandardMaterial color={trash > 0 ? '#423d3e' : '#8da79a'} />
+        </mesh>
+      </group>
+      {job && (working || job.stage === 'carrying' || job.stage === 'emptying') && (
+        <group ref={tool}>
+          {job.kind !== 'trash' && (
+            <>
+              <mesh position={[0.08, 0.12, -0.08]}>
+                <boxGeometry args={[0.19, 0.13, 0.2]} />
+                <meshStandardMaterial color="#db9e78" />
+              </mesh>
+              <mesh position={[0.08, 0.14, -0.3]}>
+                <boxGeometry args={[0.2, 0.16, 0.3]} />
+                <meshStandardMaterial color={job.actor === 'host' ? '#d2a054' : cream} />
+              </mesh>
+            </>
+          )}
+          {job.kind === 'wipe' ? (
+            <mesh>
+              <boxGeometry args={[0.38, 0.08, 0.28]} />
+              <meshStandardMaterial color="#f6d26f" />
+            </mesh>
+          ) : job.kind === 'trash' ? (
+            <>
+              <mesh>
+                <sphereGeometry args={[0.3, 8, 6]} />
+                <meshStandardMaterial color="#353f43" />
+              </mesh>
+              <mesh position={[0, 0.3, 0]}>
+                <boxGeometry args={[0.12, 0.13, 0.1]} />
+                <meshStandardMaterial color="#353f43" />
+              </mesh>
+            </>
+          ) : (
+            <>
+              <mesh>
+                <cylinderGeometry args={[0.13, 0.1, 0.3, 10]} />
+                <meshStandardMaterial color="#d7f2ed" transparent opacity={0.8} />
+              </mesh>
+              {[-0.2, 0, 0.2].map((x) => (
+                <mesh key={x} position={[x, 0.2 + Math.abs(x), 0.1]}>
+                  <sphereGeometry args={[0.06, 8, 6]} />
+                  <meshStandardMaterial color="#eefcfa" />
+                </mesh>
+              ))}
+            </>
+          )}
+        </group>
+      )}
+    </>
   );
 }
 /** String lights attached to the responsive front door once bought. */
@@ -592,6 +752,7 @@ function Decor() {
   );
 }
 function Room({ guestGroups }: { guestGroups: SceneRefs['guestGroups'] }) {
+  const staff = useRef<StaffRefs['current']>({});
   const theme = useGame((s) => s.game.settings.theme);
   const room = useMemo(() => {
     const parts = roomParts();
@@ -624,8 +785,9 @@ function Room({ guestGroups }: { guestGroups: SceneRefs['guestGroups'] }) {
       <mesh geometry={room} material={material} receiveShadow castShadow />
       <Sign lit={game.upgrades.neon} />
       <SideWalls />
-      <Bartender />
-      {game.upgrades.barback && <Host />}
+      <Bartender staff={staff} />
+      <CleanupProps staff={staff} />
+      {game.upgrades.barback && <Host staff={staff} />}
       {game.guests.map((g) => (
         <Person guest={g} guestGroups={guestGroups} key={g.id} />
       ))}

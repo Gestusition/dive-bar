@@ -494,10 +494,6 @@ function tick(s: Game, dt: number) {
     const door = s.guests.find((g) => g.status === 'waiting' && g.lead && g.remaining < 87);
     if (door && !seatProblem(s, door) && seatParty(s, door))
       s.notice = 'Your host showed ' + names(party(s, door)) + ' to a seat.';
-    if (s.dirtyGlasses > 0 && Math.floor(s.seconds / 4) !== Math.floor((s.seconds - t) / 4)) {
-      s.dirtyGlasses--;
-      s.cleanGlasses++;
-    }
   }
   if (s.seconds >= 360 && !s.guests.some((g) => g.status !== 'leaving')) {
     s.phase = 'closing';
@@ -658,10 +654,13 @@ export function reduceGame(current: Game, a: Action): Game {
       note('Last orders called. Finish confirmed drinks and settle the tabs.');
       if (!s.guests.length) s.phase = 'closing';
     } else if (s.phase === 'closing') {
-      if (s.closing.wipe && s.closing.trash && s.closing.restock && !s.dirtyGlasses) {
+      if (s.closing.wipe && s.closing.trash && !s.mess && !s.trash && !s.dirtyGlasses) {
         s.phase = 'recap';
         note('Lights low. Till counted. A night to remember.');
-      } else note('Wipe, clear trash, wash glasses and check stock before you close.');
+      } else
+        note(
+          'Finish wiping, taking out trash and washing glasses before you close. Restocking is optional.',
+        );
     }
   }
   if (a.type === 'buy') {

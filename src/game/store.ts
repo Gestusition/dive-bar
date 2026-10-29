@@ -9,10 +9,15 @@ import {
   type Guest,
 } from './engine';
 import { conversations } from './content';
+import { cleanupInfo, cleanupTarget, type CleanupJob, type CleanupKind } from './cleanup';
+import { hostDestination, hostHome, type HostVisit } from './host';
 import { play, setMusic, setSoundSwitch } from './audio';
 import { clearSave, decodeBackup, loadSave, MAX_BACKUP_BYTES, saveGame } from './storage';
 import {
   advanceWalk,
+  guestPath,
+  guestSpeed,
+  stepAlong,
   bartenderHome,
   servicePosition,
   walkingSpeed,
@@ -43,6 +48,11 @@ interface Store {
     split?: 'one' | 'split';
   }[];
   bartenderPosition: FloorPoint;
+  hostPosition: FloorPoint;
+  hostVisit: HostVisit | null;
+  cleanupJob: CleanupJob | null;
+  cleanupQueue: CleanupKind[];
+  queueCleanup: (kind: CleanupKind) => void;
   act: (a: Action) => void;
   setPanel: (p: Panel) => void;
   select: (id: number | null) => void;
@@ -133,7 +143,28 @@ export const useGame = create<Store>((set, get) => ({
   pouring: null,
   tasks: [],
   bartenderPosition: [...bartenderHome],
+  hostPosition: [...hostHome],
+  hostVisit: null,
+  cleanupJob: null,
+  cleanupQueue: [],
+  queueCleanup: (kind) => {
+    const s = get();
+    if (s.cleanupJob?.kind === kind || s.cleanupQueue.includes(kind)) return;
+    if (kind === 'wash' && !s.game.dirtyGlasses) return;
+    if (
+      s.game.phase === 'closing' &&
+      kind !== 'wash' &&
+      s.game.closing[kind] &&
+      (kind === 'wipe' ? s.game.mess === 0 : s.game.trash === 0)
+    )
+      return;
+    set({ cleanupQueue: [...s.cleanupQueue, kind] });
+  },
   act: (a) => {
+    if (a.type === 'wipe' || a.type === 'trash' || a.type === 'wash') {
+      get().queueCleanup(a.type);
+      return;
+    }
     const before = get().game;
     // Each new night and each opening draws fresh randomness from the device.
     if (a.type === 'start' || a.type === 'open' || a.type === 'nextDay') a = { ...a, seed: seed() };
@@ -156,6 +187,10 @@ export const useGame = create<Store>((set, get) => ({
         hasSave: true,
         tasks: [],
         bartenderPosition: [...bartenderHome],
+        hostPosition: [...hostHome],
+        hostVisit: null,
+        cleanupJob: null,
+        cleanupQueue: [],
         selected: null,
         dialogue: null,
         mixing: null,
@@ -170,7 +205,17 @@ export const useGame = create<Store>((set, get) => ({
   // Save and go back to the title screen; Continue picks up from here.
   toTitle: () => {
     persist(get().game);
-    set({ title: true, hasSave: true, paused: false, panel: 'floor', tasks: [], selected: null });
+    set({
+      title: true,
+      hasSave: true,
+      paused: false,
+      panel: 'floor',
+      tasks: [],
+      selected: null,
+      cleanupJob: null,
+      cleanupQueue: [],
+      hostVisit: null,
+    });
   },
   pause: () => set((s) => ({ paused: !s.paused })),
   boot: async () => {
@@ -238,6 +283,10 @@ export const useGame = create<Store>((set, get) => ({
       panel: 'floor',
       tasks: [],
       bartenderPosition: [...bartenderHome],
+      hostPosition: [...hostHome],
+      hostVisit: null,
+      cleanupJob: null,
+      cleanupQueue: [],
       dialogue: null,
     });
     persist(game);
@@ -248,6 +297,18 @@ export function startClock() {
     const s = useGame.getState();
     if (s.title || s.paused || reading.has(s.panel)) return;
     s.act({ type: 'tick', dt: 0.25 });
+    advanceCleanup();
+    const current = useGame.getState();
+    if (current.game.upgrades.barback && current.cleanupJob?.actor !== 'host') {
+      const next = hostDestination(current.game.guests, current.hostVisit, current.hostPosition);
+      const walk = stepAlong(
+        current.hostPosition,
+        guestPath(current.hostPosition, next.target),
+        guestSpeed * 0.25,
+      );
+      useGame.setState({ hostPosition: walk.position, hostVisit: next.visit });
+    }
+    if (useGame.getState().cleanupJob?.actor === 'bartender') return;
     const before = useGame.getState().tasks;
     const guests = useGame.getState().game.guests;
     // Drop anything that no longer needs doing, such as an order a friend already gave.
@@ -309,4 +370,59 @@ export function startClock() {
     setMusic(false);
     document.removeEventListener('visibilitychange', hide);
   };
+}
+
+/** Work progresses on the same pausable clock as service; effects commit only on completion. */
+function advanceCleanup() {
+  let s = useGame.getState();
+  if (s.game.upgrades.barback) {
+    if (s.game.phase === 'closing') {
+      if (!s.game.closing.wipe || s.game.mess > 0) s.queueCleanup('wipe');
+      if (!s.game.closing.trash || s.game.trash > 0) s.queueCleanup('trash');
+    }
+    if (s.game.dirtyGlasses > 0 && !s.game.guests.some((g) => g.status === 'waiting'))
+      s.queueCleanup('wash');
+  }
+  s = useGame.getState();
+  if (!s.cleanupJob && s.cleanupQueue.length) {
+    const kind = s.cleanupQueue[0];
+    useGame.setState({
+      cleanupJob: {
+        kind,
+        actor: s.game.upgrades.barback ? 'host' : 'bartender',
+        stage: 'walking',
+        left: cleanupInfo[kind].seconds,
+      },
+      cleanupQueue: s.cleanupQueue.slice(1),
+    });
+    s = useGame.getState();
+  }
+  if (!s.cleanupJob) return;
+  const job = { ...s.cleanupJob };
+  const positionKey = job.actor === 'host' ? 'hostPosition' : 'bartenderPosition';
+  const target = cleanupTarget(job);
+  const next = stepAlong(
+    s[positionKey],
+    guestPath(s[positionKey], target),
+    (job.actor === 'host' ? guestSpeed : walkingSpeed) * 0.25,
+  ).position;
+  useGame.setState({ [positionKey]: next });
+  if (Math.hypot(next[0] - target[0], next[1] - target[1]) > 0.001) return;
+  if (job.stage === 'walking') job.stage = 'working';
+  else if (job.stage === 'carrying') {
+    job.stage = 'emptying';
+    job.left = 1.5;
+  } else {
+    job.left -= 0.25;
+    if (job.left <= 0) {
+      if (job.kind === 'trash' && job.stage === 'working') job.stage = 'carrying';
+      else {
+        const game = reduceGame(useGame.getState().game, { type: job.kind });
+        useGame.setState({ game, cleanupJob: null });
+        persist(game);
+        return;
+      }
+    }
+  }
+  useGame.setState({ cleanupJob: job });
 }

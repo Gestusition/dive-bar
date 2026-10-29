@@ -4,7 +4,7 @@ import { hostDestination, hostHome } from './host';
 import { guestPath, seatApproach, stepAlong } from './navigation';
 
 describe('hired host', () => {
-  it('starts unowned and charges exactly once before enabling seating and washing', () => {
+  it('starts unowned, charges exactly once and leaves washing to the timed worker queue', () => {
     let game = reduceGame(newGame(), { type: 'open' });
     game.spawnIn = 300;
     game.dirtyGlasses = 1;
@@ -19,7 +19,7 @@ describe('hired host', () => {
     for (let i = 0; i < 16; i++) game = reduceGame(game, { type: 'tick', dt: 0.25 });
     expect(game.guests[0].status).toBe('reading');
     expect(game.guests[0].seat).toBeGreaterThanOrEqual(0);
-    expect(game.dirtyGlasses).toBe(0);
+    expect(game.dirtyGlasses).toBe(1);
   });
 
   it('greets a waiting lead, walks to the assigned seat and returns home', () => {

@@ -3,6 +3,13 @@ import { execFileSync } from 'node:child_process';
 import { mkdirSync } from 'node:fs';
 import { unseal } from '../src/game/seal';
 const storyBackup = execFileSync('bun', ['run', 'scripts/test-fixture.ts']);
+const closingBackup = execFileSync('bun', ['run', 'scripts/test-fixture.ts', '--closing']);
+const hostedClosingBackup = execFileSync('bun', [
+  'run',
+  'scripts/test-fixture.ts',
+  '--closing',
+  '--host',
+]);
 
 // Jump no further than the simulation's 250 ms interval: every service tick still
 // runs, while redundant intermediate animation frames are coalesced by the clock.
@@ -17,14 +24,14 @@ async function hold(page: Page, name: string, milliseconds: number) {
   await page.clock.runFor(milliseconds);
   await page.keyboard.up('Space');
 }
-async function importNight(page: Page) {
+async function importNight(page: Page, buffer = storyBackup) {
   // A normal signed backup gives story tests a known guest, without exposing or
   // changing the production store or replacing gameplay randomness.
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
   await page.locator('input[type=file]').setInputFiles({
     name: 'story.divebar',
     mimeType: 'application/octet-stream',
-    buffer: storyBackup,
+    buffer,
   });
   await page.getByRole('button', { name: 'Continue', exact: true }).click();
   // Import preserves the drawer the player had open. Close it before trying to
@@ -303,13 +310,90 @@ test('last call, closing checklist and the next night form a complete loop', asy
   await expect(page.getByRole('heading', { name: 'Closing time' })).toBeVisible();
   await page.getByRole('button', { name: 'Wipe counter', exact: true }).click();
   await page.getByRole('button', { name: 'Take out trash', exact: true }).click();
-  await page.getByRole('button', { name: 'Restock shelves', exact: true }).click();
-  await page.getByRole('button', { name: 'Done, nothing to buy', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Close the bar' })).toBeDisabled();
+  await advanceService(page, 30000);
+  await expect(page.locator('.checklist button').filter({ hasText: 'Wipe counter' })).toHaveClass(
+    'done',
+  );
+  await expect(page.locator('.checklist button').filter({ hasText: 'Take out trash' })).toHaveClass(
+    'done',
+  );
+  await expect(
+    page.locator('.checklist button').filter({ hasText: 'Restock shelves' }),
+  ).not.toHaveClass('done');
   await page.getByRole('button', { name: 'Close the bar' }).click();
   await expect(page.getByRole('heading', { name: 'Night 1 complete' })).toBeVisible();
   await page.getByRole('button', { name: 'Next night' }).click();
   await expect(page.getByRole('heading', { name: 'Get ready' })).toBeVisible();
 });
+for (const host of [false, true]) {
+  test(`closing cleanup has visible progress and ${host ? 'automatic host' : 'manual bartender'} work without restocking`, async ({
+    page,
+  }) => {
+    await enter(page);
+    await importNight(page, host ? hostedClosingBackup : closingBackup);
+    await page.getByRole('button', { name: 'Closing', exact: true }).click();
+    if (!host) {
+      await page.getByRole('button', { name: 'Wipe counter', exact: true }).click();
+      await page.getByRole('button', { name: 'Take out trash', exact: true }).click();
+      await page.getByRole('button', { name: 'Wash glasses', exact: true }).click();
+    }
+    for (
+      let i = 0;
+      i < 100 && !(await page.getByRole('progressbar', { name: 'Cleanup progress' }).count());
+      i++
+    )
+      await advanceService(page, 250);
+    await expect(page.getByRole('button', { name: 'Close the bar' })).toBeDisabled();
+    await expect(
+      page.locator('.checklist button').filter({ hasText: 'Wipe counter' }),
+    ).not.toHaveClass('done');
+    await expect(page.getByRole('progressbar', { name: 'Cleanup progress' })).toBeVisible();
+    await page.screenshot({ path: test.info().outputPath('cleanup-working.png') });
+    await page.getByRole('button', { name: 'Pause', exact: true }).click();
+    const progress = await page
+      .getByRole('progressbar', { name: 'Cleanup progress' })
+      .getAttribute('value');
+    await advanceService(page, 10000);
+    await expect(page.getByRole('progressbar', { name: 'Cleanup progress' })).toHaveAttribute(
+      'value',
+      progress!,
+    );
+    await page
+      .locator('.pause-overlay')
+      .getByRole('button', { name: 'Resume', exact: true })
+      .click();
+    const carrying = page.locator('.cleanup-status').filter({ hasText: 'carrying trash' });
+    for (let i = 0; i < 160 && !(await carrying.count()); i++) await advanceService(page, 250);
+    await expect(carrying).toBeVisible();
+    await expect(
+      page.locator('.checklist button').filter({ hasText: 'Take out trash' }),
+    ).not.toHaveClass('done');
+    await advanceService(page, 1500);
+    await page.screenshot({ path: test.info().outputPath('cleanup-trash.png') });
+    const washing = page.locator('.cleanup-status').filter({ hasText: 'Washing glasses' });
+    for (let i = 0; i < 160 && !(await washing.count()); i++) await advanceService(page, 250);
+    await expect(washing).toBeVisible();
+    await expect(page.getByRole('progressbar', { name: 'Cleanup progress' })).toBeVisible();
+    await page.screenshot({ path: test.info().outputPath('cleanup-washing.png') });
+    for (
+      let i = 0;
+      i < 240 && (await page.getByRole('button', { name: 'Close the bar' }).isDisabled());
+      i++
+    )
+      await advanceService(page, 250);
+    for (const label of ['Wipe counter', 'Take out trash', 'Wash glasses'])
+      await expect(page.locator('.checklist button').filter({ hasText: label })).toHaveClass(
+        'done',
+      );
+    await expect(
+      page.locator('.checklist button').filter({ hasText: 'Restock shelves' }),
+    ).not.toHaveClass('done');
+    await expect(page.locator('.cash')).toHaveText('$0.00');
+    await page.getByRole('button', { name: 'Close the bar' }).click();
+    await expect(page.getByRole('heading', { name: 'Night 1 complete' })).toBeVisible();
+  });
+}
 test('fresh profiles and New game start with an unowned shop and persist the reset', async ({
   page,
 }) => {

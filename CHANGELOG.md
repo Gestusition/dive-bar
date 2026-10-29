@@ -2,10 +2,17 @@
 
 All notable changes are recorded here. Versions describe tagged source releases; GitHub Pages follows `main` and may show a different revision. This project is still an early playable release.
 
-## Unreleased
+## Unreleased — planned 0.0.3
+
+In development and not ready for release. The changes below belong to the ongoing 0.0.3 update; they do not represent a tagged or published version.
+
+### Added
+
+- Timed cleanup jobs with staff walking, a wiping sponge, a working sink and glass-washing animation, a carried trash bag, and visible progress. Hired hosts automatically handle closing cleanup; otherwise the bartender performs requested jobs. Work pauses with the game and reading dialogs.
 
 ### Fixed
 
+- Restocking no longer blocks closing the bar, including when the till cannot cover more supplies. Cleanup ticks appear only after the worker completes the job.
 - Fresh profiles and new games no longer receive every decor upgrade and the host for free. New game clears transient service state and immediately replaces the previous local save.
 - The hired host is positioned inside the room independently of responsive side walls and walks to greet guests, escort them to their seats and return.
 

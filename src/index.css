@@ -1502,6 +1502,21 @@ a {
   font-size: 15px;
   color: var(--ink-soft);
 }
+.cleanup-status {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.6rem 0.8rem;
+  border: 2px solid var(--ink, #302331);
+  border-radius: 1rem;
+  background: #fbe5b4;
+  color: #302331;
+  font-size: 0.85rem;
+}
+.cleanup-status progress {
+  width: 100%;
+  height: 0.6rem;
+  accent-color: #478f83;
+}
 .shop-item.owned {
   background: #dcefcf;
 }
