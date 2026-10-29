@@ -389,3 +389,122 @@
     padding: 7px 10px;
   }
 }
+
+/* Bartending hints: one line saying what to do, and a pulse on the thing to tap. */
+.bench-coach {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--accent-soft);
+  border: var(--line-thin);
+  border-radius: var(--r-sm);
+  font-size: 16px;
+  line-height: 1.35;
+}
+.bench-coach svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.coach {
+  position: relative;
+  z-index: 1;
+  outline: 3px solid var(--coral);
+  outline-offset: 2px;
+  animation: coach-pulse 1.4s ease-in-out infinite;
+}
+@keyframes coach-pulse {
+  50% {
+    outline-color: transparent;
+    transform: translateY(-2px);
+  }
+}
+.reduced-motion .coach {
+  animation: none;
+}
+
+/* Press-and-hold tiles for shaking, stirring and muddling. */
+.bench-tile.hold {
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.bench-tile.hold small {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+.bench-tile.busy {
+  background: var(--accent);
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 var(--ink);
+}
+.mix-meter {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.mix-meter .bench-progress {
+  position: relative;
+  height: 18px;
+}
+.mix-meter .sweet {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: #bfe3a8;
+  border-inline: 2px solid var(--leaf-deep);
+}
+.mix-meter .bench-progress i {
+  position: relative;
+  background: var(--sun);
+  opacity: 0.9;
+}
+.mix-meter .bench-progress i.good {
+  background: var(--leaf);
+}
+.mix-meter .bench-progress i.over {
+  background: var(--coral);
+}
+.pour-slot {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.pour-muddle {
+  display: grid;
+}
+.pour-muddle .bench-tile {
+  flex-direction: row;
+  justify-content: center;
+  gap: 10px;
+  font-size: 15px;
+}
+
+/* A garnish that went on by mistake comes off with the little minus. */
+.garnish-slot {
+  position: relative;
+  display: grid;
+}
+.garnish-remove {
+  position: absolute;
+  top: -9px;
+  left: -6px;
+  z-index: 2;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  background: var(--coral);
+  color: var(--paper);
+  border: var(--line-thin);
+  border-radius: 50%;
+  box-shadow: 0 2px 0 var(--ink);
+}
+.taste-card li b {
+  display: inline-block;
+  min-width: 30px;
+  color: #c0303f;
+}

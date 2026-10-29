@@ -1,6 +1,16 @@
 import './bench.css';
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import { ArrowLeft, ArrowRight, BookOpen, Check, ChevronDown, Trash2, X } from 'lucide-react';
+import {
+  ArrowLeft,
+  ArrowRight,
+  BookOpen,
+  Check,
+  ChevronDown,
+  Lightbulb,
+  Minus,
+  Trash2,
+  X,
+} from 'lucide-react';
 import { Button } from '../components/ui/button';
 import {
   BottleArt,
@@ -21,9 +31,11 @@ import {
   recipeMethod,
 } from '../game/content';
 import { quality, volume, type Action } from '../game/engine';
+import { play } from '../game/audio';
 import { useGame } from '../game/store';
 
 type Step = 'prep' | 'pour' | 'mix' | 'garnish';
+type Motion = 'shake' | 'stir' | 'muddle';
 const stepOrder: Step[] = ['prep', 'pour', 'mix', 'garnish'];
 const stepLabel: Record<Step, string> = {
   prep: 'Prep',
@@ -64,6 +76,12 @@ const toolName: Record<string, string> = {
   old_fashioned_glass: 'rocks glass',
   build_glass: 'glass',
 };
+const glassName = Object.fromEntries(glasses.map(([id, label]) => [id, label.toLowerCase()]));
+// How long each motion takes when done just right, in seconds. Holding past the
+// ideal waters the drink down; letting go too soon leaves it under-mixed.
+const motionTime: Record<Motion, number> = { shake: 3, stir: 2.5, muddle: 1.5 };
+const sweetZone = [0.7, 1.35];
+const spirits = new Set(ingredients.filter((i) => i.kind === 'spirit').map((i) => i.id));
 function Group({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div className="bench-group">
@@ -72,20 +90,30 @@ function Group({ title, children }: { title: string; children: ReactNode }) {
     </div>
   );
 }
+function Coach({ children }: { children: ReactNode }) {
+  return (
+    <p className="bench-coach" role="status">
+      <Lightbulb size={16} strokeWidth={2.5} />
+      <span>{children}</span>
+    </p>
+  );
+}
 
 export default function Station() {
-  const { game, selected, practiceRecipe, setPracticeRecipe, act, setPanel, paused } = useGame();
+  const { game, selected, practiceRecipe, setPracticeRecipe, act, setPanel, paused, setMixing } =
+    useGame();
   const guest = game.guests.find((g) => g.id === selected);
   const practice = selected === -1 || !guest;
   const id = practice ? -1 : (guest?.id ?? -1);
   const recipe = recipeById(practice ? practiceRecipe : (guest?.recipeId ?? 'margarita'));
   const prep = practice ? game.practice : (guest?.prep ?? game.practice);
+  const coach = game.settings.hints;
   const [step, setStep] = useState<Step>('prep');
   const [showAll, setShowAll] = useState(false);
   const [picking, setPicking] = useState(false);
   const [amounts, setAmounts] = useState<Record<string, number>>({});
   const [inspect, setInspect] = useState(false);
-  const [busy, setBusy] = useState<'shake' | 'stir' | 'muddle' | null>(null);
+  const [busy, setBusy] = useState<Motion | null>(null);
   const [progress, setProgress] = useState(0);
   const pour = useRef<ReturnType<typeof setInterval> | null>(null);
   const tasteCard = useRef<HTMLDivElement>(null);
@@ -120,39 +148,66 @@ export default function Station() {
     // A free pour goes straight from the bottle into the tin.
     prepAction('transfer');
   }, [prepAction]);
+  // Shake, stir and muddle happen while the button is held down.
+  const held = useRef<{ motion: Motion; elapsed: number } | null>(null);
+  const finishMotion = useCallback(() => {
+    const h = held.current;
+    if (!h) return;
+    held.current = null;
+    setBusy(null);
+    setMixing(null);
+    const amount = h.elapsed / motionTime[h.motion];
+    setProgress(0);
+    if (h.motion === 'muddle') {
+      if (amount >= 1) prepAction('muddle');
+      return;
+    }
+    if (amount >= 0.2) prepAction(h.motion, { amount });
+  }, [prepAction, setMixing]);
+  const startMotion = (motion: Motion) => {
+    if (held.current || pour.current) return;
+    held.current = { motion, elapsed: 0 };
+    setBusy(motion);
+    setMixing(motion);
+    setProgress(0);
+  };
   useEffect(() => {
-    const stop = () => stopPour();
+    if (!busy) return;
+    const interval = setInterval(() => {
+      const s = useGame.getState();
+      const h = held.current;
+      if (!h || s.paused || s.panel !== 'station') return;
+      h.elapsed += 0.1;
+      const share = h.elapsed / motionTime[h.motion];
+      setProgress(share);
+      if (Math.round(h.elapsed * 10) % 6 === 0) play(h.motion);
+      // A muddle is done once the sugar has dissolved; a shake or stir stops at the
+      // far end of the meter.
+      if ((h.motion === 'muddle' && share >= 1) || share >= 1.7) finishMotion();
+    }, 100);
+    return () => clearInterval(interval);
+  }, [busy, finishMotion]);
+  useEffect(() => {
+    const stop = () => {
+      stopPour();
+      finishMotion();
+    };
     window.addEventListener('blur', stop);
     window.addEventListener('pointercancel', stop);
     document.addEventListener('visibilitychange', stop);
     return () => {
-      stopPour();
+      stop();
       window.removeEventListener('blur', stop);
       window.removeEventListener('pointercancel', stop);
       document.removeEventListener('visibilitychange', stop);
     };
-  }, [stopPour]);
+  }, [stopPour, finishMotion]);
   useEffect(() => {
-    if (paused) stopPour();
-  }, [paused, stopPour]);
-  useEffect(() => {
-    if (!busy) return;
-    let elapsed = 0;
-    const duration = busy === 'shake' ? 3 : 2;
-    const interval = setInterval(() => {
-      const s = useGame.getState();
-      if (s.paused || s.panel !== 'station') return;
-      elapsed += 0.1;
-      setProgress(elapsed / duration);
-      if (elapsed >= duration) {
-        clearInterval(interval);
-        s.act({ type: 'prep', id, operation: busy });
-        setBusy(null);
-        setProgress(0);
-      }
-    }, 100);
-    return () => clearInterval(interval);
-  }, [busy, id]);
+    if (paused) {
+      stopPour();
+      finishMotion();
+    }
+  }, [paused, stopPour, finishMotion]);
   const startPour = (bottle: string) => {
     if (pour.current || busy) return;
     const unit = ingredients.find((i) => i.id === bottle)!.unit;
@@ -185,17 +240,24 @@ export default function Station() {
     ids.reduce((sum, a) => sum + (prep.amounts[a] ?? 0), 0) +
     (prep.measure && ids.includes(prep.measure.id) ? prep.measure.quantity : 0);
 
-  // Every bottle the recipe calls for, plus any other bottle the player opens.
+  const recipeTool = recipeMethod(recipe);
+  const method = recipeTool.tool;
+  const dissolve = 'dissolve' in recipeTool ? recipeTool.dissolve : undefined;
+  // Every bottle the recipe calls for, plus any other bottle the player opens. When
+  // the sugar has to dissolve before the spirit, the spirit rows come last.
+  const recipeRows = recipe.ingredients.map((r) => ({
+    key: r.slot,
+    recipe: true,
+    spirit: r.allowed.some((a) => spirits.has(a)),
+    bottle: r.allowed.find((a) => (prep.amounts[a] ?? 0) > 0) ?? r.allowed[0],
+    label: r.allowed.map((a) => names[a]).join(' or '),
+    target: r.quantity,
+    unit: r.unit,
+    have: poured(r.allowed),
+  }));
+  if (dissolve === 'before_spirit') recipeRows.sort((a, b) => Number(a.spirit) - Number(b.spirit));
   const rows = [
-    ...recipe.ingredients.map((r) => ({
-      key: r.slot,
-      recipe: true,
-      bottle: r.allowed.find((a) => (prep.amounts[a] ?? 0) > 0) ?? r.allowed[0],
-      label: r.allowed.map((a) => names[a]).join(' or '),
-      target: r.quantity,
-      unit: r.unit,
-      have: poured(r.allowed),
-    })),
+    ...recipeRows,
     ...(showAll
       ? ingredients
           // Garnishes are added at the Garnish step, not poured.
@@ -208,6 +270,7 @@ export default function Station() {
           .map((i) => ({
             key: i.id,
             recipe: false,
+            spirit: spirits.has(i.id),
             bottle: i.id,
             label: i.name,
             target: null as number | null,
@@ -221,10 +284,14 @@ export default function Station() {
   const isDone = (r: Row) =>
     r.recipe &&
     (r.target === null ? r.have > 0 : r.have > 0 && Math.abs(r.have - r.target) <= r.target * 0.4);
-  const nextRow = rows.find((r) => r.recipe && !isDone(r));
+  const muddleFirst = dissolve === 'before_spirit' && !prep.dissolved;
+  const nextRow = rows.find(
+    (r) =>
+      r.recipe &&
+      !isDone(r) &&
+      !(muddleFirst && r.spirit && rows.some((x) => x.recipe && !x.spirit && !isDone(x))),
+  );
   const stepIndex = stepOrder.indexOf(step);
-  const recipeTool = recipeMethod(recipe);
-  const method = recipeTool.tool;
   // A step is ticked only once it is really done, not just visited.
   const complete: Record<Step, boolean> = {
     prep: prep.tool === recipeTool.tool && prep.glass === recipeTool.glass,
@@ -232,7 +299,8 @@ export default function Station() {
     mix:
       prep.ice &&
       prep.technique === recipeTool.technique &&
-      (!('dissolve' in recipeTool && recipeTool.dissolve) || prep.dissolved),
+      prep.mix >= sweetZone[0] &&
+      (!dissolve || prep.dissolved),
     garnish:
       Object.values(prep.garnish).some((n) => n > 0) &&
       !assess.issues.includes('Finish the garnish'),
@@ -246,6 +314,83 @@ export default function Station() {
     act({ type: 'guest', id, operation: 'serve' });
     if (useGame.getState().game.guests.find((g) => g.id === id)?.served) setPanel('floor');
   };
+  const needsChill = recipe.service.glass === 'chilled_cocktail_glass';
+  const required = (recipe.service.garnish.allOf ?? []).map((g) =>
+    typeof g === 'string' ? g : g.oneOf[0],
+  );
+  const wantGarnish = (key: string) =>
+    required.includes(key) &&
+    (prep.garnish[key] ?? 0) <
+      (recipeTool.garnishCounts?.[key] ?? 1) +
+        (key === 'cocktail_cherry' && guest?.extraCherry ? 1 : 0);
+  // The coach always points at the one next thing to do.
+  const coachLine: Record<Step, ReactNode> = {
+    prep:
+      prep.tool !== recipeTool.tool ? (
+        <>
+          Build this one in the <b>{toolName[recipeTool.tool]}</b>.
+        </>
+      ) : prep.glass !== recipeTool.glass ? (
+        <>
+          Serve it in a <b>{glassName[recipeTool.glass]}</b> glass.
+        </>
+      ) : needsChill && !prep.chilled ? (
+        <>Chill the glass so the drink stays cold.</>
+      ) : (
+        <>
+          All set. Go on to <b>Pour</b>.
+        </>
+      ),
+    pour:
+      muddleFirst && !rows.some((r) => r.recipe && !r.spirit && !isDone(r)) ? (
+        <>
+          Now <b>hold Muddle</b> to dissolve the sugar, before any spirit goes in.
+        </>
+      ) : nextRow ? (
+        <>
+          Pour the <b>{nextRow.label}</b>
+          {nextRow.target ? (
+            <>
+              : {nextRow.target} {nextRow.unit}
+            </>
+          ) : null}
+          .
+        </>
+      ) : (
+        <>
+          Everything is in. Go on to <b>Mix</b>.
+        </>
+      ),
+    mix:
+      dissolve === 'before_ice' && !prep.dissolved ? (
+        <>
+          <b>Hold Muddle</b> first to dissolve the sugar, then add ice.
+        </>
+      ) : !prep.ice ? (
+        <>
+          Add <b>ice</b> first.
+        </>
+      ) : prep.technique !== recipeTool.technique || prep.mix < sweetZone[0] ? (
+        <>
+          <b>Hold {recipeTool.technique === 'shake' ? 'Shake' : 'Stir'}</b> and let go while the bar
+          is in the green.
+        </>
+      ) : (
+        <>
+          Nicely mixed. Go on to <b>Garnish</b>.
+        </>
+      ),
+    garnish: required.some(wantGarnish) ? (
+      <>
+        Add the <b>{names[required.find(wantGarnish)!]}</b>.
+      </>
+    ) : (
+      <>
+        {required.length ? 'Garnish done.' : 'No garnish needed.'} Tap{' '}
+        <b>{practice ? 'Check my drink' : serveLabel}</b>.
+      </>
+    ),
+  };
   const pourRow = (r: Row) => {
     const done = isDone(r);
     const ml = r.unit === 'ml';
@@ -258,7 +403,12 @@ export default function Station() {
     return (
       <div
         key={r.key}
-        className={'pour-row ' + (done ? 'done ' : '') + (r === nextRow ? 'next' : '')}
+        className={
+          'pour-row ' +
+          (done ? 'done ' : '') +
+          (r === nextRow ? 'next ' : '') +
+          (coach && r === nextRow ? 'coach' : '')
+        }
         style={{ '--liquid': ingredientColors[r.bottle] } as React.CSSProperties}
       >
         <BottleArt
@@ -325,6 +475,79 @@ export default function Station() {
       </div>
     );
   };
+  /** A tile you press and hold; it fills a meter while you do. */
+  const holdTile = (
+    motion: Motion,
+    label: string,
+    art: ReactNode,
+    done: boolean,
+    hint: boolean,
+  ) => (
+    <button
+      key={motion}
+      className={
+        'bench-tile hold ' +
+        (done ? 'done ' : '') +
+        (busy === motion ? 'busy ' : '') +
+        (hint ? 'coach' : '')
+      }
+      disabled={!!busy && busy !== motion}
+      onPointerDown={(e) => {
+        e.currentTarget.setPointerCapture(e.pointerId);
+        startMotion(motion);
+      }}
+      onPointerUp={finishMotion}
+      onPointerCancel={finishMotion}
+      onLostPointerCapture={finishMotion}
+      onKeyDown={(e) => {
+        if ((e.key === ' ' || e.key === 'Enter') && !e.repeat) {
+          e.preventDefault();
+          startMotion(motion);
+        }
+      }}
+      onKeyUp={(e) => {
+        if (e.key === ' ' || e.key === 'Enter') finishMotion();
+      }}
+    >
+      {art}
+      {label}
+      <small>Hold</small>
+    </button>
+  );
+  const meter = busy && (
+    <div className="mix-meter" aria-label="How long you have mixed">
+      <div className="bench-progress">
+        {busy !== 'muddle' && (
+          <span
+            className="sweet"
+            style={{
+              left: (sweetZone[0] / 1.7) * 100 + '%',
+              width: ((sweetZone[1] - sweetZone[0]) / 1.7) * 100 + '%',
+            }}
+          />
+        )}
+        <i
+          className={
+            busy !== 'muddle' && progress > sweetZone[1]
+              ? 'over'
+              : busy === 'muddle' || progress >= sweetZone[0]
+                ? 'good'
+                : ''
+          }
+          style={{ width: Math.min(100, (progress / (busy === 'muddle' ? 1 : 1.7)) * 100) + '%' }}
+        />
+      </div>
+      <p className="bench-hint">
+        {busy === 'muddle'
+          ? 'Muddling… keep holding'
+          : progress < sweetZone[0]
+            ? (busy === 'shake' ? 'Shaking' : 'Stirring') + '… keep going'
+            : progress <= sweetZone[1]
+              ? 'Perfect — let go now'
+              : 'Too long! It’s getting watery'}
+      </p>
+    </div>
+  );
 
   return (
     <aside className="bench" aria-label="Counter">
@@ -427,15 +650,23 @@ export default function Station() {
         </nav>
 
         <div className="bench-body">
+          {coach && <Coach>{coachLine[step]}</Coach>}
           {step === 'prep' && (
             <>
-              <p className="bench-hint">Pick what you’ll build the drink in, and its glass.</p>
+              {!coach && (
+                <p className="bench-hint">Pick what you’ll build the drink in, and its glass.</p>
+              )}
               <Group title="Build in">
                 <div className="bench-tiles">
                   {tools.map((t) => (
                     <button
                       key={t.id}
-                      className="bench-tile"
+                      className={
+                        'bench-tile ' +
+                        (coach && prep.tool !== recipeTool.tool && t.id === recipeTool.tool
+                          ? 'coach'
+                          : '')
+                      }
                       aria-pressed={prep.tool === t.id}
                       onClick={() => prepAction('tool', { value: t.id })}
                     >
@@ -450,7 +681,15 @@ export default function Station() {
                   {glasses.map(([value, label, shape]) => (
                     <button
                       key={value}
-                      className="bench-tile"
+                      className={
+                        'bench-tile ' +
+                        (coach &&
+                        prep.tool === recipeTool.tool &&
+                        prep.glass !== recipeTool.glass &&
+                        value === recipeTool.glass
+                          ? 'coach'
+                          : '')
+                      }
                       aria-pressed={prep.glass === value}
                       onClick={() => prepAction('glass', { value })}
                     >
@@ -459,7 +698,11 @@ export default function Station() {
                     </button>
                   ))}
                   <button
-                    className={'bench-tile ' + (prep.chilled ? 'done' : '')}
+                    className={
+                      'bench-tile ' +
+                      (prep.chilled ? 'done ' : '') +
+                      (coach && complete.prep && needsChill && !prep.chilled ? 'coach' : '')
+                    }
                     onClick={() => prepAction('chill')}
                   >
                     <IceCubesArt size={36} />
@@ -475,7 +718,29 @@ export default function Station() {
               <p className="bench-hint">
                 In the {toolName[prep.tool] ?? 'glass'}: <b>{Math.round(volume(prep))} ml</b>
               </p>
-              {rows.map(pourRow)}
+              {rows.map((r) => (
+                <div key={r.key} className="pour-slot">
+                  {pourRow(r)}
+                  {/* Muddle sits between the sugar and the spirit, where it belongs. */}
+                  {dissolve === 'before_spirit' &&
+                    r.recipe &&
+                    !r.spirit &&
+                    !recipeRows.slice(recipeRows.indexOf(r) + 1).some((x) => !x.spirit) && (
+                      <div className="pour-muddle">
+                        {holdTile(
+                          'muddle',
+                          prep.dissolved ? 'Sugar dissolved' : 'Muddle the sugar',
+                          <MuddleArt size={34} />,
+                          prep.dissolved,
+                          coach &&
+                            muddleFirst &&
+                            !rows.some((x) => x.recipe && !x.spirit && !isDone(x)),
+                        )}
+                      </div>
+                    )}
+                </div>
+              ))}
+              {busy === 'muddle' && meter}
               <button className="bench-more" onClick={() => setShowAll((v) => !v)}>
                 {showAll ? 'Hide other bottles' : 'Another bottle…'}
               </button>
@@ -484,60 +749,88 @@ export default function Station() {
 
           {step === 'mix' && (
             <>
-              <p className="bench-hint">Add ice, then mix it the way the recipe asks.</p>
+              {!coach && (
+                <p className="bench-hint">
+                  Add ice, then hold to mix. Let go while the bar is green.
+                </p>
+              )}
               <div className="bench-tiles">
+                {dissolve === 'before_ice' &&
+                  holdTile(
+                    'muddle',
+                    'Muddle',
+                    <MuddleArt size={44} />,
+                    prep.dissolved,
+                    coach && !prep.dissolved,
+                  )}
                 <button
-                  className={'bench-tile ' + (prep.ice ? 'done' : '')}
+                  className={
+                    'bench-tile ' +
+                    (prep.ice ? 'done ' : '') +
+                    (coach && !prep.ice && (dissolve !== 'before_ice' || prep.dissolved)
+                      ? 'coach'
+                      : '')
+                  }
+                  disabled={!!busy}
                   onClick={() => prepAction('ice')}
                 >
                   <IceCubesArt size={44} />
                   {prep.ice ? 'Ice added' : 'Add ice'}
                 </button>
-                {(
-                  [
-                    ['muddle', 'Muddle', <MuddleArt key="m" size={44} />, prep.dissolved],
-                    ['shake', 'Shake', <ShakerArt key="s" size={44} />, prep.technique === 'shake'],
-                    ['stir', 'Stir', <StirArt key="t" size={44} />, prep.technique === 'stir'],
-                  ] as const
-                ).map(([op, label, art, done]) => (
-                  <button
-                    key={op}
-                    className={'bench-tile ' + (done ? 'done' : '')}
-                    disabled={!!busy}
-                    onClick={() => setBusy(op)}
-                  >
-                    {art}
-                    {label}
-                  </button>
-                ))}
+                {holdTile(
+                  'shake',
+                  'Shake',
+                  <ShakerArt size={44} />,
+                  prep.technique === 'shake' && prep.mix >= sweetZone[0],
+                  coach && prep.ice && recipeTool.technique === 'shake' && !complete.mix,
+                )}
+                {holdTile(
+                  'stir',
+                  'Stir',
+                  <StirArt size={44} />,
+                  prep.technique === 'stir' && prep.mix >= sweetZone[0],
+                  coach && prep.ice && recipeTool.technique === 'stir' && !complete.mix,
+                )}
               </div>
-              {busy && (
-                <>
-                  <p className="bench-hint">
-                    {busy === 'shake' ? 'Shaking…' : busy === 'stir' ? 'Stirring…' : 'Muddling…'}
-                  </p>
-                  <div className="bench-progress">
-                    <i style={{ width: progress * 100 + '%' }} />
-                  </div>
-                </>
-              )}
+              {meter}
             </>
           )}
 
           {step === 'garnish' && (
             <>
-              <p className="bench-hint">Finish it off. Tap again to add another.</p>
+              {!coach && (
+                <p className="bench-hint">
+                  Finish it off. Tap again to add another, − to take one off.
+                </p>
+              )}
               <div className="bench-tiles">
                 {garnishes.map((key) => (
-                  <button
-                    key={key}
-                    className={'bench-tile ' + (prep.garnish[key] ? 'done' : '')}
-                    onClick={() => prepAction('garnish', { ingredient: key })}
-                  >
-                    <GarnishArt size={40} id={key} />
-                    {names[key]}
-                    {prep.garnish[key] ? <span className="tag">×{prep.garnish[key]}</span> : null}
-                  </button>
+                  <div key={key} className="garnish-slot">
+                    <button
+                      className={
+                        'bench-tile ' +
+                        (prep.garnish[key] ? 'done ' : '') +
+                        (coach && wantGarnish(key) && key === required.find(wantGarnish)
+                          ? 'coach'
+                          : '')
+                      }
+                      onClick={() => prepAction('garnish', { ingredient: key })}
+                    >
+                      <GarnishArt size={40} id={key} />
+                      {names[key]}
+                      {prep.garnish[key] ? <span className="tag">×{prep.garnish[key]}</span> : null}
+                    </button>
+                    {prep.garnish[key] ? (
+                      <button
+                        className="garnish-remove"
+                        aria-label={'Take off one ' + names[key]}
+                        title="Take one off"
+                        onClick={() => prepAction('ungarnish', { ingredient: key })}
+                      >
+                        <Minus size={14} strokeWidth={4} />
+                      </button>
+                    ) : null}
+                  </div>
                 ))}
               </div>
             </>
@@ -549,10 +842,12 @@ export default function Station() {
                 <strong>{assess.label}</strong>
                 <span>{assess.score}/100</span>
               </div>
-              {assess.issues.length ? (
+              {assess.notes.length ? (
                 <ul>
-                  {assess.issues.map((i) => (
-                    <li key={i}>{i}</li>
+                  {assess.notes.map((n) => (
+                    <li key={n.text}>
+                      <b>−{n.points}</b> {n.text}
+                    </li>
                   ))}
                 </ul>
               ) : (
@@ -568,7 +863,10 @@ export default function Station() {
           </Button>
           <span className="bench-score" />
           {step !== 'garnish' ? (
-            <Button onClick={() => setStep(stepOrder[stepIndex + 1])}>
+            <Button
+              className={coach && complete[step] ? 'coach' : ''}
+              onClick={() => setStep(stepOrder[stepIndex + 1])}
+            >
               Next: {stepLabel[stepOrder[stepIndex + 1]]} <ArrowRight size={16} />
             </Button>
           ) : practice ? (
