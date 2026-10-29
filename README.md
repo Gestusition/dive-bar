@@ -8,11 +8,11 @@ A small voxel neighbourhood bar. Real measures, familiar faces, and the occasion
 
 ## Screenshots
 
-| Getting ready for the night                         | Guests show what they need                             |
-| --------------------------------------------------- | ------------------------------------------------------ |
-| ![Get ready drawer](docs/screenshots/get-ready.jpg) | ![A guest's action card](docs/screenshots/service.jpg) |
-| **Pouring a Manhattan, one bottle at a time**       | **Finishing it off at the Garnish step**               |
-| ![Pour step](docs/screenshots/counter-pour.jpg)     | ![Garnish step](docs/screenshots/counter-garnish.jpg)  |
+| Getting ready for the night                           | Guests show what they need                             |
+| ----------------------------------------------------- | ------------------------------------------------------ |
+| ![Get ready drawer](docs/screenshots/get-ready.jpg)   | ![A guest's action card](docs/screenshots/service.jpg) |
+| **Pouring a Manhattan, one bottle at a time**         | **Finishing it off at the Garnish step**               |
+| ![Pour step](docs/screenshots/counter-pour-ready.jpg) | ![Garnish step](docs/screenshots/counter-garnish.jpg)  |
 
 On a phone held sideways (Galaxy S8+, 740 x 360):
 

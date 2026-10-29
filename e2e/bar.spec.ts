@@ -36,6 +36,9 @@ async function capture(page: Page, name: string) {
   if (!process.env.UPDATE_SCREENSHOTS) return;
   const project = test.info().project.name;
   if (name === 'phone-recipes' ? project !== 'touch' : project !== 'desktop') return;
+  // The test clock is paused: DOM updates do not paint the WebGL camera or the
+  // resized canvas until animation frames run. Flush frames before capturing.
+  await page.clock.runFor(250);
   mkdirSync('docs/screenshots', { recursive: true });
   await page.screenshot({
     path: `docs/screenshots/${name}.jpg`,
@@ -154,7 +157,7 @@ test('a believable cherry story, actual Manhattan, one settlement and persistent
   await pour(page, 'Sweet Red Vermouth');
   await pour(page, 'Angostura Bitters');
   await expect(poured(page, 'Rye Whiskey')).toHaveText(/^50 \/ 50 ml/);
-  await capture(page, 'counter-pour');
+  await capture(page, 'counter-pour-ready');
   // Mix
   await page.getByRole('button', { name: /Next: Mix/ }).click();
   await page.getByRole('button', { name: 'Add ice', exact: true }).click();
