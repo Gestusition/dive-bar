@@ -10,7 +10,7 @@ import {
 } from './engine';
 import { conversations } from './content';
 import { play, setMusic, setSoundSwitch } from './audio';
-import { clearSave, decodeBackup, loadSave, MAX_BACKUP_BYTES, OldSave, saveGame } from './storage';
+import { clearSave, decodeBackup, loadSave, MAX_BACKUP_BYTES, saveGame } from './storage';
 import {
   advanceWalk,
   bartenderHome,
@@ -170,15 +170,9 @@ export const useGame = create<Store>((set, get) => ({
     try {
       const game = await loadSave();
       if (game) set({ game, hasSave: game.phase !== 'title' });
-    } catch (e) {
+    } catch {
       // An old or altered save is not loaded; the bar starts fresh instead.
       await clearSave().catch(() => {});
-      set({
-        saveError:
-          e instanceof OldSave
-            ? 'This version of Dive Bar starts with a fresh bar. Saves from earlier versions can’t be loaded.'
-            : 'The saved night was changed outside the game, so it can’t be loaded. Start a new bar.',
-      });
     }
     set({ loaded: true });
   },
