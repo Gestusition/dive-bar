@@ -138,11 +138,14 @@ export function GuestActions({ guest }: { guest: Guest }) {
           <div className="guest-card-snacks">
             {guest.food === 'none' ? (
               <>
-                <button onClick={() => enqueue(guest.id, 'food')}>
-                  <UtensilsCrossed size={13} /> Offer pretzel · $5
+                <button aria-label="Offer pretzel, $5" onClick={() => enqueue(guest.id, 'food')}>
+                  <UtensilsCrossed size={13} /> Pretzel · $5
                 </button>
-                <button onClick={() => enqueue(guest.id, 'food', { foodType: 'toastie' })}>
-                  <UtensilsCrossed size={13} /> Offer toastie · $7
+                <button
+                  aria-label="Offer toastie, $7"
+                  onClick={() => enqueue(guest.id, 'food', { foodType: 'toastie' })}
+                >
+                  <UtensilsCrossed size={13} /> Toastie · $7
                 </button>
               </>
             ) : (
