@@ -324,6 +324,51 @@ export function walkAvoidingPeople(
   }
   return next;
 }
+/** A character walking the floor, with the route it is following. */
+export interface Walker {
+  position: FloorPoint;
+  path: FloorPoint[];
+  /** The destination the path was planned for. */
+  to: FloorPoint | null;
+  /** Seconds until the route may be planned again. */
+  replanIn: number;
+}
+export const newWalker = (position: FloorPoint): Walker => ({
+  position: [...position],
+  path: [],
+  to: null,
+  replanIn: 0,
+});
+/** How often a route is refreshed around moving people, and after being blocked. */
+export const replanInterval = 0.4;
+/**
+ * One frame of walking. Planning a route is expensive on phones, so it happens when
+ * the destination changes and, while other people are about, at most every
+ * `replanInterval` seconds — never on every frame, even when two characters keep
+ * getting in each other's way.
+ */
+export function walkFrame(
+  w: Walker,
+  to: FloorPoint,
+  step: number,
+  dt: number,
+  people: FloorPoint[] = [],
+  plan = guestPath,
+): Walker {
+  w.replanIn -= dt;
+  const moved = !w.to || distance(w.to, to) > 1e-6;
+  if (moved || (people.length && w.replanIn <= 0 && distance(w.position, to) > 1e-6)) {
+    w.path = plan(w.position, to, people);
+    w.to = [...to];
+    w.replanIn = replanInterval;
+  }
+  const next = people.length
+    ? walkAvoidingPeople(w.position, to, step, people, w.path)
+    : stepAlong(w.position, w.path, step);
+  w.position = next.position;
+  w.path = next.path;
+  return w;
+}
 /** Move along a path, returning the new position and what is left of the path. */
 export function stepAlong(
   from: FloorPoint,

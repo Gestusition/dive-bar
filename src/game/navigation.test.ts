@@ -14,7 +14,10 @@ import {
   walkingRoute,
   walkingSpeed,
   walkAvoidingPeople,
+  walkFrame,
+  newWalker,
   personClearance,
+  replanInterval,
   type FloorPoint,
 } from './navigation';
 import { hostHome } from './host';
@@ -209,5 +212,54 @@ describe('guest walkway', () => {
       for (let i = 0; i < 60; i++) ({ position: p, path } = stepAlong(p, path, guestSpeed / 60));
       walkGuest(p, door);
     }
+  });
+});
+
+describe('route planning budget', () => {
+  // Planning is the expensive part of walking on a phone. With the host about, it
+  // used to run for every guest on almost every frame, so service stuttered from
+  // the night the host was hired until the guests went home.
+  const counting = () => {
+    const plan = (from: FloorPoint, to: FloorPoint, people?: FloorPoint[]) => {
+      plan.calls++;
+      return guestPath(from, to, people);
+    };
+    plan.calls = 0;
+    return plan;
+  };
+  it('walks in to a seat around a moving host without planning on every frame', () => {
+    const plan = counting();
+    const door: FloorPoint = [entrance[0], entrance[2]];
+    const seat = seatApproach[1];
+    const guest = newWalker(door);
+    let frames = 0;
+    for (; frames < 60 * 20; frames++) {
+      // The host paces across the room the whole time.
+      const t = frames / 60;
+      const host: FloorPoint = [-5 + 4 * Math.sin(t), 4.6];
+      walkFrame(guest, seat, guestSpeed / 60, 1 / 60, [host], plan);
+      if (Math.hypot(guest.position[0] - seat[0], guest.position[1] - seat[1]) < 1e-6) break;
+    }
+    expect(frames, 'the guest still reaches the seat').toBeLessThan(60 * 20);
+    expect(plan.calls).toBeLessThanOrEqual(Math.ceil(frames / 60 / replanInterval) + 1);
+  });
+  it('keeps planning rare while two people stand in each other’s way', () => {
+    const plan = counting();
+    const guest = newWalker([-4.4, 6.3]);
+    const host: FloorPoint = [-5.1, 6.3];
+    const door: FloorPoint = [entrance[0], entrance[2]];
+    for (let frame = 0; frame < 120; frame++)
+      walkFrame(guest, door, guestSpeed / 60, 1 / 60, [host], plan);
+    expect(plan.calls).toBeLessThanOrEqual(Math.ceil(2 / replanInterval) + 1);
+    expect(Math.hypot(guest.position[0] - host[0], guest.position[1] - host[1])).toBeGreaterThan(0);
+  });
+  it('does not plan at all for someone already where they want to be', () => {
+    const plan = counting();
+    const seat = seatApproach[0];
+    const guest = newWalker(seat);
+    guest.to = [...seat];
+    for (let frame = 0; frame < 600; frame++)
+      walkFrame(guest, seat, guestSpeed / 60, 1 / 60, [[-5 + frame / 100, 4.6]], plan);
+    expect(plan.calls).toBe(0);
   });
 });

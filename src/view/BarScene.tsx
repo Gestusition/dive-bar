@@ -12,15 +12,14 @@ import {
   bartenderHome,
   entrance,
   guestPosition,
-  guestPath,
   guestSpeed,
+  newWalker,
   roomEdge,
   seatFacing,
   setDoorX,
-  stepAlong,
   tables,
+  walkFrame,
   walkingSpeed,
-  walkAvoidingPeople,
   type FloorPoint,
 } from '../game/navigation';
 import { binPosition, binRadius, cornerPlantParts, floorPlantParts } from '../game/room-layout';
@@ -60,6 +59,14 @@ function geometry(parts: Part[]) {
   const merged = mergeGeometries(geometries)!;
   geometries.forEach((g) => g.dispose());
   return merged;
+}
+// Every character keeps one body for the whole game: building it again for each
+// arriving guest would stall a frame and leave the old one on the graphics card.
+const bodies = new Map<string, THREE.BufferGeometry>();
+function personBody(id: string) {
+  let body = bodies.get(id);
+  if (!body) bodies.set(id, (body = geometry(personParts(id, id === 'bartender'))));
+  return body;
 }
 // The left wall (with the front door) and the right wall, drawn around x=0
 // and moved to the edges of the screen every frame.
@@ -273,15 +280,16 @@ function Person({
     },
     [guest.id, guestGroups],
   );
-  const body = useMemo(() => geometry(personParts(guest.customerId)), [guest.customerId]);
+  const body = personBody(guest.customerId);
   const setSelected = useGame((s) => s.select);
   // Where the guest is standing on the floor. New guests start in the doorway.
-  const floor = useRef<FloorPoint>(
-    guest.status === 'waiting'
-      ? [entrance[0], entrance[2]]
-      : [guestPosition(guest)[0], guestPosition(guest)[2]],
+  const walker = useRef(
+    newWalker(
+      guest.status === 'waiting'
+        ? [entrance[0], entrance[2]]
+        : [guestPosition(guest)[0], guestPosition(guest)[2]],
+    ),
   );
-  const path = useRef<{ to: string; points: FloorPoint[] }>({ to: '', points: [] });
   const step = useRef<FloorPoint>([0, 0]);
   useFrame(({ clock }, delta) => {
     if (!ref.current) return;
@@ -290,29 +298,14 @@ function Person({
     const [tx, ty, tz] = guestPosition(guest);
     const host = staff.current.host;
     const people: FloorPoint[] = host ? [[host.position.x, host.position.z]] : [];
-    if (useGame.getState().game.settings.reducedMotion && !people.length) floor.current = [tx, tz];
-    else {
-      // Plan a new route only when the destination changes.
-      const key =
-        tx + ',' + tz + ':' + people.map((p) => p.map((n) => n.toFixed(1)).join(',')).join(';');
-      if (path.current.to !== key)
-        path.current = { to: key, points: guestPath(floor.current, [tx, tz], people) };
-      const next = people.length
-        ? walkAvoidingPeople(
-            floor.current,
-            [tx, tz],
-            guestSpeed * Math.min(delta, 0.1),
-            people,
-            path.current.points,
-          )
-        : stepAlong(floor.current, path.current.points, guestSpeed * Math.min(delta, 0.1));
-      step.current = [next.position[0] - floor.current[0], next.position[1] - floor.current[1]];
-      floor.current = next.position;
-      path.current.points = next.path;
-      if ('blocked' in next && next.blocked) path.current.to = '';
-    }
-    const moving = Math.hypot(floor.current[0] - tx, floor.current[1] - tz) > 0.001;
-    ref.current.position.set(floor.current[0], moving ? 0 : ty, floor.current[1]);
+    const before = walker.current.position;
+    if (useGame.getState().game.settings.reducedMotion && !people.length)
+      walker.current = newWalker([tx, tz]);
+    else walkFrame(walker.current, [tx, tz], guestSpeed * Math.min(delta, 0.1), delta, people);
+    const [x, z] = walker.current.position;
+    step.current = [x - before[0], z - before[1]];
+    const moving = Math.hypot(x - tx, z - tz) > 0.001;
+    ref.current.position.set(x, moving ? 0 : ty, z);
     // Walk facing where they are going; sit facing the table or the counter.
     const seated = !moving && !['waiting', 'leaving'].includes(guest.status);
     const facing =
@@ -348,7 +341,7 @@ function Person({
         ref.current = group;
         setGroup(group);
       }}
-      position={[floor.current[0], 0, floor.current[1]]}
+      position={[walker.current.position[0], 0, walker.current.position[1]]}
     >
       <mesh
         geometry={body}
@@ -364,7 +357,8 @@ function Person({
 }
 function Bartender({ staff }: { staff: StaffRefs }) {
   const ref = useRef<THREE.Group>(null);
-  const body = useMemo(() => geometry(personParts('bartender', true)), []);
+  const body = personBody('bartender');
+  const cleanupWalk = useRef(newWalker(bartenderHome));
   useFrame(({ clock }, delta) => {
     if (!ref.current) return;
     const s = useGame.getState();
@@ -372,15 +366,18 @@ function Bartender({ staff }: { staff: StaffRefs }) {
     const current = ref.current.position;
     const atCleanupStation =
       s.cleanupJob?.actor === 'bartender' && ['working', 'emptying'].includes(s.cleanupJob.stage);
+    const walking =
+      !s.game.settings.reducedMotion && !atCleanupStation && s.cleanupJob?.actor === 'bartender';
+    // A cleanup walk keeps its route between frames; it is planned again only when the
+    // destination moves.
+    if (walking) cleanupWalk.current.position = [current.x, current.z];
+    else cleanupWalk.current.to = null;
     const next =
       s.game.settings.reducedMotion || atCleanupStation
         ? s.bartenderPosition
-        : s.cleanupJob?.actor === 'bartender'
-          ? stepAlong(
-              [current.x, current.z],
-              guestPath([current.x, current.z], s.bartenderPosition),
-              delta * walkingSpeed,
-            ).position
+        : walking
+          ? walkFrame(cleanupWalk.current, s.bartenderPosition, delta * walkingSpeed, delta)
+              .position
           : advanceWalk([current.x, current.z], s.bartenderPosition, delta * walkingSpeed);
     const moving = Math.hypot(next[0] - current.x, next[1] - current.z) > 0.001;
     {
@@ -485,9 +482,8 @@ const glow = (color: string) => (
 /** The hired host walks inside the room, independently of the side walls. */
 function Host({ staff, guestGroups }: { staff: StaffRefs; guestGroups: SceneRefs['guestGroups'] }) {
   const ref = useRef<THREE.Group>(null);
-  const body = useMemo(() => geometry(personParts('host')), []);
-  const floor = useRef<FloorPoint>([...hostHome]);
-  const path = useRef<{ to: string; points: FloorPoint[] }>({ to: '', points: [] });
+  const body = personBody('host');
+  const walker = useRef(newWalker(hostHome));
   useFrame(({ clock }, delta) => {
     const state = useGame.getState();
     if (!ref.current || state.title || state.paused || !['floor', 'station'].includes(state.panel))
@@ -497,35 +493,24 @@ function Host({ staff, guestGroups }: { staff: StaffRefs; guestGroups: SceneRefs
       g.position.x,
       g.position.z,
     ]);
-    const key =
-      target.join(',') + ':' + people.map((p) => p.map((n) => n.toFixed(1)).join(',')).join(';');
-    if (path.current.to !== key)
-      path.current = { to: key, points: guestPath(floor.current, target, people) };
-    const before = floor.current;
-    const walk = people.length
-      ? walkAvoidingPeople(
-          before,
-          target,
-          guestSpeed * Math.min(delta, 0.1),
-          people,
-          path.current.points,
-        )
-      : stepAlong(before, path.current.points, guestSpeed * Math.min(delta, 0.1));
+    const before = walker.current.position;
+    walkFrame(walker.current, target, guestSpeed * Math.min(delta, 0.1), delta, people);
     const atCleanupStation =
       state.cleanupJob?.actor === 'host' &&
       ['working', 'emptying'].includes(state.cleanupJob.stage);
-    floor.current =
+    if (
       (state.game.settings.reducedMotion && !people.length) ||
       (atCleanupStation &&
         !people.some((p) => Math.hypot(p[0] - target[0], p[1] - target[1]) < 0.9))
-        ? [...target]
-        : walk.position;
-    path.current.points = walk.path;
-    if ('blocked' in walk && walk.blocked) path.current.to = '';
-    const dx = floor.current[0] - before[0],
-      dz = floor.current[1] - before[1];
+    ) {
+      walker.current.position = [...target];
+      walker.current.path = [];
+    }
+    const [x, z] = walker.current.position;
+    const dx = x - before[0],
+      dz = z - before[1];
     const moving = Math.hypot(dx, dz) > 1e-6;
-    ref.current.position.set(floor.current[0], 0, floor.current[1]);
+    ref.current.position.set(x, 0, z);
     if (moving) ref.current.rotation.y = Math.atan2(dx, dz);
     if (atCleanupStation) ref.current.rotation.y = 0;
     ref.current.rotation.z =
