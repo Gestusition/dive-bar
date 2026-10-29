@@ -205,12 +205,12 @@ function roomParts() {
   // Amber lights, framed menu and coat hooks.
   // Kept clear of the sign, the shelves and the window frames.
   for (const x of [-12, -9.6, -7.4, -5.25, -2.75, 2.75, 5.25, 7.4, 9.6, 12]) {
-    box(x, 2.85, -4.08, 0.2, 0.32, 0.18, brass);
-    box(x, 2.85, -3.96, 0.12, 0.2, 0.1, '#ffe2a3');
+    box(x, 2.85, -4.36, 0.2, 0.32, 0.1, brass);
+    box(x, 2.85, -4.29, 0.12, 0.2, 0.05, '#ffe2a3');
   }
   // Framed menu between the left window and the shelves.
-  box(-6.2, 2.05, -4.38, 1, 1.3, 0.1, dark);
-  box(-6.2, 2.05, -4.31, 0.8, 1.1, 0.04, '#ddc594');
+  box(-6.2, 2.25, -4.38, 1, 1.3, 0.1, dark);
+  box(-6.2, 2.25, -4.31, 0.8, 1.1, 0.04, '#ddc594');
   return p;
 }
 const shirts = ['#669f8e', '#b97876', '#d2a054', '#8088a8', '#986d98', '#d6bd8b'];
@@ -540,15 +540,15 @@ function Decor() {
             <boxGeometry args={[0.16, 0.16, 0.02]} />
             <meshStandardMaterial color="#fbf3e4" />
           </mesh>
-          <mesh position={[-7.15, 2.3, -4.36]}>
+          <mesh position={[-7.2, 2.0, -4.36]}>
             <boxGeometry args={[0.62, 0.62, 0.08]} />
             <meshStandardMaterial color="#e04f5f" />
           </mesh>
-          <mesh position={[-7.15, 2.3, -4.3]}>
+          <mesh position={[-7.2, 2.0, -4.3]}>
             <boxGeometry args={[0.46, 0.46, 0.03]} />
             <meshStandardMaterial color="#fbf3e4" />
           </mesh>
-          <mesh position={[-7.15, 2.3, -4.27]}>
+          <mesh position={[-7.2, 2.0, -4.27]}>
             <boxGeometry args={[0.24, 0.24, 0.02]} />
             <meshStandardMaterial color="#f6b545" />
           </mesh>
