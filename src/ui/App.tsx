@@ -6,7 +6,6 @@ import {
   ChevronRight,
   Download,
   Home,
-  Maximize,
   Lightbulb,
   Play,
   Upload,
@@ -1199,11 +1198,6 @@ export default function App() {
             <Button onClick={pause}>
               <Play size={17} /> Resume
             </Button>
-            {wantsFullScreen() && !reallyFullScreen() && (
-              <Button variant="secondary" onClick={lockLandscape}>
-                <Maximize size={17} /> Full screen
-              </Button>
-            )}
             <Button variant="secondary" onClick={() => useGame.getState().toTitle()}>
               <Home size={17} /> Main menu
             </Button>
