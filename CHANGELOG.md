@@ -2,6 +2,14 @@
 
 All notable changes are recorded here. Versions describe tagged source releases; GitHub Pages follows `main` and may show a different revision. This project is still an early playable release.
 
+## [Unreleased]
+
+### Fixed
+
+- Service no longer stutters once the host is hired. Guests, the host and the bartender plan their walks when their destination changes, and around other people at most every 0.4 seconds, instead of on almost every frame while someone else was moving or in the way.
+- Each character's body is built once per game rather than for every arriving guest, so arrivals no longer stall a frame or leave old bodies on the graphics card.
+- The same drink is never ordered by more than four guests in a row while the menu has another drink. Repeat orders are still possible.
+
 ## [0.0.3.2] - 2026-10-30
 
 ### Fixed
