@@ -1,5 +1,5 @@
 import { ingredients, recipes, roster, initialInventory } from './content';
-import { newGame, type Game, type Prep } from './engine';
+import { emptyPrep, newGame, type Game, type Prep } from './engine';
 const DB = 'dive-bar',
   KEY = 'current';
 const finite = (v: unknown) => typeof v === 'number' && Number.isFinite(v) && v >= 0;
@@ -12,6 +12,7 @@ function validPrep(p: Prep) {
     typeof p.ice === 'boolean' &&
     typeof p.dissolved === 'boolean' &&
     ['none', 'shake', 'stir'].includes(p.technique) &&
+    finite(p.mix) &&
     Array.isArray(p.log) &&
     p.log.every((x) => typeof x === 'string') &&
     finite(p.attempts) &&
@@ -25,8 +26,37 @@ function validPrep(p: Prep) {
       (p.measure && ingredients.some((i) => i.id === p.measure!.id) && finite(p.measure.quantity)))
   );
 }
+/** Bring a save from an older build up to date, filling in anything it did not have yet. */
+function migrate(raw: unknown) {
+  const g = structuredClone(raw) as Game & { dice?: unknown; tokens?: unknown };
+  if (!g || typeof g !== 'object') return g;
+  delete g.dice;
+  delete g.tokens;
+  const model = newGame();
+  if (g.settings && typeof g.settings === 'object')
+    g.settings = { ...model.settings, ...g.settings };
+  if (g.upgrades && typeof g.upgrades === 'object')
+    g.upgrades = { ...model.upgrades, ...g.upgrades };
+  const prep = (p: Prep) => {
+    if (p && typeof p === 'object' && typeof p.mix !== 'number')
+      p.mix = p.technique === 'none' ? 0 : 1;
+  };
+  prep(g.practice);
+  if (Array.isArray(g.guests))
+    for (const guest of g.guests) {
+      if (!guest || typeof guest !== 'object') continue;
+      guest.group ??= 0;
+      guest.lead ??= true;
+      guest.splitAsk ??= 'one';
+      guest.waited ??= 0.5;
+      guest.tip ??= 0;
+      guest.prep ??= emptyPrep();
+      prep(guest.prep);
+    }
+  return g;
+}
 export function validateSave(raw: unknown): Game {
-  const g = raw as Game;
+  const g = migrate(raw);
   if (!g || g.version !== 1 || Object.keys(newGame()).some((k) => !(k in g)))
     throw Error('This save version is not supported. Your current save is unchanged.');
   if (
@@ -55,6 +85,8 @@ export function validateSave(raw: unknown): Game {
     !['amber', 'mint', 'rose'].includes(g.settings.theme) ||
     !['marked', 'free'].includes(g.settings.pourStyle) ||
     typeof g.settings.sound !== 'boolean' ||
+    typeof g.settings.music !== 'boolean' ||
+    typeof g.settings.hints !== 'boolean' ||
     typeof g.settings.reducedMotion !== 'boolean'
   )
     throw Error('Invalid settings.');
@@ -109,6 +141,11 @@ export function validateSave(raw: unknown): Game {
       !Number.isFinite(guest.tipDelta) ||
       typeof guest.name !== 'string' ||
       typeof guest.paid !== 'boolean' ||
+      !finite(guest.group) ||
+      typeof guest.lead !== 'boolean' ||
+      !['one', 'split'].includes(guest.splitAsk) ||
+      !finite(guest.waited) ||
+      !finite(guest.tip) ||
       !['none', 'ordered', 'warming', 'ready', 'served'].includes(guest.food)
     )
       throw Error('Invalid guest or order.');
@@ -125,12 +162,6 @@ export function validateSave(raw: unknown): Game {
     Object.values(g.closing).some((v) => typeof v !== 'boolean') ||
     !g.stats ||
     Object.values(g.stats).some((v) => !finite(v)) ||
-    !g.dice ||
-    !Array.isArray(g.dice.values) ||
-    g.dice.values.length > 5 ||
-    !g.dice.values.every((v) => Number.isInteger(v) && v >= 1 && v <= 6) ||
-    !Array.isArray(g.dice.kept) ||
-    !finite(g.tokens) ||
     !g.visitCount ||
     Object.values(g.visitCount).some((v) => !finite(v))
   )
@@ -170,4 +201,70 @@ export async function saveGame(game: Game) {
   } finally {
     db.close();
   }
+}
+
+// ---------- Backup files ----------
+// A backup is a small text file: a header anyone can read, a checksum, and the
+// save itself compressed and base64-encoded. A file that was cut short, edited
+// or damaged fails the checksum instead of loading half a bar.
+const MAGIC = 'DIVE BAR SAVE';
+const FORMAT = 2;
+const crcTable = Array.from({ length: 256 }, (_, n) => {
+  let c = n;
+  for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+  return c >>> 0;
+});
+function crc32(bytes: Uint8Array) {
+  let c = 0xffffffff;
+  for (const b of bytes) c = crcTable[(c ^ b) & 0xff] ^ (c >>> 8);
+  return ((c ^ 0xffffffff) >>> 0).toString(16).padStart(8, '0');
+}
+async function through(bytes: Uint8Array, stream: CompressionStream | DecompressionStream) {
+  const out = new Blob([bytes as BlobPart]).stream().pipeThrough(stream);
+  return new Uint8Array(await new Response(out).arrayBuffer());
+}
+const toBase64 = (bytes: Uint8Array) => {
+  let text = '';
+  for (let i = 0; i < bytes.length; i += 0x8000)
+    text += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return btoa(text);
+};
+const fromBase64 = (text: string) => Uint8Array.from(atob(text), (c) => c.charCodeAt(0));
+export const backupName = (game: Game) => 'dive-bar-night-' + game.day + '.divebar';
+export async function encodeBackup(game: Game): Promise<Blob> {
+  const json = new TextEncoder().encode(JSON.stringify(game));
+  const gzip = typeof CompressionStream === 'function';
+  const body = gzip ? await through(json, new CompressionStream('gzip')) : json;
+  const lines = [
+    MAGIC + ' v' + FORMAT,
+    'night=' +
+      game.day +
+      ' cash=' +
+      (game.cash / 100).toFixed(2) +
+      ' saved=' +
+      new Date().toISOString(),
+    'encoding=' + (gzip ? 'gzip' : 'plain') + ' crc32=' + crc32(json),
+    ...toBase64(body).match(/.{1,76}/g)!,
+  ];
+  return new Blob([lines.join('\n') + '\n'], { type: 'text/plain' });
+}
+/** Read a backup file. Older plain JSON exports still load. */
+export async function decodeBackup(text: string): Promise<Game> {
+  const trimmed = text.trim();
+  if (trimmed.startsWith('{')) return validateSave(JSON.parse(trimmed));
+  const [magic, , meta, ...body] = trimmed.split(/\r?\n/);
+  const version = Number(magic?.startsWith(MAGIC + ' v') ? magic.slice(MAGIC.length + 2) : NaN);
+  if (!version) throw Error('That file is not a Dive Bar save.');
+  if (version > FORMAT) throw Error('This save is from a newer version of Dive Bar.');
+  const fields = Object.fromEntries((meta ?? '').split(' ').map((f) => f.split('=')));
+  let bytes: Uint8Array;
+  try {
+    bytes = fromBase64(body.join(''));
+    if (fields.encoding === 'gzip') bytes = await through(bytes, new DecompressionStream('gzip'));
+  } catch {
+    throw Error('This save file is damaged. Your current save is unchanged.');
+  }
+  if (crc32(bytes) !== fields.crc32)
+    throw Error('This save file is damaged. Your current save is unchanged.');
+  return validateSave(JSON.parse(new TextDecoder().decode(bytes)));
 }

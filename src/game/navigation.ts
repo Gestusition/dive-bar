@@ -2,7 +2,7 @@ import type { Guest } from './engine';
 
 export type FloorPoint = [number, number];
 export const bartenderHome: FloorPoint = [0, -3.05];
-export const walkingSpeed = 5;
+export const walkingSpeed = 7.5;
 const sideAisle = 4.6;
 const frontAisle = 0.5;
 const backEdge = -2.9;
@@ -13,6 +13,21 @@ export const seats: [number, number, number][] = [
   [1.2, 0.35, -0.25],
   [-6.1, 0.18, 3.35],
   [6.2, 0.18, 3.15],
+  // The far chair at each table, facing the room. Pairs sit across from each other.
+  [-2.7, 0.18, 1.05],
+  [2.25, 0.18, 1.3],
+  [-6.1, 0.18, 1.45],
+  [6.2, 0.18, 1.25],
+];
+/** The two stools in front of the counter. */
+export const counterSeats = [2, 3];
+/** Seats that sit together: across each table, and the two stools side by side. */
+export const seatPairs: [number, number][] = [
+  [0, 6],
+  [1, 7],
+  [4, 8],
+  [5, 9],
+  [2, 3],
 ];
 // The front door sits in the left wall ahead of every table. Guests come in
 // there, wait just inside, and leave the same way. The side walls follow the
@@ -27,14 +42,23 @@ export function setDoorX(x: number) {
   entrance[0] = x + 0.6;
 }
 const waitingSpot: [number, number, number] = [-4.4, 0, 6.3];
+// The second guest of a pair waits beside the first.
+const partnerSpot: [number, number, number] = [-3.6, 0, 6.55];
 export const guestSpeed = 3.4;
-export const guestPosition = (g: Pick<Guest, 'status' | 'seat'>): [number, number, number] =>
+export const guestPosition = (
+  g: Pick<Guest, 'status' | 'seat'> & { lead?: boolean },
+): [number, number, number] =>
   g.status === 'waiting'
-    ? waitingSpot
+    ? g.lead === false
+      ? partnerSpot
+      : waitingSpot
     : g.status === 'leaving'
       ? entrance
       : (seats[g.seat] ?? waitingSpot);
+/** Where the bartender stands to help a guest. Stools are served across the counter. */
 export function servicePosition(g: Guest): FloorPoint {
+  if (g.status !== 'waiting' && counterSeats.includes(g.seat))
+    return [seats[g.seat][0], bartenderHome[1]];
   return [guestPosition(g)[0], g.status === 'waiting' ? 5.4 : frontAisle];
 }
 // The counter ends at x=4; 0.6 clearance accommodates the bartender's arms.
@@ -126,7 +150,7 @@ export function seatFacing(seat: number) {
   return table !== undefined && place[2] < table ? 0 : Math.PI;
 }
 export const seatApproach: FloorPoint[] = seats.map(([x, , z]) =>
-  tableZ.has(x) ? [x, tableZ.get(x)! + 1.95] : [x, z + 0.8],
+  tableZ.has(x) ? [x, tableZ.get(x)! + (z > tableZ.get(x)! ? 1.95 : -1.95)] : [x, z + 0.8],
 );
 const pad = ([x, z, w, d]: Rect): Rect => [x, z, w + guestRadius * 2, d + guestRadius * 2];
 const fixedPadded = guestObstacles.map(pad);
@@ -169,6 +193,7 @@ function graphNodes() {
     [
       [entrance[0], entrance[2]],
       [waitingSpot[0], waitingSpot[2]],
+      [partnerSpot[0], partnerSpot[2]],
       ...seatApproach,
       ...padded.flatMap(([x, z, w, d]): FloorPoint[] =>
         (

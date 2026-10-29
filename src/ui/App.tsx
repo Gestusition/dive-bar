@@ -4,27 +4,45 @@ import { ArrowRight, Check, ChevronRight, Download, Home, Play, Upload, X } from
 import * as Switch from '@radix-ui/react-switch';
 import { Button } from '../components/ui/button';
 import { Dialog } from '../components/ui/dialog';
-import { conversations, money, names, prices, recipeById, recipes } from '../game/content';
+import {
+  conversations,
+  money,
+  names,
+  prices,
+  recipeById,
+  recipeMethod,
+  recipes,
+} from '../game/content';
+import { ambience, upgradeInfo, type Upgrade } from '../game/engine';
+import { backupName, encodeBackup } from '../game/storage';
 import { startClock, useGame, type Panel } from '../game/store';
-import { MenuPanel, StockPanel, PosPanel } from './Management';
+import { MenuPanel, StockPanel } from './Management';
 import {
   BellArt,
   BookArt,
   BoxArt,
   CalendarArt,
+  CandleArt,
   CocktailArt,
   CoinsArt,
   DrinkArt,
   DiceArt,
+  FrameArt,
   GearArt,
   GlassArt,
+  GlassShapeArt,
   HelpArt,
+  HostArt,
   IceArt,
+  JukeboxArt,
+  LightsArt,
   PauseArt,
   PlantArt,
   ReceiptArt,
+  ShakerArt,
   SoundArt,
   SpongeArt,
+  StirArt,
   TrashArt,
 } from './art';
 const BarScene = lazy(() => import('../view/BarScene'));
@@ -132,13 +150,65 @@ function SwitchRow({
     </label>
   );
 }
-function RecipeCard({ id }: { id: string }) {
+const toolLabel = {
+  shaker: 'Shaker',
+  mixing_glass: 'Mixing glass',
+  old_fashioned_glass: 'Rocks glass',
+  build_glass: 'Build in the glass',
+} as const;
+const glassLabel = {
+  cocktail_glass: 'Coupe',
+  old_fashioned_glass: 'Rocks',
+  highball: 'Highball',
+  mug: 'Mug',
+  hurricane: 'Hurricane',
+} as const;
+const glassShape = {
+  cocktail_glass: 'coupe',
+  old_fashioned_glass: 'rocks',
+  highball: 'highball',
+  mug: 'mug',
+  hurricane: 'hurricane',
+} as const;
+export function RecipeCard({ id }: { id: string }) {
   const r = recipeById(id);
+  const m = recipeMethod(r);
+  const chilled = r.service.glass === 'chilled_cocktail_glass';
   return (
     <div className="recipe-card">
       <div className="recipe-heading">
         <DrinkArt size={56} id={r.id} />
         <h3>{r.name}</h3>
+      </div>
+      {/* How it is made comes first, large enough to read at a glance. */}
+      <div className="recipe-method">
+        <div className="method-chips">
+          <span>
+            {m.tool === 'shaker' ? <ShakerArt size={30} /> : <StirArt size={30} />}
+            {toolLabel[m.tool]}
+          </span>
+          <span>
+            {m.technique === 'shake' ? <ShakerArt size={30} /> : <StirArt size={30} />}
+            {m.dissolve
+              ? 'Muddle, then ' + m.technique
+              : m.technique === 'shake'
+                ? 'Shake'
+                : 'Stir'}
+          </span>
+          <span>
+            <GlassShapeArt size={30} shape={glassShape[m.glass]} />
+            {glassLabel[m.glass]}
+            {chilled ? ', chilled' : ''}
+          </span>
+        </div>
+        <p>
+          {r.preparation?.notes ??
+            (r.id === 'margarita'
+              ? 'Chill a cocktail glass. Add tequila, triple sec and lime juice to a shaker with ice. Shake, then strain. A half salt rim is optional.'
+              : r.id === 'manhattan'
+                ? 'Chill a cocktail glass. Combine rye, sweet vermouth and bitters in a mixing glass with ice. Stir, strain and add a cocktail cherry.'
+                : 'Select the rocks glass. Add sugar, bitters and water; muddle until dissolved. Add ice and whiskey, stir gently, then add orange and a cherry.')}
+        </p>
       </div>
       <div className="recipe-ingredients">
         {r.ingredients.map((i) => (
@@ -149,17 +219,6 @@ function RecipeCard({ id }: { id: string }) {
             </strong>
           </div>
         ))}
-      </div>
-      <div className="recipe-method">
-        <h4>Method</h4>
-        <p>
-          {r.preparation?.notes ??
-            (r.id === 'margarita'
-              ? 'Chill a cocktail glass. Add tequila, triple sec and lime juice to a shaker with ice. Shake, then strain. A half salt rim is optional.'
-              : r.id === 'manhattan'
-                ? 'Chill a cocktail glass. Combine rye, sweet vermouth and bitters in a mixing glass with ice. Stir, strain and add a cocktail cherry.'
-                : 'Select the rocks glass. Add sugar, bitters and water; muddle until dissolved. Add ice and whiskey, stir gently, then add orange and a cherry.')}
-        </p>
       </div>
     </div>
   );
@@ -187,14 +246,13 @@ function SettingsPanel() {
   const { game, act, importSave, saveError } = useGame();
   const input = useRef<HTMLInputElement>(null);
   const [error, setError] = useState('');
-  const download = () => {
-    const blob = new Blob([JSON.stringify(game, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
+  const download = async () => {
+    const url = URL.createObjectURL(await encodeBackup(game));
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'dive-bar-night-' + game.day + '.json';
+    a.download = backupName(game);
     a.click();
-    URL.revokeObjectURL(url);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
   return (
     <div className="settings">
@@ -230,6 +288,20 @@ function SettingsPanel() {
         onChange={(v) => act({ type: 'setting', key: 'sound', value: v })}
       />
       <SwitchRow
+        label="Jukebox music"
+        description={
+          game.upgrades.jukebox ? 'Soft music from the jukebox.' : 'Buy the jukebox in Decorate.'
+        }
+        checked={game.settings.music}
+        onChange={(v) => act({ type: 'setting', key: 'music', value: v })}
+      />
+      <SwitchRow
+        label="Bartending hints"
+        description="Highlights the next step at the counter."
+        checked={game.settings.hints}
+        onChange={(v) => act({ type: 'setting', key: 'hints', value: v })}
+      />
+      <SwitchRow
         label="Reduced motion"
         description="Fewer animations."
         checked={game.settings.reducedMotion}
@@ -249,19 +321,23 @@ function SettingsPanel() {
           hidden
           ref={input}
           type="file"
-          accept="application/json"
+          accept=".divebar,.json,text/plain,application/json"
           onChange={async (e) => {
             const file = e.target.files?.[0];
+            e.target.value = '';
             if (!file) return;
             try {
-              importSave(await file.text());
+              await importSave(await file.text());
               setError('');
             } catch (e) {
               setError(e instanceof Error ? e.message : 'Could not read that save.');
             }
           }}
         />
-        <p className="hint">Progress saves automatically on this device.</p>
+        <p className="hint">
+          Progress saves automatically on this device. Backups are checked for damage when you
+          import them.
+        </p>
       </div>
       {(error || saveError) && (
         <p role="alert" className="error-text">
@@ -271,29 +347,50 @@ function SettingsPanel() {
     </div>
   );
 }
-const decorItems = [
+const decorItems: { id: Upgrade; name: string; description: string; art: ReactNode }[] = [
+  {
+    id: 'barback',
+    name: 'Host',
+    description: 'Greets guests at the door, shows them to a seat and washes glasses.',
+    art: <HostArt size={52} />,
+  },
+  {
+    id: 'jukebox',
+    name: 'Jukebox',
+    description: 'Soft music all night. +2% tips.',
+    art: <JukeboxArt size={52} />,
+  },
+  {
+    id: 'doorLights',
+    name: 'Door lights',
+    description: 'String lights over the door draw more people in.',
+    art: <LightsArt size={52} />,
+  },
+  {
+    id: 'counterDecor',
+    name: 'Counter candles',
+    description: 'Candles and a little vase on the bar. +1% tips.',
+    art: <CandleArt size={52} />,
+  },
+  {
+    id: 'wallArt',
+    name: 'Wall pictures',
+    description: 'Framed prints for the bare walls. +1% tips.',
+    art: <FrameArt size={52} />,
+  },
   {
     id: 'plant',
     name: 'Corner plant',
-    description: 'A bit of green for the corner.',
-    cost: 1500,
+    description: 'A bit of green for the corner. +1% tips.',
     art: <PlantArt size={52} />,
   },
   {
     id: 'neon',
     name: 'Neon sign',
-    description: 'Lights up the sign behind the bar.',
-    cost: 2500,
+    description: 'Lights up the sign behind the bar. +1% tips.',
     art: <BellArt size={52} />,
   },
-  {
-    id: 'barback',
-    name: 'Barback',
-    description: 'Washes glasses, fills ice and takes out the trash.',
-    cost: 6000,
-    art: <GlassArt size={52} />,
-  },
-] as const;
+];
 function DecorPanel() {
   const { game, act } = useGame();
   return (
@@ -319,6 +416,10 @@ function DecorPanel() {
         ))}
       </div>
       <h4>Shop</h4>
+      <p className="hint">
+        A nicer room means better tips. Right now: +{Math.round(ambience(game) * 100)}% on every
+        tip.
+      </p>
       <div className="shop-items">
         {decorItems.map((item) => (
           <div className={'shop-item ' + (game.upgrades[item.id] ? 'owned' : '')} key={item.id}>
@@ -330,7 +431,7 @@ function DecorPanel() {
             <Button
               variant={game.upgrades[item.id] ? 'secondary' : 'default'}
               size="sm"
-              disabled={game.upgrades[item.id] || game.cash < item.cost}
+              disabled={game.upgrades[item.id] || game.cash < upgradeInfo[item.id].cost}
               onClick={() => act({ type: 'buy', item: item.id })}
             >
               {game.upgrades[item.id] ? (
@@ -338,56 +439,13 @@ function DecorPanel() {
                   <Check size={14} /> Owned
                 </>
               ) : (
-                money(item.cost)
+                money(upgradeInfo[item.id].cost)
               )}
             </Button>
           </div>
         ))}
       </div>
     </>
-  );
-}
-function DicePanel() {
-  const { game, act } = useGame();
-  const d = game.dice;
-  return (
-    <div className="dice-panel">
-      <p>
-        Roll five dice against Len. Tap dice to keep them, then roll the rest once. Highest total
-        wins a house token.
-      </p>
-      <div className="dice-row">
-        {(d.values.length ? d.values : [1, 2, 3, 4, 5]).map((value, index) => (
-          <button
-            key={index}
-            disabled={d.rolled !== 1}
-            aria-label={'Keep die ' + (index + 1)}
-            aria-pressed={d.kept[index] ?? false}
-            onClick={() => act({ type: 'keepDie', index })}
-          >
-            <span>{['', '⚀', '⚁', '⚂', '⚃', '⚄', '⚅'][value]}</span>
-            <small>{d.kept[index] ? 'Keep' : ' '}</small>
-          </button>
-        ))}
-      </div>
-      <Button
-        disabled={d.playedDay === game.day && !!d.result}
-        onClick={() => act({ type: 'rollDice' })}
-      >
-        {d.rolled === 1 ? 'Roll the rest' : 'Roll'}
-      </Button>
-      {d.result && (
-        <div className="dice-result">
-          <strong>{d.result}</strong>
-          <p>
-            You {d.values.reduce((a, b) => a + b, 0)} · Len {d.opponent}
-          </p>
-        </div>
-      )}
-      <p className="hint">
-        One round per night · {game.tokens} {game.tokens === 1 ? 'token' : 'tokens'}
-      </p>
-    </div>
   );
 }
 function DialoguePanel() {
@@ -424,7 +482,11 @@ function HelpPanel() {
     [<b key="w">!</b>, 'Seat guests', 'Tap a guest at the door, then seat them.'],
     [<b key="q">?</b>, 'Take orders', 'When they’re ready, take their order.'],
     [<CocktailArt key="c" size={30} />, 'Make the drink', 'Follow the recipe at the counter.'],
-    [<ReceiptArt key="r" size={30} />, 'Get paid', 'Let them finish, then settle the bill.'],
+    [
+      <ReceiptArt key="r" size={30} />,
+      'Get paid',
+      'Settle the bill. Friends say how they want to split it, so listen. Tips show up as they pay.',
+    ],
     [<BellArt key="b" size={30} />, 'Close up', 'Clean, restock and start the next night.'],
   ];
   return (
@@ -565,14 +627,9 @@ function RecapCard() {
         <Button onClick={() => act({ type: 'nextDay' })}>
           Next night <ArrowRight size={16} />
         </Button>
-        <div className="pair">
-          <Button variant="secondary" onClick={() => setPanel('decor')}>
-            Decorate
-          </Button>
-          <Button variant="secondary" onClick={() => setPanel('dice')}>
-            Dice
-          </Button>
-        </div>
+        <Button variant="secondary" onClick={() => setPanel('decor')}>
+          Decorate
+        </Button>
       </div>
     </Section>
   );
@@ -628,7 +685,7 @@ function ServiceCard() {
     </Section>
   );
 }
-type Drawer = 'phase' | 'recipes' | 'tabs' | 'decor';
+type Drawer = 'phase' | 'recipes' | 'decor';
 function RecipesDrawer() {
   const { game } = useGame();
   const menu = recipes.filter((r) => game.activeMenu.includes(r.id));
@@ -689,19 +746,24 @@ function Hud({
   const time = Math.max(0, SHIFT - game.seconds);
   const progress = Math.min(1, game.seconds / SHIFT);
   const phase = game.phase;
-  const openTabs = game.guests.filter((g) => g.charge > 0 && !g.paid).length;
   const toggle = (d: Drawer) => setDrawer(drawer === d ? null : d);
-  // Keep the last drawer's content on screen while the panel slides shut.
-  const [shown, setShown] = useState(drawer);
+  // Keep the last drawer's content on screen while the panel slides shut. Moving
+  // between drawers swaps the content in place, with no blank frame in between.
+  const [last, setLast] = useState(drawer);
   const reduced = game.settings.reducedMotion;
   useEffect(() => {
-    if (drawer || reduced) {
-      setShown(drawer);
+    if (drawer) {
+      setLast(drawer);
       return;
     }
-    const t = setTimeout(() => setShown(null), 320);
+    if (reduced) {
+      setLast(null);
+      return;
+    }
+    const t = setTimeout(() => setLast(null), 320);
     return () => clearTimeout(t);
   }, [drawer, reduced]);
+  const shown = drawer ?? last;
   // Keep the counter label and toasts clear of the open drawer.
   useEffect(() => {
     const wide = !window.matchMedia('(max-width: 760px) and (orientation: portrait)').matches;
@@ -723,7 +785,6 @@ function Hud({
   const drawerTitle: Record<Drawer, string> = {
     phase: phaseTile.title,
     recipes: 'Recipes',
-    tabs: 'Open tabs',
     decor: 'Decorate',
   };
   return (
@@ -736,7 +797,7 @@ function Hud({
         inert={!drawer}
       >
         {shown && (
-          <div className="drawer-inner" key={shown}>
+          <div className="drawer-inner">
             <header>
               <h2>{drawerTitle[shown]}</h2>
               <button
@@ -760,8 +821,6 @@ function Hud({
                 )
               ) : shown === 'recipes' ? (
                 <RecipesDrawer />
-              ) : shown === 'tabs' ? (
-                <PosPanel />
               ) : (
                 <DecorPanel />
               )}
@@ -802,13 +861,6 @@ function Hud({
           onClick={() => toggle('recipes')}
         />
         <RailTile
-          label="Tabs"
-          art={<ReceiptArt size={40} />}
-          active={drawer === 'tabs'}
-          badge={openTabs}
-          onClick={() => toggle('tabs')}
-        />
-        <RailTile
           label="Decorate"
           art={<PlantArt size={40} />}
           active={drawer === 'decor'}
@@ -843,8 +895,11 @@ function Hud({
   );
 }
 /** On phones, go full screen and hold landscape where the browser allows it. */
+let wantFullScreen = false;
 function lockLandscape() {
   if (!window.matchMedia('(pointer: coarse)').matches) return;
+  wantFullScreen = true;
+  if (document.fullscreenElement) return;
   const orientation = screen.orientation as ScreenOrientation & {
     lock?: (o: 'landscape') => Promise<void>;
   };
@@ -852,6 +907,20 @@ function lockLandscape() {
     .requestFullscreen?.()
     .then(() => orientation.lock?.('landscape'))
     .catch(() => {});
+}
+/**
+ * Phones drop full screen when the player switches apps, locks the screen or swipes
+ * the system bars in. The browser only lets a page go back to full screen from a
+ * tap, so the next tap on the game does it.
+ */
+function useFullScreenComeback() {
+  useEffect(() => {
+    const again = () => {
+      if (wantFullScreen && !document.fullscreenElement) lockLandscape();
+    };
+    document.addEventListener('pointerup', again, true);
+    return () => document.removeEventListener('pointerup', again, true);
+  }, []);
 }
 /** Covers the game on phones held upright; the bar only works in landscape. */
 function RotateNotice() {
@@ -889,8 +958,9 @@ export default function App() {
   } = useGame();
   const [toast, setToast] = useState('');
   const [drawer, setDrawer] = useState<Drawer | null>(null);
+  useFullScreenComeback();
   const isDialog = (p: Panel) =>
-    ['recipe', 'settings', 'dialogue', 'pos', 'decor', 'dice', 'help', 'stock', 'menu'].includes(p);
+    ['recipe', 'settings', 'dialogue', 'decor', 'help', 'stock', 'menu'].includes(p);
   const [lastDialog, setLastDialog] = useState<Panel>('help');
   useEffect(() => {
     if (isDialog(panel)) setLastDialog(panel);
@@ -946,17 +1016,7 @@ export default function App() {
     );
   const guest = game.guests.find((g) => g.id === selected);
   const recipeId = selected === -1 ? practiceRecipe : (guest?.recipeId ?? practiceRecipe);
-  const focusPanel = [
-    'recipe',
-    'settings',
-    'dialogue',
-    'pos',
-    'decor',
-    'dice',
-    'help',
-    'stock',
-    'menu',
-  ].includes(panel);
+  const focusPanel = isDialog(panel);
   // While a window plays its closing animation, keep showing what it held.
   const shownPanel = focusPanel ? panel : lastDialog;
   const dialogue = conversations.find((c) => c.id === useGame.getState().dialogue?.id);
@@ -964,9 +1024,7 @@ export default function App() {
     recipe: 'Recipe',
     settings: 'Settings',
     dialogue: dialogue?.customer ?? 'Chat',
-    pos: 'Open tabs',
     decor: 'Decorate',
-    dice: 'House dice',
     help: 'How to play',
     stock: 'Restock',
     menu: 'Tonight’s menu',
@@ -974,9 +1032,7 @@ export default function App() {
   const dialogArt: Partial<Record<Panel, ReactNode>> = {
     recipe: <BookArt size={40} />,
     settings: <GearArt size={40} />,
-    pos: <ReceiptArt size={40} />,
     decor: <PlantArt size={40} />,
-    dice: <DiceArt size={40} />,
     help: <HelpArt size={40} />,
     stock: <BoxArt size={40} />,
     menu: <CocktailArt size={40} />,
@@ -1046,10 +1102,6 @@ export default function App() {
           <DialoguePanel />
         ) : shownPanel === 'decor' ? (
           <DecorPanel />
-        ) : shownPanel === 'dice' ? (
-          <DicePanel />
-        ) : shownPanel === 'pos' ? (
-          <PosPanel />
         ) : shownPanel === 'stock' ? (
           <StockPanel />
         ) : shownPanel === 'menu' ? (

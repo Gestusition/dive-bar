@@ -1,7 +1,7 @@
-import { ArrowRight, MessageCircle, Receipt, UtensilsCrossed } from 'lucide-react';
+import { ArrowRight, MessageCircle, Receipt, UtensilsCrossed, Users } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { money, recipeById } from '../game/content';
-import { conversationFor, type Guest } from '../game/engine';
+import { conversationFor, party, seatProblem, type Guest } from '../game/engine';
 import { useGame } from '../game/store';
 
 export const statusLabels: Record<Guest['status'], string> = {
@@ -19,12 +19,28 @@ export function patience(guest: Guest) {
   return Math.max(0, Math.min(1, guest.remaining / (guest.status === 'ready' ? 75 : 160)));
 }
 
+/** How the group asks to pay, in the lead guest's words. */
+const askLine = (split: Guest['splitAsk'], count: number) =>
+  split === 'split'
+    ? count > 2
+      ? 'Separate bills for us, please.'
+      : 'Can we split it? Half each.'
+    : 'One bill. This round’s on me.';
+
 /** The little speech-card that opens above a guest when you tap them. */
 export function GuestActions({ guest }: { guest: Guest }) {
   const { enqueue, game, select, setPanel, talk } = useGame();
   const canTalk = !!conversationFor(game, guest);
   const tabOpen = ['ordered', 'drinking', 'pay'].includes(guest.status);
   const regular = game.visitCount[guest.customerId] > 0;
+  const group = party(game, guest);
+  const friends = group.filter((g) => g.id !== guest.id);
+  const together = group.length > 1;
+  const seatIssue = guest.status === 'waiting' ? seatProblem(game, guest) : null;
+  const unpaid = group.filter((g) => !g.paid);
+  const total = unpaid.reduce((n, g) => n + g.charge - g.paidAmount, 0);
+  const stillDrinking = unpaid.find((g) => g.status !== 'pay');
+  const lead = group.find((g) => g.lead) ?? guest;
   return (
     <div className="guest-card" onClick={(e) => e.stopPropagation()}>
       <div className="guest-card-head">
@@ -37,6 +53,11 @@ export function GuestActions({ guest }: { guest: Guest }) {
           </small>
         </span>
       </div>
+      {friends.length > 0 && (
+        <p className="guest-with">
+          <Users size={13} /> With {friends.map((g) => g.name).join(' and ')}
+        </p>
+      )}
       {tabOpen && (
         <div className="guest-order">
           {recipeById(guest.recipeId).name}
@@ -44,15 +65,20 @@ export function GuestActions({ guest }: { guest: Guest }) {
         </div>
       )}
       <div className="guest-card-actions">
-        {guest.status === 'waiting' && (
-          <Button size="sm" onClick={() => enqueue(guest.id, 'seat')}>
-            Seat guest <ArrowRight size={15} />
-          </Button>
-        )}
+        {guest.status === 'waiting' &&
+          (seatIssue ? (
+            <p className="hint">{seatIssue}</p>
+          ) : (
+            <Button size="sm" onClick={() => enqueue(guest.id, 'seat')}>
+              {together ? 'Seat them' : 'Seat guest'} <ArrowRight size={15} />
+            </Button>
+          ))}
         {guest.status === 'reading' && <p className="hint">Give them a moment to choose.</p>}
         {guest.status === 'ready' && (
           <Button size="sm" onClick={() => enqueue(guest.id, 'order')}>
-            Take order
+            {group.filter((g) => g.status === 'ready').length > 1
+              ? 'Take their orders'
+              : 'Take order'}
           </Button>
         )}
         {guest.status === 'ordered' && (
@@ -76,11 +102,33 @@ export function GuestActions({ guest }: { guest: Guest }) {
         {guest.status === 'drinking' && (
           <p className="hint">Let them enjoy it. The tab stays open.</p>
         )}
-        {guest.status === 'pay' && (
-          <Button size="sm" onClick={() => enqueue(guest.id, 'pay')}>
-            <Receipt size={15} /> Settle {money(guest.charge - guest.paidAmount)}
-          </Button>
-        )}
+        {guest.status === 'pay' &&
+          (stillDrinking ? (
+            <p className="hint">
+              Waiting for {stillDrinking.name} to finish. They’ll pay together.
+            </p>
+          ) : together ? (
+            <>
+              <p className="guest-ask">
+                <b>{lead.name}:</b> “{askLine(lead.splitAsk, unpaid.length)}”
+              </p>
+              <Button size="sm" onClick={() => enqueue(guest.id, 'pay', { split: 'one' })}>
+                <Receipt size={15} /> One bill · {money(total)}
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => enqueue(guest.id, 'pay', { split: 'split' })}
+              >
+                <Receipt size={15} /> Split ·{' '}
+                {unpaid.map((g) => money(g.charge - g.paidAmount)).join(' + ')}
+              </Button>
+            </>
+          ) : (
+            <Button size="sm" onClick={() => enqueue(guest.id, 'pay')}>
+              <Receipt size={15} /> Settle {money(total)}
+            </Button>
+          ))}
       </div>
       {tabOpen && guest.food !== 'served' && (
         <div className="guest-card-snacks">
@@ -89,7 +137,7 @@ export function GuestActions({ guest }: { guest: Guest }) {
               <button onClick={() => enqueue(guest.id, 'food')}>
                 <UtensilsCrossed size={13} /> Pretzel · $5
               </button>
-              <button onClick={() => enqueue(guest.id, 'food', 'toastie')}>
+              <button onClick={() => enqueue(guest.id, 'food', { foodType: 'toastie' })}>
                 <UtensilsCrossed size={13} /> Toastie · $7
               </button>
             </>
