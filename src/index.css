@@ -791,6 +791,11 @@ a {
   z-index: 4;
   pointer-events: none;
 }
+/* A guest card open in the lower half of the scene keeps its buttons clear. */
+:not(.station-mode) > .scene:has(.guest-anchor[data-low='true'] .guest-card) .top-center {
+  top: 12px;
+  bottom: auto;
+}
 .task-pill,
 .toast {
   pointer-events: auto;

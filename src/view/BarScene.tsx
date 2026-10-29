@@ -895,6 +895,10 @@ function SceneProjector({ elements, guestGroups }: SceneRefs) {
       const shift = under ? Math.min(0, below - 8) : Math.max(0, 8 - above);
       element.dataset.below = String(under);
       element.style.setProperty('--lift', shift / scale + 'px');
+      // A card in the lower half moves the hints and notices to the top of the
+      // scene, so they never cover its buttons.
+      const top = under ? y + 30 * scale + shift : y - 134 * scale + shift - tall;
+      element.dataset.low = String(top + tall / 2 > size.height / 2);
     };
 
     for (const [id, element] of elements.current.guests) {

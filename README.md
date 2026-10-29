@@ -2,7 +2,7 @@
 
 A small voxel neighbourhood bar. Real measures, familiar faces, and the occasional little white lie.
 
-**Play it:** https://gestusition.github.io/dive-bar/ · **Latest release:** [v0.0.3](https://github.com/Gestusition/dive-bar/releases/tag/v0.0.3)
+**Play it:** https://gestusition.github.io/dive-bar/ · **Latest release:** [v0.0.3.2](https://github.com/Gestusition/dive-bar/releases/tag/v0.0.3.2)
 
 ![Title screen](docs/screenshots/title.jpg)
 

@@ -2,11 +2,12 @@
 
 All notable changes are recorded here. Versions describe tagged source releases; GitHub Pages follows `main` and may show a different revision. This project is still an early playable release.
 
-## [Unreleased]
+## [0.0.3.2] - 2026-10-30
 
 ### Fixed
 
 - The host and the bartender no longer walk through the trash bin. The bin stands clear of the counter-end walkway, and staff empty it from beside it instead of appearing inside it.
+- On short landscape phones, the hint and notices move to the top of the scene while a guest card is open in the lower half, so they no longer cover its buttons.
 
 ## [0.0.3] - 2026-10-29
 
@@ -70,6 +71,7 @@ All notable changes are recorded here. Versions describe tagged source releases;
 
 Initial tagged playable release: fourteen recipes, a voxel bar, manual cocktail preparation, service and dialogue, stock and integer-money accounting, shift closing, local saves, desktop/touch controls and GitHub Pages delivery.
 
+[0.0.3.2]: https://github.com/Gestusition/dive-bar/compare/v0.0.3...v0.0.3.2
 [0.0.3]: https://github.com/Gestusition/dive-bar/compare/v0.0.2...v0.0.3
 [0.0.2]: https://github.com/Gestusition/dive-bar/compare/v0.0.1...v0.0.2
 [0.0.1]: https://github.com/Gestusition/dive-bar/releases/tag/v0.0.1

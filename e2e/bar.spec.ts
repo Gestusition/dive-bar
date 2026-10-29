@@ -124,6 +124,26 @@ test('six default drinks can expand to fourteen and survive a reload', async ({ 
   await page.getByRole('button', { name: 'Get ready', exact: true }).click();
   await expect(page.locator('.menu-list button')).toHaveCount(14);
 });
+test('hints and notices never cover an open guest card on a phone', async ({ page, isMobile }) => {
+  test.skip(!isMobile, 'Short landscape phones open the counter card in the lower half.');
+  await orderFromSingleMenu(page);
+  // Let the scene place the card and move the hints out of its way.
+  await page.clock.runFor(250);
+  await expect(page.locator('.guest-card button')).not.toHaveCount(0);
+  // The hint ignores pointer input, so compare drawn boxes instead of hit testing.
+  const covering = await page.evaluate(() => {
+    const card = document.querySelector('.guest-card')!.getBoundingClientRect();
+    return [...document.querySelectorAll('.top-center > *')]
+      .filter((note) => {
+        const r = note.getBoundingClientRect();
+        return (
+          r.left < card.right && r.right > card.left && r.top < card.bottom && r.bottom > card.top
+        );
+      })
+      .map((note) => note.textContent);
+  });
+  expect(covering).toEqual([]);
+});
 test('live guests order from the actual menu instead of assuming Manhattan', async ({ page }) => {
   await orderFromSingleMenu(page);
   await page.getByRole('button', { name: 'Make drink' }).click();
