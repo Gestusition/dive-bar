@@ -23,7 +23,7 @@ import {
   walkAvoidingPeople,
   type FloorPoint,
 } from '../game/navigation';
-import { cornerPlantParts, floorPlantParts } from '../game/room-layout';
+import { binPosition, binRadius, cornerPlantParts, floorPlantParts } from '../game/room-layout';
 import { money } from '../game/content';
 import DrinkStage from './DrinkStage';
 import { CocktailArt, CoinArt, HeartArt } from '../ui/art';
@@ -609,13 +609,13 @@ function CleanupProps({ staff }: { staff: StaffRefs }) {
           </mesh>
         )}
       </group>
-      <group position={[4.6, 0.4, -3.05]}>
+      <group position={[binPosition[0], 0.4, binPosition[1]]}>
         <mesh>
-          <cylinderGeometry args={[0.3, 0.24, 0.8, 10]} />
+          <cylinderGeometry args={[binRadius - 0.03, 0.24, 0.8, 10]} />
           <meshStandardMaterial color="#476c62" />
         </mesh>
         <mesh position={[0, 0.42, 0]}>
-          <cylinderGeometry args={[0.33, 0.33, 0.06, 10]} />
+          <cylinderGeometry args={[binRadius, binRadius, 0.06, 10]} />
           <meshStandardMaterial color={trash > 0 ? '#423d3e' : '#8da79a'} />
         </mesh>
       </group>

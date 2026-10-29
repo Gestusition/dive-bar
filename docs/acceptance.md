@@ -1,4 +1,4 @@
-# Acceptance scenarios — slice-0.1
+# Acceptance scenarios: slice-0.1
 
 These are implementation acceptance criteria, not tests that already passed. Use them as milestone checks once code exists. Do not claim gameplay readiness from content validation.
 

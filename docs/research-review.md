@@ -1,4 +1,4 @@
-# Research review — 24 October 2026
+# Research review: 24 October 2026
 
 Status: research and planning, no playable build. The reference review used the official Check Please description and three official screenshots inspected in this chat; its demo was not played. Proposed changes below are our design judgments.
 

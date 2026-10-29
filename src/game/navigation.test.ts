@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cornerPlantParts } from './room-layout';
+import { binPosition, binRadius, binStandSpot, cornerPlantParts } from './room-layout';
 import {
   advanceWalk,
   bartenderHome,
@@ -38,6 +38,11 @@ function clearCounter(p: FloorPoint) {
     if (Math.hypot(dx, dz) <= 0.52)
       throw new Error(`Bartender intersects plant voxel ${x},${z} at ${p}`);
   }
+  clearBin(p, 0.52);
+}
+function clearBin(p: FloorPoint, radius: number) {
+  if (Math.hypot(p[0] - binPosition[0], p[1] - binPosition[1]) < binRadius + radius - 1e-6)
+    throw new Error(`Character intersects the bin at ${p}`);
 }
 function walk(from: FloorPoint, to: FloorPoint) {
   let p = from;
@@ -87,6 +92,27 @@ describe('bartender walkway', () => {
   });
   it('stays still at arrival, including the door and the home position', () => {
     for (const p of [...targets, bartenderHome]) expect(advanceWalk(p, p, 5)).toEqual(p);
+  });
+  it('keeps the bin out of the counter-end walkway and lets staff empty it from outside', () => {
+    clearBin(binStandSpot, 0.32);
+    for (const [x, , z, w, , d] of cornerPlantParts) {
+      const dx = Math.max(Math.abs(binPosition[0] - x) - w / 2, 0);
+      const dz = Math.max(Math.abs(binPosition[1] - z) - d / 2, 0);
+      expect(Math.hypot(dx, dz)).toBeGreaterThan(binRadius);
+    }
+    for (const start of [bartenderHome, hostHome, ...targets]) {
+      // Cleanup walks use the furniture-aware path for both the host and the bartender.
+      let p: FloorPoint = [...start];
+      let path = guestPath(p, binStandSpot);
+      for (let i = 0; i < 5000 && Math.hypot(p[0] - binStandSpot[0], p[1] - binStandSpot[1]); i++) {
+        ({ position: p, path } = stepAlong(p, path, guestSpeed / 60));
+        clearBin(p, 0.32);
+      }
+      expect(p).toEqual(binStandSpot);
+      // Afterwards the bartender returns behind the counter and to service.
+      walk(binStandSpot, bartenderHome);
+      for (const target of targets) walk(binStandSpot, target);
+    }
   });
 });
 

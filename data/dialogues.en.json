@@ -363,7 +363,7 @@
               "id": "start_1"
             },
             {
-              "text": "I can narrow it down—something refreshing or something rich?",
+              "text": "I can narrow it down: something refreshing or something rich?",
               "next": "recommend",
               "reply": "Refreshing sounds good.",
               "trust": 1,
@@ -743,7 +743,7 @@
               "id": "start_2"
             },
             {
-              "text": "Let me check your note—less sweet and an extra cherry?",
+              "text": "Let me check your note: less sweet and an extra cherry?",
               "result": "confirm",
               "reply": "Exactly. Thanks for checking.",
               "trust": 1,

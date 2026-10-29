@@ -1,5 +1,12 @@
 export type VoxelPart = [number, number, number, number, number, number, string];
 
+// The bin stands against the back wall right of the plant, off the walkway
+// round the end of the counter. Staff empty it from its front left, so neither
+// hides the other and the walk back behind the counter passes clear of it.
+export const binPosition: [number, number] = [6.5, -3.8];
+export const binRadius = 0.33;
+export const binStandSpot: [number, number] = [5.95, -2.9];
+
 // Leave the right-hand walkway clear, including the foliage and the rotating
 // bartender's arms. Keep the entire plant inside the back wall and floor, in
 // front of the skirting board and clear of the window sill to its left.

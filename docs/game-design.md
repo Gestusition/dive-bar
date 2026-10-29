@@ -1,4 +1,4 @@
-# Dive Bar — revised game design
+# Dive Bar: revised game design
 
 Revision: 24 October 2026. Status: planning and authored data; no playable implementation.
 

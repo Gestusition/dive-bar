@@ -1,4 +1,4 @@
-# Resolved gameplay contracts — slice-0.1
+# Resolved gameplay contracts: slice-0.1
 
 These resolve implementation questions left open in earlier planning. All tuning values are game design, not real bartending standards. Canonical values live in data/vertical-slice.en.json and data/balance.en.json.
 

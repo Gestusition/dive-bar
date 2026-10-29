@@ -1,4 +1,5 @@
 import type { Guest } from './engine';
+import { binPosition, binRadius } from './room-layout';
 
 export type FloorPoint = [number, number];
 export const bartenderHome: FloorPoint = [0, -3.05];
@@ -149,6 +150,7 @@ export const guestObstacles: Rect[] = [
   [1.2, -0.25, 0.7, 0.7],
   [0, -1.8, 8, 1.35],
   [-6.4, -1.3, 0.8, 0.75],
+  [binPosition[0], binPosition[1], binRadius * 2, binRadius * 2],
 ];
 // Each seat is reached from a clear spot just in front of it.
 const tableZ = new Map(tables.map(([x, z]) => [x, z]));

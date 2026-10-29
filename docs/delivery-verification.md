@@ -1,4 +1,4 @@
-# Delivery verification — 0.0.2
+# Delivery verification: 0.0.2
 
 Updated 29 October 2026. Current source branch: `fix/playtest-round-2`. The release tag identifies the published source; Pages continues to follow `main`. A feature-branch release is not evidence of a Pages deployment.
 
@@ -37,7 +37,7 @@ Physical phones, real iOS/Android audio and input policies, heat/battery, extend
 
 The following entries describe earlier deliveries, not the current build system, profile matrix or verification counts.
 
-# Delivery verification — 25 October 2026
+# Delivery verification: 25 October 2026
 
 Current consolidation: dependency PRs #2–#6 are integrated into main with Vite 8 / React plugin 6 / Vitest 5 and TypeScript 7 plus the TypeScript 6 API alias for lint. Bartender walking uses the right-hand opening and errands wait for arrival. Local validation passes 30 unit tests and 9 desktop browser scenarios. The complete 36-scenario matrix and main Pages publication are verified by the current Actions run; consult that run for its result. The temporary preview branch is retired once main publication succeeds.
 

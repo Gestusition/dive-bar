@@ -1,4 +1,5 @@
 import { entrance, type FloorPoint } from './navigation';
+import { binStandSpot } from './room-layout';
 
 export type CleanupKind = 'wipe' | 'trash' | 'wash';
 export interface CleanupJob {
@@ -12,7 +13,7 @@ export const cleanupInfo: Record<
   { label: string; seconds: number; position: FloorPoint }
 > = {
   wipe: { label: 'Wiping counter', seconds: 3, position: [1, -3.05] },
-  trash: { label: 'Taking out trash', seconds: 2, position: [4.6, -3.05] },
+  trash: { label: 'Taking out trash', seconds: 2, position: binStandSpot },
   wash: { label: 'Washing glasses', seconds: 4, position: [-2.6, -3.05] },
 };
 export function cleanupTarget(job: CleanupJob): FloorPoint {

@@ -726,7 +726,7 @@ function ServiceCard() {
     <Section title="Behind the bar">
       <p className="hint">
         {waiting
-          ? waiting + (waiting === 1 ? ' guest' : ' guests') + ' in — tap a bubble to help them.'
+          ? waiting + (waiting === 1 ? ' guest' : ' guests') + ' in. Tap a bubble to help them.'
           : 'No guests yet. Someone will walk in soon.'}
       </p>
       <div className="tool-grid">

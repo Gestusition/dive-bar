@@ -2,6 +2,12 @@
 
 All notable changes are recorded here. Versions describe tagged source releases; GitHub Pages follows `main` and may show a different revision. This project is still an early playable release.
 
+## [Unreleased]
+
+### Fixed
+
+- The host and the bartender no longer walk through the trash bin. The bin stands clear of the counter-end walkway, and staff empty it from beside it instead of appearing inside it.
+
 ## [0.0.3] - 2026-10-29
 
 ### Added

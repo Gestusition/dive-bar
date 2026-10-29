@@ -1,4 +1,4 @@
-# Development handoff — slice-0.1
+# Development handoff: slice-0.1
 
 Original planning baseline: 24 October 2026. Implementation now exists. See docs/implementation-status.md and README.md for current verified behaviour; the not-started statements below describe the original handoff and must not be treated as current status.
 
@@ -44,12 +44,12 @@ After this slice: detailed POS, two warmed snacks, barback, advanced modifiers a
 ## Implementation order and acceptance
 | Stage | Build | Exit condition |
 | --- | --- | --- |
-| M0 — foundation | React/TypeScript + Next.js/Turbopack static export, R3F Canvas, Tailwind v4, minimal themed shadcn UI, content loader and first quality checks | Compatible versions locked; content/type/build checks work; unsupported graphics gives a readable message; no server requirement |
-| M1 — interaction proof | One workstation, Margarita, measuring/transfers, technique and stock | Correct single recipe can be made and served with mouse and real phone touch; interruption cannot continue a pour |
-| M2 — visual proof | Finished corner, bartender, two coherent NPC appearances, essential foley | Readable faces, bottles, targets and amounts at actual phone size; optional effects can be disabled |
-| M3 — complete shift | Three recipes, visits, tickets, menus, queue, quick POS, cleaning and close | One shift completes without deadlock, duplicate serving/payment or loss of an unfinished mixture |
-| M4 — social and persistence | Enabled encounters, exact authored outcomes, story memory, save/import/export | Truthful supermarket answer cancels; plausible lie succeeds; callback requires the saved story; reload preserves committed state |
-| M5 — tune and deliver | Comfort options, measured pacing, performance, production build and Pages | Acceptance scenarios pass locally; real-device results recorded; live URL independently checked after deployment |
+| M0: foundation | React/TypeScript + Next.js/Turbopack static export, R3F Canvas, Tailwind v4, minimal themed shadcn UI, content loader and first quality checks | Compatible versions locked; content/type/build checks work; unsupported graphics gives a readable message; no server requirement |
+| M1: interaction proof | One workstation, Margarita, measuring/transfers, technique and stock | Correct single recipe can be made and served with mouse and real phone touch; interruption cannot continue a pour |
+| M2: visual proof | Finished corner, bartender, two coherent NPC appearances, essential foley | Readable faces, bottles, targets and amounts at actual phone size; optional effects can be disabled |
+| M3: complete shift | Three recipes, visits, tickets, menus, queue, quick POS, cleaning and close | One shift completes without deadlock, duplicate serving/payment or loss of an unfinished mixture |
+| M4: social and persistence | Enabled encounters, exact authored outcomes, story memory, save/import/export | Truthful supermarket answer cancels; plausible lie succeeds; callback requires the saved story; reload preserves committed state |
+| M5: tune and deliver | Comfort options, measured pacing, performance, production build and Pages | Acceptance scenarios pass locally; real-device results recorded; live URL independently checked after deployment |
 
 M3 is a complete service loop, not a content-complete game. M5 releases the slice; later systems are a separate milestone. Do not add decorative content to compensate for a failed M1 control proof.
 

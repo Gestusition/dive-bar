@@ -598,7 +598,7 @@ export default function Station() {
           : progress < sweetZone[0]
             ? (busy === 'shake' ? 'Shaking' : 'Stirring') + '… keep going'
             : progress <= sweetZone[1]
-              ? 'Perfect — let go now'
+              ? 'Perfect, let go now'
               : 'Too long! It’s getting watery'}
       </p>
     </div>

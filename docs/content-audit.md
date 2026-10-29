@@ -1,4 +1,4 @@
-# Final planning/content audit — 24 October 2026
+# Final planning/content audit: 24 October 2026
 
 > Historical planning baseline. A playable runtime now exists; see [implementation-status.md](implementation-status.md) for actual scope and validation limits.
 
