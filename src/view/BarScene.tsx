@@ -20,7 +20,7 @@ import {
   walkingSpeed,
   type FloorPoint,
 } from '../game/navigation';
-import { cornerPlantParts } from '../game/room-layout';
+import { cornerPlantParts, floorPlantParts } from '../game/room-layout';
 import { money } from '../game/content';
 import DrinkStage from './DrinkStage';
 import { CocktailArt, CoinArt, HeartArt } from '../ui/art';
@@ -194,8 +194,11 @@ function roomParts() {
     box(x, 0.35, -0.25, 0.16, 0.7, 0.16, dark);
     box(x, 0.08, -0.25, 0.62, 0.08, 0.62, brass);
   }
-  // Jukebox, rug and a leafy plant.
-  box(-6.4, 0.65, -1.3, 0.8, 1.3, 0.75, '#883f4b');
+  // Jukebox (plinth, body and a stepped crown), rug and a leafy plant.
+  box(-6.4, 0.06, -1.3, 0.86, 0.12, 0.8, dark);
+  box(-6.4, 0.66, -1.3, 0.8, 1.1, 0.75, '#883f4b');
+  box(-6.4, 1.27, -1.3, 0.66, 0.12, 0.7, '#883f4b');
+  box(-6.4, 1.37, -1.3, 0.44, 0.08, 0.64, '#883f4b');
   box(-6.4, 0.89, -0.9, 0.58, 0.64, 0.05, cream);
   box(-6.4, 0.91, -0.86, 0.42, 0.4, 0.05, '#5f9b92');
   for (let i = 0; i < 5; i++) box(-6.4, 0.2 + i * 0.07, -0.9, 0.55, 0.03, 0.04, brass);
@@ -436,10 +439,12 @@ function DoorDecor() {
     const list: [number, number, string][] = [];
     const colors = ['#ffd36b', '#ff7a85', '#7fe3d4', '#ffd36b', '#b8a4ff'];
     let n = 0;
-    for (let y = 0.7; y < 2.45; y += 0.35) list.push([5.72, y, colors[n++ % 5]]);
+    // Seen edge-on, a string up the back jamb would land on top of the one
+    // over the lintel, so the string runs over the lintel and down the front
+    // jamb only.
     for (let z = 5.72; z <= 7.28; z += 0.26)
       list.push([z, 2.55 - Math.sin(((z - 5.72) / 1.56) * Math.PI) * 0.12, colors[n++ % 5]]);
-    for (let y = 2.45; y > 0.6; y -= 0.35) list.push([7.28, y, colors[n++ % 5]]);
+    for (let y = 2.2; y > 0.6; y -= 0.3) list.push([7.28, y, colors[n++ % 5]]);
     return list;
   }, []);
   return (
@@ -474,16 +479,17 @@ function Decor() {
   return (
     <>
       {jukebox && (
-        <group position={[-6.4, 0, -0.88]}>
-          {/* Glowing tubes up the front corners and over the top. */}
-          {[-0.37, 0.37].map((x, i) => (
-            <mesh key={x} position={[x, 0.66, 0.03]}>
-              <boxGeometry args={[0.07, 1.22, 0.07]} />
+        <group position={[-6.4, 0, -0.9]}>
+          {/* Glowing tubes up the front corners and along the crown, set
+              against the cabinet front rather than floating off it. */}
+          {[-0.34, 0.34].map((x, i) => (
+            <mesh key={x} position={[x, 0.67, 0]}>
+              <boxGeometry args={[0.06, 1.06, 0.07]} />
               {glow(i ? '#7fe3d4' : '#ff7a85')}
             </mesh>
           ))}
-          <mesh position={[0, 1.31, 0.03]}>
-            <boxGeometry args={[0.81, 0.07, 0.07]} />
+          <mesh position={[0, 1.24, -0.03]}>
+            <boxGeometry args={[0.74, 0.06, 0.06]} />
             {glow('#ffd36b')}
           </mesh>
         </group>
@@ -570,6 +576,7 @@ function Room({ guestGroups }: { guestGroups: SceneRefs['guestGroups'] }) {
     return geometry(parts);
   }, [theme]);
   const game = useGame((s) => s.game);
+  const floorPlant = useMemo(() => geometry(floorPlantParts), []);
   return (
     <>
       <Camera />
@@ -603,14 +610,7 @@ function Room({ guestGroups }: { guestGroups: SceneRefs['guestGroups'] }) {
       )}
       {game.upgrades.plant && (
         <group position={[7.2, 0, 4.6]}>
-          <mesh position={[0, 0.25, 0]}>
-            <boxGeometry args={[0.6, 0.5, 0.6]} />
-            <meshStandardMaterial color="#bc7960" />
-          </mesh>
-          <mesh position={[0, 0.8, 0]}>
-            <boxGeometry args={[0.8, 0.65, 0.7]} />
-            <meshStandardMaterial color="#7c9a65" />
-          </mesh>
+          <mesh geometry={floorPlant} material={material} castShadow receiveShadow />
         </group>
       )}
       <ContactShadows
