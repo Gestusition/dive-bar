@@ -389,7 +389,7 @@ a {
   position: relative;
   z-index: 2;
   background: var(--blush);
-  width: clamp(86px, 18dvh, 140px);
+  width: clamp(96px, 24dvh, 150px);
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
@@ -402,29 +402,31 @@ a {
      without scrolling or clipping, whatever the screen. */
   container-type: size;
 }
+/* One unit sizes everything in the rail, from the rail's own height. With three
+   tiles there is room for every part to be larger, top to bottom. */
 .rail > * {
-  --u: min(1.03cqh, 11cqw);
+  --u: min(1.2cqh, 12cqw);
 }
 /* A tile's picture and label size from the tile itself, so they fill it. */
 .rail .rail-tile svg {
-  width: min(60cqh, 62cqw);
-  height: min(60cqh, 62cqw);
+  width: min(54cqh, 58cqw);
+  height: min(54cqh, 58cqw);
 }
 .rail svg {
-  width: calc(var(--u) * 4.4);
-  height: calc(var(--u) * 4.4);
+  width: calc(var(--u) * 4.8);
+  height: calc(var(--u) * 4.8);
 }
 .rail-stat.calendar svg {
-  width: calc(var(--u) * 5.2);
-  height: calc(var(--u) * 5.2);
+  width: calc(var(--u) * 6.2);
+  height: calc(var(--u) * 6.2);
 }
 .rail-stat.money svg {
-  width: calc(var(--u) * 3.6);
-  height: calc(var(--u) * 3.6);
+  width: calc(var(--u) * 4.2);
+  height: calc(var(--u) * 4.2);
 }
 .rail-small svg {
-  width: calc(var(--u) * 3.8);
-  height: calc(var(--u) * 3.8);
+  width: calc(var(--u) * 4.6);
+  height: calc(var(--u) * 4.6);
 }
 .rail-stat {
   position: relative;
@@ -434,14 +436,14 @@ a {
   gap: 2px;
 }
 .rail-stat strong {
-  font-size: max(11px, calc(var(--u) * 1.9));
+  font-size: max(12px, calc(var(--u) * 2.55));
   font-weight: 700;
   line-height: 1;
 }
 .calendar strong {
   position: absolute;
   top: 42%;
-  font-size: calc(var(--u) * 2.3);
+  font-size: calc(var(--u) * 2.9);
 }
 .sky-dial {
   position: relative;
@@ -489,7 +491,7 @@ a {
   transition: transform 0.08s;
 }
 .rail-tile small {
-  font-size: clamp(11px, min(18cqh, 19cqw), 17px);
+  font-size: clamp(11px, min(22cqh, 18cqw), 18px);
   font-weight: 600;
   white-space: nowrap;
 }
@@ -516,7 +518,7 @@ a {
 .rail-small button {
   display: grid;
   place-items: center;
-  height: calc(var(--u) * 5.6);
+  height: calc(var(--u) * 6.6);
   background: var(--paper);
   border: var(--line-thin);
   border-radius: var(--r-sm);
@@ -2393,7 +2395,7 @@ a {
     padding: 5px 7px;
   }
   .rail > * {
-    --u: min(1.08cqh, 11cqw);
+    --u: min(1.24cqh, 12cqw);
   }
   .rail .sky-dial,
   .rail-divider {
