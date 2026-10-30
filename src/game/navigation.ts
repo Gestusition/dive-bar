@@ -172,33 +172,33 @@ const inside = ([px, pz]: FloorPoint, [x, z, w, d]: Rect) =>
   Math.abs(px - x) < w / 2 - 1e-9 && Math.abs(pz - z) < d / 2 - 1e-9;
 const blocked = (p: FloorPoint) => padded.some((r) => inside(p, r));
 // Does the segment pass through the inside of the rectangle? (Liang–Barsky)
+// Route planning runs this tens of thousands of times, so it allocates nothing.
+const clipRange = [0, 1];
+function clip(p: number, q: number) {
+  if (Math.abs(p) < 1e-12) return q > 1e-9;
+  const t = q / p;
+  if (p < 0) clipRange[0] = Math.max(clipRange[0], t);
+  else clipRange[1] = Math.min(clipRange[1], t);
+  return clipRange[0] < clipRange[1] - 1e-9;
+}
 function crosses(a: FloorPoint, b: FloorPoint, [x, z, w, d]: Rect) {
   const dx = b[0] - a[0],
     dz = b[1] - a[1];
-  let t0 = 0,
-    t1 = 1;
-  for (const [p, q] of [
-    [-dx, a[0] - (x - w / 2)],
-    [dx, x + w / 2 - a[0]],
-    [-dz, a[1] - (z - d / 2)],
-    [dz, z + d / 2 - a[1]],
-  ]) {
-    if (Math.abs(p) < 1e-12) {
-      if (q <= 1e-9) return false;
-    } else {
-      const t = q / p;
-      if (p < 0) t0 = Math.max(t0, t);
-      else t1 = Math.min(t1, t);
-      if (t0 >= t1 - 1e-9) return false;
-    }
-  }
-  return true;
+  clipRange[0] = 0;
+  clipRange[1] = 1;
+  return (
+    clip(-dx, a[0] - (x - w / 2)) &&
+    clip(dx, x + w / 2 - a[0]) &&
+    clip(-dz, a[1] - (z - d / 2)) &&
+    clip(dz, z + d / 2 - a[1])
+  );
 }
 const clear = (a: FloorPoint, b: FloorPoint) => !padded.some((r) => crosses(a, b, r));
-let graph: { doorX: number; nodes: FloorPoint[] } | null = null;
-// Corners of every padded obstacle plus the fixed stops, rebuilt when the door moves.
+let graph: { doorX: number; nodes: FloorPoint[]; visible: Uint8Array } | null = null;
+// Corners of every padded obstacle plus the fixed stops, rebuilt when the door moves,
+// with which of them see each other past the furniture worked out once.
 function graphNodes() {
-  if (graph?.doorX === doorX) return graph.nodes;
+  if (graph?.doorX === doorX) return graph;
   padded = [...fixedPadded, pad([doorX + 0.5, 7.02, 1, 0.09])];
   const room = { minX: doorX + 0.3, maxX: -doorX - 0.3, minZ: -4.2, maxZ: 7.3 };
   const nodes = (
@@ -226,8 +226,14 @@ function graphNodes() {
       p[1] >= room.minZ &&
       p[1] <= room.maxZ,
   );
-  graph = { doorX, nodes };
-  return nodes;
+  const visible = new Uint8Array(nodes.length * nodes.length);
+  for (let i = 0; i < nodes.length; i++)
+    for (let j = i + 1; j < nodes.length; j++)
+      visible[i * nodes.length + j] = visible[j * nodes.length + i] = clear(nodes[i], nodes[j])
+        ? 1
+        : 0;
+  graph = { doorX, nodes, visible };
+  return graph;
 }
 const distance = (a: FloorPoint, b: FloorPoint) => Math.hypot(a[0] - b[0], a[1] - b[1]);
 function nearestApproach(p: FloorPoint) {
@@ -291,23 +297,42 @@ export function guestPath(
     .filter((r) => !inside(to, r) && !inside(arrival, r));
   const isClear = (a: FloorPoint, b: FloorPoint) =>
     clear(a, b) && !extra.some((r) => crosses(a, b, r));
-  const network = [
-    ...graphNodes(),
-    ...extra.flatMap(([x, z, w, d]): FloorPoint[] => [
+  const fixed = graphNodes();
+  // Each network point's index among the fixed nodes, or -1 for a corner round a person.
+  const network: FloorPoint[] = [];
+  const fixedIndex: number[] = [];
+  fixed.nodes.forEach((p, i) => {
+    if (extra.some((r) => inside(p, r))) return;
+    network.push(p);
+    fixedIndex.push(i);
+  });
+  for (const [x, z, w, d] of extra)
+    for (const p of [
       [x - w / 2 - 0.06, z - d / 2 - 0.06],
       [x + w / 2 + 0.06, z - d / 2 - 0.06],
       [x - w / 2 - 0.06, z + d / 2 + 0.06],
       [x + w / 2 + 0.06, z + d / 2 + 0.06],
-    ]),
-  ].filter(
-    (p) =>
-      !blocked(p) &&
-      !extra.some((r) => inside(p, r)) &&
-      p[0] >= doorX + 0.3 &&
-      p[0] <= -doorX - 0.3 &&
-      p[1] >= -4.2 &&
-      p[1] <= 7.3,
-  );
+    ] as FloorPoint[])
+      if (
+        !blocked(p) &&
+        !extra.some((r) => inside(p, r)) &&
+        p[0] >= doorX + 0.3 &&
+        p[0] <= -doorX - 0.3 &&
+        p[1] >= -4.2 &&
+        p[1] <= 7.3
+      ) {
+        network.push(p);
+        fixedIndex.push(-1);
+      }
+  // Between two fixed nodes the furniture check is already known; only people remain.
+  const isClearAt = (i: number, j: number) => {
+    const a = i < 2 ? -1 : fixedIndex[i - 2],
+      b = j < 2 ? -1 : fixedIndex[j - 2];
+    return a >= 0 && b >= 0
+      ? fixed.visible[a * fixed.nodes.length + b] === 1 &&
+          !extra.some((r) => crosses(nodes[i], nodes[j], r))
+      : isClear(nodes[i], nodes[j]);
+  };
   // A seat sits inside its own chair, so step out to (or in from) the spot in front of it.
   const start = blocked(from) ? nearestApproach(from) : from;
   const end = blocked(to) ? nearestApproach(to) : to;
@@ -327,7 +352,7 @@ export function guestPath(
     if (i < 0 || i === 1) break;
     done[i] = true;
     for (let j = 0; j < nodes.length; j++) {
-      if (done[j] || !isClear(nodes[i], nodes[j])) continue;
+      if (done[j] || !isClearAt(i, j)) continue;
       const cost = best[i] + distance(nodes[i], nodes[j]);
       if (cost < best[j]) {
         best[j] = cost;

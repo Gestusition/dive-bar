@@ -338,6 +338,25 @@ describe('route planning budget', () => {
       }
     }
   });
+  it('plans a route round several people well within a frame', () => {
+    // Each plan once took around 8 ms with people about, so every walker refreshing
+    // its route four times a second made the scene stutter even on fast graphics.
+    const door: FloorPoint = [entrance[0], entrance[2]];
+    const people: FloorPoint[] = [
+      [-2, 5],
+      ...seats.slice(0, 4).map(([x, , z]): FloorPoint => [x, z]),
+    ];
+    const from: FloorPoint = [seats[7][0], seats[7][2]];
+    guestPath(from, door, people);
+    const times: number[] = [];
+    for (let batch = 0; batch < 5; batch++) {
+      const start = performance.now();
+      for (let i = 0; i < 20; i++) guestPath(from, door, people);
+      times.push((performance.now() - start) / 20);
+    }
+    times.sort((a, b) => a - b);
+    expect(times[2], 'median milliseconds per plan').toBeLessThan(2.5);
+  });
   it('does not plan at all for someone already where they want to be', () => {
     const plan = counting();
     const seat = seatApproach[0];
