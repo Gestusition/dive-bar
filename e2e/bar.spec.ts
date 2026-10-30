@@ -146,6 +146,10 @@ test('hints and notices never cover an open guest card on a phone', async ({ pag
 });
 test('live guests order from the actual menu instead of assuming Manhattan', async ({ page }) => {
   await orderFromSingleMenu(page);
+  // The card shows the guest's face, rendered from their 3D head.
+  const face = page.locator('.guest-card .portrait img');
+  await expect(face).toBeVisible();
+  expect(await face.evaluate((img: HTMLImageElement) => img.naturalWidth)).toBeGreaterThan(0);
   await page.getByRole('button', { name: 'Make drink' }).click();
   await expect(page.locator('.bench-title h2')).toHaveText('Margarita');
 });

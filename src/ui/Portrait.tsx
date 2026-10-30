@@ -1,8 +1,10 @@
+import { useMemo } from 'react';
 import { personModel } from '../game/person';
+import { portraitImage } from '../view/portraitRender';
 
 /**
- * The front of a character's voxel head, drawn from the same parts as their body in
- * the room. Parts nearer the front are painted last, and the view is fitted round
+ * A flat front view of a character's voxel head, used where WebGL cannot draw the
+ * 3D one. It is drawn from the same parts as their body in the room. Parts nearer the front are painted last, and the view is fitted round
  * the head so no corner reaches the round frame, whatever the model looks like.
  */
 export function portraitFace(id: string) {
@@ -36,16 +38,21 @@ export function portraitFace(id: string) {
   return { rects, viewBox: `${cx - size / 2} ${cy - size / 2} ${size} ${size}` };
 }
 
-/** A guest's face in a round frame, for their card and their conversations. */
+/** A guest's 3D face in a round frame, for their card and their conversations. */
 export function Portrait({ id, big = false }: { id: string; big?: boolean }) {
+  const image = useMemo(() => portraitImage(id), [id]);
   const { rects, viewBox } = portraitFace(id);
   return (
     <span className={'portrait ' + (big ? 'big ' : '') + id} aria-hidden="true">
-      <svg viewBox={viewBox} shapeRendering="crispEdges">
-        {rects.map((r, i) => (
-          <rect key={i} x={r.x} y={r.y} width={r.w} height={r.h} fill={r.color} />
-        ))}
-      </svg>
+      {image ? (
+        <img src={image} alt="" />
+      ) : (
+        <svg viewBox={viewBox} shapeRendering="crispEdges">
+          {rects.map((r, i) => (
+            <rect key={i} x={r.x} y={r.y} width={r.w} height={r.h} fill={r.color} />
+          ))}
+        </svg>
+      )}
     </span>
   );
 }

@@ -1222,7 +1222,8 @@ a {
   overflow: hidden;
 }
 /* The face fills the frame, cropped at the shoulders. */
-.portrait svg {
+.portrait svg,
+.portrait img {
   width: 100%;
   height: 100%;
   display: block;

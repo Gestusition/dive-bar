@@ -2,7 +2,6 @@ import { Suspense, useCallback, useMemo, useRef, Component, type ReactNode } fro
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { ContactShadows } from '@react-three/drei';
 import * as THREE from 'three';
-import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { useGame } from '../game/store';
 import { decorShown, mood, type Guest } from '../game/engine';
 import { hostHome } from '../game/host';
@@ -33,6 +32,7 @@ import {
 import { money } from '../game/content';
 import { brass, cream, dark, personModel, teal } from '../game/person';
 import DrinkStage from './DrinkStage';
+import { voxelGeometry, voxelMaterial } from './voxels';
 import { BrokenHeartArt, CocktailArt, CoinArt, HeartArt } from '../ui/art';
 import { GuestActions, patience } from '../ui/GuestActions';
 type Part = [number, number, number, number, number, number, string];
@@ -45,25 +45,8 @@ type SceneRefs = {
 };
 type StaffRefs = { current: Partial<Record<'host' | 'bartender', THREE.Group | null>> };
 const oak = '#805137';
-const material = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.87 });
-function geometry(parts: Part[]) {
-  const geometries = parts.map(([x, y, z, w, h, d, color]) => {
-    const g = new THREE.BoxGeometry(w, h, d);
-    g.translate(x, y, z);
-    const c = new THREE.Color(color);
-    const values = new Float32Array(g.attributes.position.count * 3);
-    for (let i = 0; i < values.length; i += 3) {
-      values[i] = c.r;
-      values[i + 1] = c.g;
-      values[i + 2] = c.b;
-    }
-    g.setAttribute('color', new THREE.BufferAttribute(values, 3));
-    return g;
-  });
-  const merged = mergeGeometries(geometries)!;
-  geometries.forEach((g) => g.dispose());
-  return merged;
-}
+const material = voxelMaterial;
+const geometry = voxelGeometry;
 // Every character keeps one body for the whole game: building it again for each
 // arriving guest would stall a frame and leave the old one on the graphics card.
 const bodies = new Map<string, THREE.BufferGeometry>();
