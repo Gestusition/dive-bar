@@ -30,7 +30,17 @@ import {
   floorPlantPosition,
 } from '../game/room-layout';
 import { money } from '../game/content';
-import { brass, cream, dark, personModel, teal } from '../game/person';
+import {
+  armReach,
+  brass,
+  cream,
+  dark,
+  personModel,
+  shoulders,
+  standingParts,
+  teal,
+} from '../game/person';
+import { reachFor, reaches, type Actor } from './hands';
 import DrinkStage, { EmptyGlass, glassSize } from './DrinkStage';
 import { voxelGeometry, voxelMaterial } from './voxels';
 import { BrokenHeartArt, CocktailArt, CoinArt, HeartArt } from '../ui/art';
@@ -53,8 +63,7 @@ const bodies = new Map<string, THREE.BufferGeometry>();
 function personBody(id: string) {
   let body = bodies.get(id);
   if (!body) {
-    const { head, body: rest } = personModel(id, id === 'bartender');
-    bodies.set(id, (body = geometry([...rest, ...head])));
+    bodies.set(id, (body = geometry(standingParts(personModel(id, id === 'bartender')))));
   }
   return body;
 }
@@ -171,11 +180,12 @@ function roomParts() {
     box(x, 0.66, -1.24, 0.82, 0.74, 0.08, '#714832');
     box(x, 0.66, -1.18, 0.64, 0.56, 0.03, '#86573a');
   }
-  box(-0.1, 1.26, -1.7, 2, 0.025, 0.9, '#28473f');
+  // The working mat and the ice well sit on the staff side, in reach from behind the bar.
+  box(-0.1, 1.26, -2.15, 2, 0.025, 0.6, '#28473f');
   box(3, 1.38, -1.7, 0.55, 0.3, 0.45, '#3c4547');
   box(3, 1.58, -1.8, 0.55, 0.14, 0.28, '#98c8ac');
-  box(-2.4, 1.32, -1.7, 0.58, 0.12, 0.6, '#617d7a');
-  box(-2.4, 1.38, -1.7, 0.4, 0.05, 0.4, '#bdc9bc');
+  box(-1.55, 1.32, -1.6, 0.58, 0.12, 0.6, '#617d7a');
+  box(-1.55, 1.38, -1.6, 0.4, 0.05, 0.4, '#bdc9bc');
   // Two tables and low cushioned chairs.
   for (const [x, z] of tables) {
     box(x, 0.78, z, 1.75, 0.15, 1.45, '#d3a36c');
@@ -340,9 +350,111 @@ function Person({
     </group>
   );
 }
+/** Staff are drawn a little taller than guests. */
+const staffHeight = 1.2;
+const staffShoulders = shoulders.map(([x, y, z]) => new THREE.Vector3(x, y * staffHeight, z)) as [
+  THREE.Vector3,
+  THREE.Vector3,
+];
+const staffReach = armReach * staffHeight;
+const staffParts = new Map<string, { body: THREE.BufferGeometry; arm: THREE.BufferGeometry }>();
+function staffGeometry(id: string) {
+  let parts = staffParts.get(id);
+  if (!parts) {
+    const model = personModel(id, id === 'bartender');
+    const body = geometry([...model.body, ...model.head]);
+    body.scale(1, staffHeight, 1);
+    const arm = geometry(model.arms[0]);
+    arm.scale(1, staffHeight, 1);
+    staffParts.set(id, (parts = { body, arm }));
+  }
+  return parts;
+}
+const hanging = new THREE.Vector3(0, -1, 0);
+/** Behind the counter (towards the back wall from here) the floor is raised boards. */
+const behindBar = -2.5,
+  boardHeight = 0.5;
+/**
+ * A member of staff whose arms reach for whatever they are working with (see
+ * hands.ts). When it is out of reach they step up to the counter and lean in, and
+ * when nothing needs their hands the arms hang at their sides again.
+ */
+function StaffFigure({ id, actor }: { id: string; actor: Actor }) {
+  const { body, arm } = staffGeometry(id);
+  const root = useRef<THREE.Group>(null);
+  const arms = useRef<(THREE.Group | null)[]>([]);
+  const scratch = useMemo(
+    () => ({ goal: new THREE.Vector3(), aim: new THREE.Vector3(), turn: new THREE.Quaternion() }),
+    [],
+  );
+  useFrame(({ clock }, delta) => {
+    const figure = root.current;
+    if (!figure?.parent) return;
+    const reach = reaches[actor];
+    // Written this frame or the one before, however long frames take on this device.
+    const fresh = clock.elapsedTime - reach.at <= Math.max(0.2, delta * 2.5);
+    const goals = [
+      fresh && reach.useLeft ? reach.left : null,
+      fresh && reach.useRight ? reach.right : null,
+    ];
+    const ease = 1 - Math.exp(-Math.min(delta, 0.1) * 12);
+    // How far forward the work is, in the character's own frame (they face +z).
+    let ahead = 0,
+      count = 0;
+    for (const g of goals)
+      if (g) {
+        ahead += figure.parent.worldToLocal(scratch.goal.copy(g)).z;
+        count++;
+      }
+    ahead = count ? ahead / count : 0;
+    // Only work in front of them and within a step is theirs to reach for; walking
+    // past the counter, they keep their arms at their sides.
+    let aside = 0;
+    for (const g of goals) if (g) aside += figure.parent.worldToLocal(scratch.goal.copy(g)).x;
+    aside = count ? aside / count : 0;
+    const working = count > 0 && ahead > 0 && ahead < 1.4 && Math.abs(aside) < 0.9;
+    const step = working ? THREE.MathUtils.clamp(ahead - staffReach * 0.9, 0, 0.4) : 0;
+    const lean = working ? THREE.MathUtils.clamp((ahead - step - 0.3) * 0.4, 0, 0.12) : 0;
+    // Behind the bar, staff stand on the raised boards there, so the counter comes to
+    // their waist and their hands reach the work on it.
+    const raised = figure.parent.getWorldPosition(scratch.goal).z < behindBar ? boardHeight : 0;
+    figure.position.y += (raised - figure.position.y) * ease;
+    figure.position.z += (step - figure.position.z) * ease;
+    figure.rotation.x += (lean - figure.rotation.x) * ease;
+    figure.updateMatrixWorld();
+    arms.current.forEach((pivot, side) => {
+      if (!pivot) return;
+      const goal = working ? goals[side] : null;
+      let stretch = 1;
+      if (goal) {
+        figure.worldToLocal(scratch.aim.copy(goal)).sub(staffShoulders[side]);
+        const length = scratch.aim.length();
+        stretch = THREE.MathUtils.clamp(length / staffReach, 0.55, 1.25);
+        scratch.turn.setFromUnitVectors(hanging, scratch.aim.normalize());
+      } else scratch.turn.identity();
+      pivot.quaternion.slerp(scratch.turn, ease);
+      pivot.scale.y += (stretch - pivot.scale.y) * ease;
+    });
+  });
+  return (
+    <group ref={root}>
+      <mesh geometry={body} material={material} castShadow />
+      {staffShoulders.map((shoulder, side) => (
+        <group
+          key={side}
+          position={shoulder}
+          ref={(g) => {
+            arms.current[side] = g;
+          }}
+        >
+          <mesh geometry={arm} material={material} castShadow />
+        </group>
+      ))}
+    </group>
+  );
+}
 function Bartender({ staff }: { staff: StaffRefs }) {
   const ref = useRef<THREE.Group>(null);
-  const body = personBody('bartender');
   const cleanupWalk = useRef(newWalker(bartenderHome));
   useFrame(({ clock }, delta) => {
     if (!ref.current) return;
@@ -394,7 +506,7 @@ function Bartender({ staff }: { staff: StaffRefs }) {
       }}
       position={[bartenderHome[0], 0.08, bartenderHome[1]]}
     >
-      <mesh geometry={body} material={material} scale={[1, 1.2, 1]} castShadow />
+      <StaffFigure id="bartender" actor="bartender" />
     </group>
   );
 }
@@ -409,9 +521,9 @@ function Camera() {
     // from the bar sign down to the front door. The side walls follow the
     // screen edges, so nothing outside the bar is ever on screen. The side
     // drawer slides over the scene; the camera never moves for it.
-    // At the counter, close in on the drink being made.
+    // At the counter, close in on the drink being made and the bartender making it.
     const zoom = station
-      ? Math.min(size.width / 3.9, size.height / 3.2)
+      ? Math.min(size.width / 2.9, size.height / 2.4)
       : Math.min(size.width / 15.8, size.height / 10.3);
     // The drawer is already eased, so follow it closely; ease the bigger jump
     // to and from the counter more gently.
@@ -423,7 +535,7 @@ function Camera() {
     const top = up * 3.3 + back * 4.4 + 0.5;
     const centre = top - size.height / camera.zoom / 2;
     const target = station
-      ? new THREE.Vector3(-0.1, 1.55, -1.55)
+      ? new THREE.Vector3(-0.2, 1.6, -2.3)
       : new THREE.Vector3(0, 1, (up - centre) / back);
     const position = station
       ? target.clone().add(new THREE.Vector3(0, 6, 9.2))
@@ -469,7 +581,6 @@ const glow = (color: string) => (
 /** The hired host walks inside the room, independently of the side walls. */
 function Host({ staff, guestGroups }: { staff: StaffRefs; guestGroups: SceneRefs['guestGroups'] }) {
   const ref = useRef<THREE.Group>(null);
-  const body = personBody('host');
   const walker = useRef(newWalker(hostHome));
   useFrame(({ clock }, delta) => {
     const state = useGame.getState();
@@ -525,22 +636,29 @@ function Host({ staff, guestGroups }: { staff: StaffRefs; guestGroups: SceneRefs
       }}
       position={[hostHome[0], 0, hostHome[1]]}
     >
-      <mesh geometry={body} material={material} scale={[1, 1.2, 1]} castShadow />
+      <StaffFigure id="host" actor="host" />
     </group>
   );
 }
-// The counter top and the floor of the sink's basin, so props stand on them.
+// The counter top and the floor of the sink's basin, so props stand on them. The sink
+// sits on the staff side of the counter, in reach from behind the bar.
 const counterTop = 1.25,
   sinkBasinTop = 1.28 + 0.065 + 0.0125;
-// The tap's spout reaches forward over the basin; water falls from its tip.
 const sinkX = -2.6,
-  spoutZ = -1.8,
+  sinkZ = -2.13;
+// The tap stands at the front of the sink, its spout reaching back over the basin;
+// water falls from its tip.
+const tapZ = 0.27,
+  spoutTip = 0.1,
+  spoutZ = sinkZ + spoutTip,
   spoutBottom = 1.28 + 0.72 - 0.025;
-/** A glass being washed leans towards the camera, its rim held under the running tap. */
+/** A glass being washed is tipped away from the washer, its rim under the running tap. */
 const washTilt = 0.35;
 /** Glasses at the sink are drawn the size they are next to the staff, not the close-up size. */
 const sinkScale = 1;
-/** Physical tools make each maintenance job visible in the room. */
+/** Where the counter is wiped: the staff side, in front of whoever wipes it. */
+const wipeZ = -2.0;
+/** Physical tools make each maintenance job visible in the room, held in real hands. */
 function CleanupProps({ staff }: { staff: StaffRefs }) {
   const job = useGame((s) => s.cleanupJob);
   const dirty = useGame((s) => s.game.dirtyGlasses);
@@ -556,37 +674,62 @@ function CleanupProps({ staff }: { staff: StaffRefs }) {
   const washZ = spoutZ - height * Math.sin(washTilt);
   const rimY = sinkBasinTop + 0.05 + height * Math.cos(washTilt);
   const tool = useRef<THREE.Group>(null);
+  const held = useRef<THREE.Group>(null);
   const spin = useRef<THREE.Group>(null);
   const elapsed = useRef(0);
-  useFrame((_, delta) => {
+  const points = useMemo(() => ({ left: new THREE.Vector3(), right: new THREE.Vector3() }), []);
+  useFrame(({ clock }, delta) => {
     if (!tool.current || !job) return;
     const state = useGame.getState();
     if (!state.paused && !state.title && ['floor', 'station'].includes(state.panel))
       elapsed.current += delta;
     const t = state.game.settings.reducedMotion ? 0 : elapsed.current;
+    const { left, right } = points;
     if (job.kind === 'trash') {
-      const position = job.actor === 'host' ? state.hostPosition : state.bartenderPosition;
+      // The bag hangs from the right hand, on the right whichever way they walk.
       const actor = staff.current[job.actor];
+      const position = job.actor === 'host' ? state.hostPosition : state.bartenderPosition;
+      const turn = actor?.rotation.y ?? 0;
       tool.current.position.set(
-        (actor?.position.x ?? position[0]) + 0.45,
-        0.5,
-        actor?.position.z ?? position[1],
+        (actor?.position.x ?? position[0]) + Math.cos(turn) * 0.42,
+        0.42,
+        (actor?.position.z ?? position[1]) - Math.sin(turn) * 0.42,
+      );
+      tool.current.updateMatrixWorld();
+      reachFor(
+        job.actor,
+        clock.elapsedTime,
+        null,
+        tool.current.localToWorld(right.set(0, 0.38, 0)),
       );
     } else if (job.kind === 'wash') {
-      // Held in the basin under the running tap, turned round in the hands to rinse
-      // every side; it never touches the counter or the tap.
-      tool.current.position.set(sinkX + Math.sin(t * 4) * 0.03, sinkBasinTop + 0.05, washZ);
+      // Held over the basin under the running tap and turned round in the hands: one
+      // hand steadies it while the other scrubs inside the rim.
+      tool.current.position.set(sinkX, sinkBasinTop + 0.05, washZ);
       if (spin.current) spin.current.rotation.y = t * 2.5;
+      if (held.current) {
+        held.current.updateMatrixWorld();
+        held.current.localToWorld(left.set(-(radius + 0.04), height * 0.45, 0));
+        held.current.localToWorld(
+          right.set(Math.cos(t * 5) * rim * 0.35, height * 0.85, Math.sin(t * 5) * rim * 0.35),
+        );
+        reachFor(job.actor, clock.elapsedTime, left, right);
+      }
     } else {
+      // The sponge goes back and forth along the counter under the right hand, the
+      // left hand flat on the counter beside it.
       const [x] = cleanupInfo[job.kind].position;
-      // The sponge rides on the counter top.
-      tool.current.position.set(x + Math.sin(t * 7) * 0.75, 1.34, -1.65);
+      tool.current.position.set(x + Math.sin(t * 7) * 0.45, counterTop + 0.04, wipeZ);
+      tool.current.updateMatrixWorld();
+      tool.current.localToWorld(right.set(0, 0.08, 0));
+      left.set(x - 0.55, counterTop + 0.05, wipeZ - 0.1);
+      reachFor(job.actor, clock.elapsedTime, left, right);
     }
   });
   const working = job?.stage === 'working';
   return (
     <>
-      <group position={[-2.6, 1.28, -1.7]}>
+      <group position={[sinkX, 1.28, sinkZ]}>
         <mesh>
           <boxGeometry args={[0.9, 0.12, 0.65]} />
           <meshStandardMaterial color="#819a98" />
@@ -595,13 +738,13 @@ function CleanupProps({ staff }: { staff: StaffRefs }) {
           <boxGeometry args={[0.68, 0.025, 0.45]} />
           <meshStandardMaterial color={working && job.kind === 'wash' ? '#a7e7ec' : '#435d63'} />
         </mesh>
-        {/* The tap: a pillar at the back of the sink and a spout over the basin. */}
-        <mesh position={[0, 0.4, -0.27]}>
+        {/* The tap: a pillar at the front of the sink and a spout over the basin. */}
+        <mesh position={[0, 0.4, tapZ]}>
           <boxGeometry args={[0.06, 0.7, 0.06]} />
           <meshStandardMaterial color="#c1d4cf" />
         </mesh>
-        <mesh position={[0, 0.72, (-0.27 + spoutZ + 1.7) / 2]}>
-          <boxGeometry args={[0.06, 0.05, spoutZ + 1.7 + 0.3]} />
+        <mesh position={[0, 0.72, (tapZ + spoutTip) / 2]}>
+          <boxGeometry args={[0.06, 0.05, tapZ - spoutTip + 0.06]} />
           <meshStandardMaterial color="#c1d4cf" />
         </mesh>
       </group>
@@ -614,7 +757,7 @@ function CleanupProps({ staff }: { staff: StaffRefs }) {
       )}
       {dirty > 0 && (
         // Waiting on the counter top beside the sink.
-        <group position={[-2.6 + 0.45 + radius + 0.04, counterTop, -1.7]}>
+        <group position={[sinkX + 0.45 + radius + 0.04, counterTop, sinkZ]}>
           <EmptyGlass glass={glass} dirty scale={sinkScale} />
         </group>
       )}
@@ -630,27 +773,15 @@ function CleanupProps({ staff }: { staff: StaffRefs }) {
       </group>
       {job && (working || job.stage === 'carrying' || job.stage === 'emptying') && (
         <group ref={tool}>
-          {job.kind === 'wipe' && (
-            <>
-              <mesh position={[0.08, 0.12, -0.08]}>
-                <boxGeometry args={[0.19, 0.13, 0.2]} />
-                <meshStandardMaterial color="#db9e78" />
-              </mesh>
-              <mesh position={[0.08, 0.14, -0.3]}>
-                <boxGeometry args={[0.2, 0.16, 0.3]} />
-                <meshStandardMaterial color={job.actor === 'host' ? '#d2a054' : cream} />
-              </mesh>
-            </>
-          )}
           {job.kind === 'wipe' ? (
             <mesh>
-              <boxGeometry args={[0.38, 0.08, 0.28]} />
+              <boxGeometry args={[0.3, 0.07, 0.2]} />
               <meshStandardMaterial color="#f6d26f" />
             </mesh>
           ) : job.kind === 'trash' ? (
             <>
               <mesh>
-                <sphereGeometry args={[0.3, 8, 6]} />
+                <sphereGeometry args={[0.28, 20, 14]} />
                 <meshStandardMaterial color="#353f43" />
               </mesh>
               <mesh position={[0, 0.3, 0]}>
@@ -659,14 +790,7 @@ function CleanupProps({ staff }: { staff: StaffRefs }) {
               </mesh>
             </>
           ) : (
-            <group rotation={[washTilt, 0, 0]}>
-              {/* A hand either side holds it halfway up while it turns. */}
-              {[-1, 1].map((side) => (
-                <mesh key={side} position={[side * (radius + 0.06), height * 0.45, 0]}>
-                  <boxGeometry args={[0.11, 0.11, 0.14]} />
-                  <meshStandardMaterial color="#db9e78" />
-                </mesh>
-              ))}
+            <group ref={held} rotation={[washTilt, 0, 0]}>
               <group ref={spin}>
                 <EmptyGlass glass={glass} scale={sinkScale} />
                 {/* Suds round the rim. */}

@@ -6,6 +6,9 @@ All notable changes are recorded here. Versions describe tagged source releases;
 
 ### Added
 
+- Staff work with their own hands. The bartender and the host have arms that reach for what they handle, stepping up to the counter and leaning in when it is further away. At the counter the bartender tips the bottle into a jigger held over the tin and pours the jigger in (or pours straight from the bottle with free pouring), lifts the tin and shakes it at chest height in both hands, holds the glass while stirring or muddling, adds ice with a scoop and sets each garnish on the glass. At the sink a glass is held in one hand and scrubbed with the other under the tap; the sponge and the trash bag are held in the hand.
+- Behind the bar, staff stand on raised boards, so the counter comes to their waist.
+
 - Guest bubbles show how a guest feels about their drink. A heart means happy (a taste score of 75 or more), no icon at all means the drink is only all right (55 to 74, still tipped), and a broken heart means unhappy: too poor to tip on, or leaving without a drink. Their card says the same.
 - Guest cards and conversations show the guest's face instead of their initial: their real 3D head, rendered once from the same voxel model, material and light colours as their body in the room, turned slightly and seen from a little above. A change to the model shows on the card too. Where WebGL is unavailable, a flat front view drawn from the same parts is shown.
 - A Full back bar setting for a harder pour. The Pour step then lists every bottle, with no amounts to aim for, no check marks and no tick on the step. The recipe list stays the default.
@@ -13,6 +16,7 @@ All notable changes are recorded here. Versions describe tagged source releases;
 
 ### Changed
 
+- The working mat, the sink and the drink being made sit on the staff side of the counter, within the bartender's reach, and the drink is drawn life-size. The ice well no longer overlaps the sink. The counter close-up frames the bartender as well as the drink.
 - The host greets an arriving party from in front of the waiting spot and shows the way from beside each seat, instead of standing in the guest's path.
 - Thin scrollbars in the game's colours, without arrow buttons, replace the browser's default scrollbars.
 

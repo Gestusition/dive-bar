@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { useGame } from '../game/store';
 import { ingredientColors, ingredients } from '../game/content';
 import { volume, type Prep } from '../game/engine';
+import { reachFor } from './hands';
 
 // The drink itself, on the counter mat: the tin or mixing glass filling up bottle by
 // bottle, ice dropping in, the shake, the stir, then the strained drink in its glass
@@ -127,8 +128,8 @@ function liquidLayers(p: Prep) {
     .filter((l) => l.amount > 0);
 }
 
-/** How much larger than life the drink is drawn on the counter mat. */
-export const stageScale = 1.7;
+/** The drink is drawn life-size on the counter mat, the size of the bartender's hands. */
+export const stageScale = 1;
 /**
  * An empty glass of the same shape and size as the one a drink is made in, for the
  * glasses waiting at the sink and the one being washed. It stands on its base.
@@ -346,6 +347,70 @@ function Garnishes({ p, glass, level }: { p: Prep; glass: GlassId; level: number
   return <>{items}</>;
 }
 
+/**
+ * On the working mat, on the staff side of the counter, a little to the bartender's
+ * left so their hands work beside them rather than in front of their face.
+ */
+const stagePosition: [number, number, number] = [-0.3, 1.27, -2.2];
+/** The bottle is held low on the outer side of the vessel and tipped in towards it. */
+const bottleOffset = (vesselTop: number): [number, number, number] => [-0.3, vesselTop + 0.3, 0];
+/** How long each hand movement at the counter lasts, in milliseconds. */
+const pourTime = 750,
+  scoopTime = 650,
+  garnishTime = 600;
+
+/** A two-cup bar measure. */
+function Jigger() {
+  return (
+    <group>
+      <mesh position={[0, 0.05, 0]}>
+        <cylinderGeometry args={[0.055, 0.015, 0.1, 16, 1, true]} />
+        <meshStandardMaterial
+          color="#c9cfd4"
+          metalness={0.7}
+          roughness={0.25}
+          side={THREE.DoubleSide}
+        />
+      </mesh>
+      <mesh position={[0, -0.035, 0]}>
+        <cylinderGeometry args={[0.015, 0.045, 0.07, 16, 1, true]} />
+        <meshStandardMaterial
+          color="#c9cfd4"
+          metalness={0.7}
+          roughness={0.25}
+          side={THREE.DoubleSide}
+        />
+      </mesh>
+    </group>
+  );
+}
+/** A small ice scoop, heaped with cubes. */
+function Scoop() {
+  return (
+    <group>
+      <mesh rotation={[0, 0, Math.PI / 2]}>
+        <cylinderGeometry args={[0.06, 0.06, 0.16, 16, 1, true, 0, Math.PI]} />
+        <meshStandardMaterial
+          color="#c9cfd4"
+          metalness={0.7}
+          roughness={0.25}
+          side={THREE.DoubleSide}
+        />
+      </mesh>
+      <mesh position={[0.13, 0.02, 0]} rotation={[0, 0, Math.PI / 2]}>
+        <cylinderGeometry args={[0.012, 0.012, 0.12, 8]} />
+        <meshStandardMaterial color="#3c4547" />
+      </mesh>
+      {[-0.04, 0, 0.04].map((x) => (
+        <mesh key={x} position={[x, 0.01, 0]}>
+          <boxGeometry args={[0.04, 0.04, 0.04]} />
+          <meshStandardMaterial color="#e8f7fb" transparent opacity={0.8} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
 export default function DrinkStage() {
   const selected = useGame((s) => s.selected);
   // Only while you are making it; a half-made drink doesn't sit on the bar all night.
@@ -362,6 +427,16 @@ export default function DrinkStage() {
   const bottleRef = useRef<THREE.Group>(null);
   const streamRef = useRef<THREE.Mesh>(null);
   const liquidRef = useRef<THREE.Group>(null);
+  const workRef = useRef<THREE.Group>(null);
+  const glassRef = useRef<THREE.Group>(null);
+  const jiggerRef = useRef<THREE.Group>(null);
+  const jiggerStreamRef = useRef<THREE.Mesh>(null);
+  const scoopRef = useRef<THREE.Group>(null);
+  // The vessel in work and the serving glass, set each render, for the hands to find.
+  const dims = useRef<{ radius: number; top: number; rimR: number; rimY: number } | null>(null);
+  // When ice and garnish last went in, so a hand can be seen putting them there.
+  const moments = useRef({ ice: false, iceAt: -Infinity, garnish: 0, garnishAt: -Infinity });
+  const hand = useMemo(() => ({ left: new THREE.Vector3(), right: new THREE.Vector3() }), []);
   const shown = useRef({ volume: 0, rise: 1 });
   const layers = useMemo(() => (p ? liquidLayers(p) : []), [p]);
   const total = p ? volume(p) : 0;
@@ -372,8 +447,18 @@ export default function DrinkStage() {
     const still = s.game.settings.reducedMotion;
     const m = still ? null : s.mixing;
     if (vesselRef.current) {
+      // The tin is lifted off the counter and shaken at chest height, close to the
+      // bartender, then set back down.
       const v = vesselRef.current;
-      v.position.y = m === 'shake' ? Math.abs(Math.sin(t * 18)) * 0.07 : 0;
+      const target = m === 'shake' ? 1 : 0;
+      const lift =
+        (v.userData.lift ?? 0) + (target - (v.userData.lift ?? 0)) * (1 - Math.exp(-delta * 10));
+      v.userData.lift = still ? 0 : lift;
+      v.position.set(
+        0.3 * lift,
+        lift * (0.32 + (m === 'shake' ? Math.abs(Math.sin(t * 18)) * 0.06 : 0)),
+        -0.42 * lift,
+      );
       v.rotation.z = m === 'shake' ? Math.sin(t * 18) * 0.3 : 0;
     }
     if (capRef.current) capRef.current.visible = m === 'shake';
@@ -385,14 +470,79 @@ export default function DrinkStage() {
       muddlerRef.current.visible = m === 'muddle';
       muddlerRef.current.position.y = 0.2 + Math.abs(Math.sin(t * 9)) * 0.12;
     }
-    // A bottle tips over the tin for a moment after each pour.
-    const since = s.pouring ? performance.now() - s.pouring.at : Infinity;
-    const pouring = !still && since < 750;
+    const now = performance.now();
+    // A bottle tips over the tin for a moment after each pour. A measured pour of a
+    // spirit, juice or syrup goes into the jigger first, which is then tipped in.
+    const since = s.pouring ? now - s.pouring.at : Infinity;
+    const pouring = !still && since < pourTime;
+    const measured =
+      s.game.settings.pourStyle === 'marked' &&
+      ingredients.find((i) => i.id === s.pouring?.id)?.unit === 'ml';
+    const phase = Math.min(1, since / pourTime);
     if (bottleRef.current) {
       bottleRef.current.visible = pouring;
-      bottleRef.current.rotation.z = 1.9 + Math.sin(Math.min(1, since / 750) * Math.PI) * 0.35;
+      bottleRef.current.rotation.z = -(1.9 + Math.sin(phase * Math.PI) * 0.35);
     }
-    if (streamRef.current) streamRef.current.visible = pouring && since > 120 && since < 650;
+    const tipping = measured && phase > 0.6;
+    if (jiggerRef.current) {
+      jiggerRef.current.visible = pouring && measured;
+      jiggerRef.current.rotation.z = tipping ? ((phase - 0.6) / 0.4) * 2.2 : 0;
+    }
+    if (jiggerStreamRef.current)
+      jiggerStreamRef.current.visible = pouring && measured && since > 120 && phase < 0.6;
+    if (streamRef.current)
+      streamRef.current.visible =
+        pouring && (measured ? tipping && phase < 0.95 : since > 120 && since < 650);
+    // A scoop of ice goes in when ice is added; a hand sets each garnish on the glass.
+    const moment = moments.current;
+    if (p && p.ice !== moment.ice) {
+      if (p.ice) moment.iceAt = now;
+      moment.ice = p.ice;
+    }
+    const garnishes = p ? Object.values(p.garnish).reduce((n, c) => n + c, 0) : 0;
+    if (garnishes > moment.garnish) moment.garnishAt = now;
+    moment.garnish = garnishes;
+    const scooping = !still && now - moment.iceAt < scoopTime;
+    if (scoopRef.current) {
+      scoopRef.current.visible = scooping;
+      scoopRef.current.rotation.z = -Math.min(1, (now - moment.iceAt) / scoopTime) * 1.3;
+    }
+    const garnishing = !still && now - moment.garnishAt < garnishTime;
+    // The bartender's hands follow the work: both on the tin for the shake, one on the
+    // glass and one on the spoon, muddler, bottle, scoop or garnish.
+    const work = workRef.current,
+      d = dims.current;
+    if (work && d) {
+      const holder = vesselRef.current ?? work;
+      const side = (x: number, out: THREE.Vector3) =>
+        holder.localToWorld(out.set(x * (d.radius + 0.03), d.top * 0.45, 0));
+      let left: THREE.Vector3 | null = null,
+        right: THREE.Vector3 | null = null;
+      if (m === 'shake') {
+        left = side(-1, hand.left);
+        right = side(1, hand.right);
+      } else if (m === 'stir' && spoonRef.current) {
+        left = side(-1, hand.left);
+        right = spoonRef.current.localToWorld(hand.right.set(0, 0.58, 0));
+      } else if (m === 'muddle' && muddlerRef.current) {
+        left = side(-1, hand.left);
+        right = muddlerRef.current.localToWorld(hand.right.set(0, 0.47, 0));
+      } else if (pouring && bottleRef.current) {
+        // The outer hand tips the bottle; the other holds the jigger over the tin, or
+        // steadies the tin itself.
+        left = bottleRef.current.localToWorld(hand.left.set(0, 0.1, 0));
+        right =
+          measured && jiggerRef.current
+            ? jiggerRef.current.localToWorld(hand.right.set(0.03, 0, 0))
+            : side(1, hand.right);
+      } else if (scooping && scoopRef.current) {
+        left = side(-1, hand.left);
+        right = scoopRef.current.localToWorld(hand.right.set(0.19, 0.02, 0));
+      } else if (garnishing && glassRef.current) {
+        right = glassRef.current.localToWorld(hand.right.set(d.rimR * 0.6, d.rimY + 0.03, 0));
+      }
+      if (left || right) reachFor('bartender', t, left, right);
+    }
     // The liquid rises to its new level rather than jumping there.
     if (shown.current.volume !== total) {
       shown.current.rise =
@@ -402,7 +552,10 @@ export default function DrinkStage() {
     shown.current.rise = still ? 1 : THREE.MathUtils.damp(shown.current.rise, 1, 6, delta);
     if (liquidRef.current) liquidRef.current.scale.y = Math.max(0.02, shown.current.rise);
   });
-  if (!p || selected === null || !atCounter) return null;
+  if (!p || selected === null || !atCounter) {
+    dims.current = null;
+    return null;
+  }
   const inGlass = p.tool === 'build_glass' || p.tool === 'old_fashioned_glass';
   const vesselShape = inGlass
     ? glassShapes[p.tool === 'old_fashioned_glass' ? 'old_fashioned_glass' : p.glass]
@@ -423,10 +576,32 @@ export default function DrinkStage() {
     return contents ? glassShape.floor + fill * (rimY - glassShape.floor) : glassShape.floor;
   })();
   const vesselTop = top(vesselShape.outer)[1];
+  dims.current = {
+    radius: Math.max(...vesselShape.outer.map(([r]) => r)),
+    top: vesselTop,
+    rimR: top(glassShape.outer)[0],
+    rimY: top(glassShape.outer)[1],
+  };
+  // The jigger, the scoop and their streams sit over the vessel being worked.
+  const overVessel = (
+    <>
+      <group ref={jiggerRef} position={[0, vesselTop + 0.08, 0]} visible={false}>
+        <Jigger />
+      </group>
+      <mesh ref={jiggerStreamRef} position={[0.01, vesselTop + 0.19, 0]} visible={false}>
+        <cylinderGeometry args={[0.01, 0.01, 0.05, 6]} />
+        <meshStandardMaterial color={pouringColor} transparent opacity={0.85} />
+      </mesh>
+      <group ref={scoopRef} position={[0.02, vesselTop + 0.12, 0]} visible={false}>
+        <Scoop />
+      </group>
+    </>
+  );
   return (
-    <group position={[-0.1, 1.27, -1.55]} scale={stageScale}>
+    <group position={stagePosition} scale={stageScale}>
       {!inGlass && (
-        <group position={[-0.3, 0, 0]}>
+        <group position={[-0.3, 0, 0]} ref={workRef}>
+          {overVessel}
           <group ref={vesselRef}>
             <Container
               shape={vesselShape}
@@ -456,7 +631,7 @@ export default function DrinkStage() {
               <meshStandardMaterial color="#b98552" />
             </mesh>
           </group>
-          <group ref={bottleRef} position={[0.2, vesselTop + 0.42, 0]} visible={false}>
+          <group ref={bottleRef} position={bottleOffset(vesselTop)} visible={false}>
             <mesh position={[0, 0.12, 0]}>
               <cylinderGeometry args={[0.07, 0.07, 0.3, 12]} />
               <meshStandardMaterial color={pouringColor} transparent opacity={0.85} />
@@ -472,7 +647,14 @@ export default function DrinkStage() {
           </mesh>
         </group>
       )}
-      <group position={[inGlass ? 0 : 0.3, 0, 0]}>
+      <group
+        position={[inGlass ? 0 : 0.3, 0, 0]}
+        ref={(g) => {
+          glassRef.current = g;
+          if (inGlass) workRef.current = g;
+        }}
+      >
+        {inGlass && overVessel}
         <Container
           shape={glassShape}
           layers={inGlass ? layers : strained ? layers : []}
@@ -504,7 +686,7 @@ export default function DrinkStage() {
             </group>
             <group
               ref={bottleRef}
-              position={[0.2, top(glassShape.outer)[1] + 0.42, 0]}
+              position={bottleOffset(top(glassShape.outer)[1])}
               visible={false}
             >
               <mesh position={[0, 0.12, 0]}>
