@@ -1,5 +1,13 @@
 import { ingredients, recipes, roster, initialInventory } from './content';
-import { maxRepeatOrders, newGame, type Game, type Guest, type Prep, type Upgrade } from './engine';
+import {
+  decorIds,
+  maxRepeatOrders,
+  newGame,
+  type Game,
+  type Guest,
+  type Prep,
+  type Upgrade,
+} from './engine';
 import { seal, unseal } from './seal';
 
 // ---------- Validation ----------
@@ -159,13 +167,19 @@ const guestModel: Record<keyof Guest, true> = {
   tip: true,
 };
 export function validateSave(raw: unknown): Game {
-  // Saves from before the order streak was kept simply start without one.
-  const g: Raw = { recentOrders: [], ...record(raw, 'save') };
+  // Saves from before the order streak was kept simply start without one, and saves
+  // from before decor could be put away have all of it on display.
+  const g: Raw = { recentOrders: [], decorOff: [], ...record(raw, 'save') };
   if (g.version !== model.version) fail('version');
   keys(g, Object.keys(model), 'save');
   const guests = list(g.guests, 20, 'guests').map(guest);
   if (new Set(guests.map((x) => x.id)).size !== guests.length) fail('guests');
-  const settings = keys(g.settings, Object.keys(model.settings), 'settings');
+  // Saves from before the full bottle list keep the recipe list.
+  const settings = keys(
+    { pourList: 'recipe', ...record(g.settings, 'settings') },
+    Object.keys(model.settings),
+    'settings',
+  );
   const stats = keys(g.stats, Object.keys(model.stats), 'stats');
   const closing = keys(g.closing, Object.keys(model.closing), 'closing');
   const upgrades = keys(g.upgrades, Object.keys(model.upgrades), 'upgrades');
@@ -229,6 +243,7 @@ export function validateSave(raw: unknown): Game {
       reducedMotion: bool(settings.reducedMotion, 'settings'),
       theme: oneOf(settings.theme, ['amber', 'mint', 'rose'] as const, 'settings'),
       pourStyle: oneOf(settings.pourStyle, ['marked', 'free'] as const, 'settings'),
+      pourList: oneOf(settings.pourList, ['recipe', 'full'] as const, 'settings'),
     },
     notice: str(g.notice, 400, 'notice'),
     practice: prep(g.practice, 'practice'),
@@ -261,6 +276,13 @@ export function validateSave(raw: unknown): Game {
       pretzel: int(food.pretzel, 0, 1e5, 'food'),
       toastie: int(food.toastie, 0, 1e5, 'food'),
     },
+    decorOff: (() => {
+      const off = list(g.decorOff, decorIds.length, 'decor').map((id) =>
+        oneOf(id, decorIds, 'decor'),
+      );
+      if (new Set(off).size !== off.length) fail('decor');
+      return off;
+    })(),
   };
   return game;
 }

@@ -24,7 +24,16 @@ import {
   recipeMethod,
   recipes,
 } from '../game/content';
-import { ambience, upgradeInfo, type Game, type Guest, type Upgrade } from '../game/engine';
+import {
+  ambience,
+  decorIds,
+  decorShown,
+  upgradeInfo,
+  type Decor,
+  type Game,
+  type Guest,
+  type Upgrade,
+} from '../game/engine';
 import { backupName, encodeBackup } from '../game/storage';
 import { startClock, useGame, type Panel } from '../game/store';
 import { MenuPanel, StockPanel } from './Management';
@@ -293,6 +302,12 @@ function SettingsPanel() {
         <p className="hint">Free pour lets you hold the button to pour.</p>
       </div>
       <SwitchRow
+        label="Full back bar"
+        description="For a challenge: the Pour step lists every bottle, with no amounts to aim for. Pour from memory or the recipe book."
+        checked={game.settings.pourList === 'full'}
+        onChange={(v) => act({ type: 'setting', key: 'pourList', value: v ? 'full' : 'recipe' })}
+      />
+      <SwitchRow
         label="Sound effects"
         description="Glass clinks and bar ambience."
         checked={game.settings.sound}
@@ -301,7 +316,11 @@ function SettingsPanel() {
       <SwitchRow
         label="Jukebox music"
         description={
-          (game.upgrades.jukebox ? 'Plays ' : 'Buy the jukebox in Decorate. Plays ') +
+          (decorShown(game, 'jukebox')
+            ? 'Plays '
+            : game.upgrades.jukebox
+              ? 'Put the jukebox back out in Decorate. Plays '
+              : 'Buy the jukebox in Decorate. Plays ') +
           '“Bossa Antigua” by Kevin MacLeod (incompetech.com), CC BY 4.0.'
         }
         checked={game.settings.music}
@@ -430,32 +449,57 @@ function DecorPanel() {
       <h4>Shop</h4>
       <p className="hint">
         A nicer room means better tips. Right now: +{Math.round(ambience(game) * 100)}% on every
-        tip.
+        tip. Put decor away to change the look; only decor on display counts.
       </p>
       <div className="shop-items">
-        {decorItems.map((item) => (
-          <div className={'shop-item ' + (game.upgrades[item.id] ? 'owned' : '')} key={item.id}>
-            {item.art}
-            <div>
-              <strong>{item.name}</strong>
-              <p>{item.description}</p>
-            </div>
-            <Button
-              variant={game.upgrades[item.id] ? 'secondary' : 'default'}
-              size="sm"
-              disabled={game.upgrades[item.id] || game.cash < upgradeInfo[item.id].cost}
-              onClick={() => act({ type: 'buy', item: item.id })}
+        {decorItems.map((item) => {
+          const owned = game.upgrades[item.id];
+          const decor = decorIds.includes(item.id as Decor) ? (item.id as Decor) : null;
+          const shown = decor ? decorShown(game, decor) : owned;
+          return (
+            <div
+              className={
+                'shop-item ' + (owned ? 'owned ' : '') + (owned && !shown ? 'put-away' : '')
+              }
+              key={item.id}
             >
-              {game.upgrades[item.id] ? (
-                <>
-                  <Check size={14} /> Owned
-                </>
+              {item.art}
+              <div>
+                <strong>{item.name}</strong>
+                <p>{item.description}</p>
+              </div>
+              {owned && decor ? (
+                // Owned decor can be put away and brought back out at any time.
+                <label className="decor-toggle">
+                  <small>{shown ? 'On display' : 'Put away'}</small>
+                  <Switch.Root
+                    className="switch"
+                    checked={shown}
+                    onCheckedChange={() => act({ type: 'toggleDecor', item: decor })}
+                    aria-label={'Show ' + item.name}
+                  >
+                    <Switch.Thumb className="switch-thumb" />
+                  </Switch.Root>
+                </label>
               ) : (
-                money(upgradeInfo[item.id].cost)
+                <Button
+                  variant={owned ? 'secondary' : 'default'}
+                  size="sm"
+                  disabled={owned || game.cash < upgradeInfo[item.id].cost}
+                  onClick={() => act({ type: 'buy', item: item.id })}
+                >
+                  {owned ? (
+                    <>
+                      <Check size={14} /> Owned
+                    </>
+                  ) : (
+                    money(upgradeInfo[item.id].cost)
+                  )}
+                </Button>
               )}
-            </Button>
-          </div>
-        ))}
+            </div>
+          );
+        })}
       </div>
     </>
   );

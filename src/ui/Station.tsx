@@ -302,6 +302,25 @@ export default function Station() {
       : []),
   ];
   type Row = (typeof rows)[number];
+  // The full back bar lists every bottle in one fixed order, with nothing marking
+  // which the drink needs or how much: the player pours from memory or the book.
+  const full = game.settings.pourList === 'full';
+  const fullRows: Row[] = ingredients
+    .filter((i) => i.kind !== 'fruit' && !garnishes.includes(i.id))
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map((i) => ({
+      key: i.id,
+      recipe: false,
+      spirit: spirits.has(i.id),
+      bottle: i.id,
+      label: i.name,
+      target: null,
+      low: undefined,
+      high: undefined,
+      optional: false,
+      unit: i.unit,
+      have: poured([i.id]),
+    }));
   // Completion and service share the same bounds; taste scoring is stricter.
   const pourState = (r: Row): 'empty' | 'short' | 'good' | 'over' => {
     if (r.have === 0) return r.optional ? 'good' : 'empty';
@@ -331,6 +350,8 @@ export default function Station() {
       (!dissolve || prep.dissolved),
     garnish: !assess.issues.includes('Finish the garnish'),
   };
+  // With the full back bar, nothing tells the player the pour is right.
+  const ticked = (st: Step) => complete[st] && !(full && st === 'pour');
   const serveLabel =
     method === 'build_glass' || method === 'old_fashioned_glass'
       ? 'Finish & serve'
@@ -367,7 +388,11 @@ export default function Station() {
           All set. Go on to <b>Pour</b>.
         </>
       ),
-    pour: rows.some((r) => r.recipe && pourState(r) === 'over') ? (
+    pour: full ? (
+      <>
+        Pour from memory. The <b>Recipes</b> book has every amount.
+      </>
+    ) : rows.some((r) => r.recipe && pourState(r) === 'over') ? (
       <>Too much in this preparation. Discard it and measure a fresh drink.</>
     ) : muddleFirst && !rows.some((r) => r.recipe && !r.spirit && !isDone(r)) ? (
       <>
@@ -467,8 +492,14 @@ export default function Station() {
             {r.target !== null && <b style={{ left: (r.target / scale) * 100 + '%' }} />}
           </div>
           <small>
-            {Number(r.have.toFixed(1))} /{' '}
-            {r.low !== undefined && r.low !== r.high ? r.low + '–' + r.high : (r.target ?? '–')}{' '}
+            {Number(r.have.toFixed(1))}
+            {!full && (
+              <>
+                {' '}
+                /{' '}
+                {r.low !== undefined && r.low !== r.high ? r.low + '–' + r.high : (r.target ?? '–')}
+              </>
+            )}{' '}
             {r.unit}
             {r.optional && ' · optional'}
             {!practice && ' · ' + Math.floor(game.inventory[r.bottle] ?? 0) + ' left'}
@@ -694,11 +725,11 @@ export default function Station() {
           {stepOrder.map((s, i) => (
             <button
               key={s}
-              className={(complete[s] ? 'done ' : '') + (i === stepIndex ? 'current' : '')}
+              className={(ticked(s) ? 'done ' : '') + (i === stepIndex ? 'current' : '')}
               aria-current={i === stepIndex ? 'step' : undefined}
               onClick={() => setStep(s)}
             >
-              <i>{complete[s] ? <Check size={12} strokeWidth={4} /> : i + 1}</i>
+              <i>{ticked(s) ? <Check size={12} strokeWidth={4} /> : i + 1}</i>
               {stepLabel[s]}
             </button>
           ))}
@@ -773,11 +804,23 @@ export default function Station() {
               <p className="bench-hint">
                 In the {toolName[prep.tool] ?? 'glass'}: <b>{Math.round(volume(prep))} ml</b>
               </p>
-              {rows.map((r) => (
+              {full && dissolve === 'before_spirit' && (
+                <div className="pour-muddle">
+                  {holdTile(
+                    'muddle',
+                    prep.dissolved ? 'Sugar dissolved' : 'Muddle the sugar',
+                    <MuddleArt size={34} />,
+                    prep.dissolved,
+                    false,
+                  )}
+                </div>
+              )}
+              {(full ? fullRows : rows).map((r) => (
                 <div key={r.key} className="pour-slot">
                   {pourRow(r)}
                   {/* Muddle sits between the sugar and the spirit, where it belongs. */}
                   {dissolve === 'before_spirit' &&
+                    !full &&
                     r.recipe &&
                     !r.spirit &&
                     !recipeRows.slice(recipeRows.indexOf(r) + 1).some((x) => !x.spirit) && (
@@ -796,9 +839,11 @@ export default function Station() {
                 </div>
               ))}
               {busy === 'muddle' && meter}
-              <button className="bench-more" onClick={() => setShowAll((v) => !v)}>
-                {showAll ? 'Hide other bottles' : 'Another bottle…'}
-              </button>
+              {!full && (
+                <button className="bench-more" onClick={() => setShowAll((v) => !v)}>
+                  {showAll ? 'Hide other bottles' : 'Another bottle…'}
+                </button>
+              )}
             </>
           )}
 
@@ -921,7 +966,7 @@ export default function Station() {
           <span className="bench-score" />
           {step !== 'garnish' ? (
             <Button
-              className={coach && complete[step] ? 'coach' : ''}
+              className={coach && ticked(step) ? 'coach' : ''}
               onClick={() => setStep(stepOrder[stepIndex + 1])}
             >
               Next: {stepLabel[stepOrder[stepIndex + 1]]} <ArrowRight size={16} />

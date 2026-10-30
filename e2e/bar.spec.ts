@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, readFileSync } from 'node:fs';
 import { unseal } from '../src/game/seal';
 const storyBackup = execFileSync('bun', ['run', 'scripts/test-fixture.ts']);
 const closingBackup = execFileSync('bun', ['run', 'scripts/test-fixture.ts', '--closing']);
@@ -394,6 +394,31 @@ test('steps are ticked only when they are really done', async ({ page }) => {
   await triple.getByRole('button', { name: 'Less Triple Sec' }).click();
   await pour(page, 'Triple Sec');
   await expect(pourStep).toHaveClass(/done/);
+});
+test('the full back bar lists every bottle with nothing to aim for', async ({ page }) => {
+  await enter(page);
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await page.getByRole('switch', { name: 'Full back bar' }).click();
+  await page.getByRole('button', { name: 'Close dialog' }).click();
+  await page.getByRole('button', { name: 'Practice', exact: true }).click();
+  await page.getByRole('button', { name: 'Chill glass', exact: true }).click();
+  await step(page, 'Pour');
+  // Every bottle, the Margarita's and all the others; garnishes are fruit and wait for
+  // the Garnish step.
+  const data = (file: string): { ingredients: { kind: string }[] } =>
+    JSON.parse(readFileSync(`data/${file}.en.json`, 'utf8'));
+  const bottles = [...data('cocktails').ingredients, ...data('catalogue').ingredients];
+  await expect(page.locator('.pour-row')).toHaveCount(
+    bottles.filter((i) => i.kind !== 'fruit').length,
+  );
+  await expect(page.locator('.pour-row', { hasText: 'Worcestershire Sauce' })).toBeVisible();
+  await expect(page.locator('.pour-row.next, .pour-meter b')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Another bottle…' })).toHaveCount(0);
+  await pour(page, '100% Agave Tequila');
+  await expect(poured(page, '100% Agave Tequila')).toHaveText(/^5 ml/);
+  // A Margarita needs more than this, but nothing at the counter says so.
+  await expect(page.locator('.pour-row .pour-check')).toHaveCount(0);
+  await expect(page.locator('.bench-steps button', { hasText: 'Pour' })).not.toHaveClass(/done/);
 });
 test('the practice picker switches drinks inside the counter', async ({ page }) => {
   await enter(page);

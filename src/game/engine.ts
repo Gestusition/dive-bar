@@ -99,6 +99,8 @@ export interface Game {
     reducedMotion: boolean;
     theme: 'amber' | 'mint' | 'rose';
     pourStyle: 'marked' | 'free';
+    /** Show only the bottles the drink needs, or every bottle for a harder pour. */
+    pourList: 'recipe' | 'full';
   };
   notice: string;
   practice: Prep;
@@ -114,7 +116,22 @@ export interface Game {
   /** The drinks given to the last few arriving guests, newest last. */
   recentOrders: string[];
   foodStock: Record<'pretzel' | 'toastie', number>;
+  /** Owned decor the player has put away; it stays owned and can go back up. */
+  decorOff: Decor[];
 }
+/** Upgrades that decorate the room and can be put away. The host is staff, not decor. */
+export type Decor = Exclude<Upgrade, 'barback'>;
+export const decorIds: Decor[] = [
+  'plant',
+  'neon',
+  'doorLights',
+  'jukebox',
+  'counterDecor',
+  'wallArt',
+];
+/** Owned and on display. Only shown decor changes the room, its music or its tips. */
+export const decorShown = (s: Pick<Game, 'upgrades' | 'decorOff'>, item: Decor) =>
+  s.upgrades[item] && !s.decorOff.includes(item);
 export type Action =
   | {
       type:
@@ -165,6 +182,7 @@ export type Action =
     }
   | { type: 'choice'; id: number; conversationId: string; nodeId: string; choiceId: string }
   | { type: 'buy'; item: Upgrade }
+  | { type: 'toggleDecor'; item: Decor }
   | {
       type: 'setting';
       key: keyof Game['settings'];
@@ -223,6 +241,7 @@ export function newGame(): Game {
       reducedMotion: false,
       theme: 'amber',
       pourStyle: 'marked',
+      pourList: 'recipe',
     },
     notice: 'A little bar. A good story. Your kind of night.',
     practice: emptyPrep(),
@@ -232,6 +251,7 @@ export function newGame(): Game {
     activeMenu: recipes.slice(0, 6).map((r) => r.id),
     recentOrders: [],
     foodStock: { pretzel: 12, toastie: 8 },
+    decorOff: [],
   };
 }
 /** What each upgrade costs, and how much it lifts tips by making the room nicer. */
@@ -245,10 +265,7 @@ export const upgradeInfo: Record<Upgrade, { cost: number; tip: number }> = {
   barback: { cost: 6000, tip: 0 },
 };
 export const ambience = (s: Game) =>
-  (Object.keys(upgradeInfo) as Upgrade[]).reduce(
-    (n, k) => n + (s.upgrades[k] ? upgradeInfo[k].tip : 0),
-    0,
-  );
+  decorIds.reduce((n, k) => n + (decorShown(s, k) ? upgradeInfo[k].tip : 0), 0);
 /** Remember that something happened once; only the recent past is kept. */
 const commit = (s: Game, token: string) => {
   s.committed.push(token);
@@ -427,14 +444,22 @@ export function conversationFor(s: Game, g: Guest) {
   );
   return pool[(s.day + g.id) % Math.max(1, pool.length)];
 }
+/** Below this taste score a drink earns no tip: the guest would rather it were remade. */
+export const tipQuality = 55;
+/**
+ * Whether a guest is happy with their visit: they were served a drink good enough to
+ * tip on. A guest who leaves without a drink is not.
+ */
+export const pleased = (g: Pick<Guest, 'served' | 'quality'>) =>
+  g.served && g.quality >= tipQuality;
 /**
  * A tip follows the drink first: a remake-level drink earns nothing, an excellent one
  * around a fifth of the bill. Conversation, quick service, a nice room and paying the
  * way the guest asked move it up or down, with a little chance on top.
  */
 export function tipFor(s: Game, g: Guest, bonus = 0) {
-  if (!g.served || g.charge <= 0 || g.quality < 55) return 0;
-  let rate = g.quality < 55 ? 0 : 0.04 + ((g.quality - 55) / 45) * 0.16;
+  if (!g.served || g.charge <= 0 || g.quality < tipQuality) return 0;
+  let rate = 0.04 + ((g.quality - tipQuality) / (100 - tipQuality)) * 0.16;
   rate += g.tipDelta + (g.waited - 0.5) * 0.08 + ambience(s) + bonus + (rand(s) - 0.5) * 0.04;
   // Left waiting at the till.
   if (g.remaining <= 0) rate -= 0.05;
@@ -466,7 +491,7 @@ function tick(s: Game, dt: number) {
       ((s.settings.mode === 'rush' ? 44 : s.settings.mode === 'chill' ? 75 : 58) +
         rand(s) * 16 -
         8) *
-      (s.upgrades.doorLights ? 0.85 : 1);
+      (decorShown(s, 'doorLights') ? 0.85 : 1);
   }
   for (const g of s.guests) {
     g.remaining -= t;
@@ -694,6 +719,13 @@ export function reduceGame(current: Game, a: Action, random?: RandomSource): Gam
       note(
         s.upgrades[a.item] ? 'Already part of your bar.' : 'Save a little more for this upgrade.',
       );
+  }
+  if (a.type === 'toggleDecor') {
+    // Only owned decor can be put away or brought back out; nothing is refunded.
+    if (!decorIds.includes(a.item) || !s.upgrades[a.item]) return current;
+    s.decorOff = s.decorOff.includes(a.item)
+      ? s.decorOff.filter((d) => d !== a.item)
+      : [...s.decorOff, a.item];
   }
   if (a.type === 'guest') {
     const g = s.guests.find((g) => g.id === a.id);

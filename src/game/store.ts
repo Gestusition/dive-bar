@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import {
   conversationFor,
+  decorShown,
   newGame,
   reduceGame,
   seatProblem,
@@ -348,7 +349,7 @@ export function startClock() {
     setMusic(
       s.loaded &&
         !s.title &&
-        s.game.upgrades.jukebox &&
+        decorShown(s.game, 'jukebox') &&
         s.game.settings.music &&
         s.game.settings.sound &&
         !document.hidden,

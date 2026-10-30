@@ -33,7 +33,7 @@ On a phone held sideways (Galaxy S8+, 740 x 360):
    - The drink builds up on the counter as you go. Bartending hints and the floor guide start enabled on night one, then switch off automatically when the next night begins. You can enable them again in Settings.
 5. Let them enjoy it, then settle up. Friends say whether they want one bill or to split it; listen, it shows in the tip. The tip pops up over the guest as they pay.
 6. Call **Last orders** from **Bar tools**. At closing time queue wiping, taking out trash and washing dirty glasses. The bartender walks to each job and completes it before its tick appears; a hired host handles closing cleanup automatically. Restocking is optional, so you can close even with no cash for supplies. The scene shows a moving sponge, sink water and glass washing, and a trash bag carried to the door. Pause and reading dialogs stop the work.
-7. Between nights, decorate the bar. A fresh bar starts without purchased upgrades. Decor lifts tips; hire the host to greet guests, walk them to their seats and wash glasses. New game resets progress and immediately replaces the local save.
+7. Between nights, decorate the bar. A fresh bar starts without purchased upgrades. Decor lifts tips while it is on display, and each piece can be put away and brought back out; hire the host to greet guests, walk them to their seats and wash glasses. New game resets progress and immediately replaces the local save.
 
 A step is ticked only when it is really done. Each required ml ingredient must be within **±18%** of its target (with at least 1 ml of allowance) before a drink can be served. For example, 50 ml accepts 41–59 ml, and 20 ml accepts 16.4–23.6 ml. Dashes and pieces use the recipe's exact quantity or stated range; optional ingredients can be omitted. Overpours need a fresh preparation. The **Taste check** keeps a tighter ±5% / 1 ml margin for a perfect quantity score and also judges balance, technique and presentation.
 
@@ -49,6 +49,7 @@ Escape closes a drawer or window, or pauses. Windows pause service. The pause me
 
 **The interface**
 
+- Guest bubbles show a heart while a guest is happy with their drink and a broken heart when the drink was not good enough to tip on, or they left without one.
 - A compact side rail for the night, cash and time, with tiles that slide out drawers: Get ready / Bar tools / Closing, Recipes and Decorate.
 - Speech bubbles over guests show what they need; tap one for its action card.
 - Illustrated icons for drinks, glassware, bottles, garnishes and bar tools, drawn in each drink's real colour.
@@ -58,7 +59,7 @@ Escape closes a drawer or window, or pauses. Windows pause service. The pause me
 **Drinks**
 
 - Fourteen classic, regional and clearly labelled house recipes. A fresh bar starts with six drinks; pick any 1 to 14 for a night.
-- A step-by-step counter (Prep, Pour, Mix, Garnish) with measured or free pouring and native dash, piece and spoon units.
+- A step-by-step counter (Prep, Pour, Mix, Garnish) with measured or free pouring and native dash, piece and spoon units. The Pour step lists the bottles the drink needs; the optional Full back bar setting lists every bottle with no amounts to aim for.
 - Recipe quantity, proportion, yield and technique scoring, with taste notes that name the bottles.
 - Real stock use and waste; a separate unlimited practice bench with an in-game drink picker.
 

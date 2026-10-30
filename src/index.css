@@ -1554,6 +1554,26 @@ a {
 .shop-item.owned {
   background: #dcefcf;
 }
+/* Owned decor that is put away: still yours, just not in the room. */
+.shop-item.owned.put-away {
+  background: var(--cream);
+}
+.shop-item.put-away > svg {
+  opacity: 0.55;
+}
+.decor-toggle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
+.decor-toggle small {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
 
 /* Dice */
 .dice-panel {

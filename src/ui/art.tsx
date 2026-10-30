@@ -218,6 +218,22 @@ export const HeartArt = ({ size }: ArtProps) => (
   </Art>
 );
 
+/** A heart split down the middle: a guest who is not happy with their visit. */
+export const BrokenHeartArt = ({ size }: ArtProps) => (
+  <Art size={size}>
+    <path
+      d="M30 53S9 40 9 24a11.5 11.5 0 0 1 21-6.5l-4 9 6 6-5 8z"
+      fill="#9a8a92"
+      transform="translate(-2 1) rotate(-6 30 34)"
+    />
+    <path
+      d="M34 53s21-13 21-29a11.5 11.5 0 0 0-21-6.5l-3 9 6 6-6 8z"
+      fill="#9a8a92"
+      transform="translate(2 1) rotate(6 34 34)"
+    />
+  </Art>
+);
+
 export const CoinArt = ({ size }: ArtProps) => (
   <Art size={size}>
     <circle cx="32" cy="32" r="22" fill="#f6b545" />

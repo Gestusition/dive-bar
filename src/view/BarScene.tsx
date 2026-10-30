@@ -4,7 +4,7 @@ import { ContactShadows } from '@react-three/drei';
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { useGame } from '../game/store';
-import type { Guest } from '../game/engine';
+import { decorShown, pleased, type Guest } from '../game/engine';
 import { hostHome } from '../game/host';
 import { cleanupInfo } from '../game/cleanup';
 import {
@@ -32,7 +32,7 @@ import {
 } from '../game/room-layout';
 import { money } from '../game/content';
 import DrinkStage from './DrinkStage';
-import { CocktailArt, CoinArt, HeartArt } from '../ui/art';
+import { BrokenHeartArt, CocktailArt, CoinArt, HeartArt } from '../ui/art';
 import { GuestActions, patience } from '../ui/GuestActions';
 type Part = [number, number, number, number, number, number, string];
 type OverlayElements = {
@@ -735,7 +735,7 @@ const doorBulbs = (() => {
   return list;
 })();
 function DoorDecor() {
-  const lights = useGame((s) => s.game.upgrades.doorLights);
+  const lights = useGame((s) => decorShown(s.game, 'doorLights'));
   if (!lights) return null;
   return (
     <>
@@ -753,9 +753,9 @@ function DoorDecor() {
 }
 /** Decor bought from the shop, placed around the room. */
 function Decor() {
-  const jukebox = useGame((s) => s.game.upgrades.jukebox);
-  const candles = useGame((s) => s.game.upgrades.counterDecor);
-  const art = useGame((s) => s.game.upgrades.wallArt);
+  const jukebox = useGame((s) => decorShown(s.game, 'jukebox'));
+  const candles = useGame((s) => decorShown(s.game, 'counterDecor'));
+  const art = useGame((s) => decorShown(s.game, 'wallArt'));
   const flame = useRef<THREE.Group>(null);
   useFrame(({ clock }) => {
     if (!flame.current || useGame.getState().game.settings.reducedMotion) return;
@@ -882,7 +882,7 @@ function Room({ guestGroups }: { guestGroups: SceneRefs['guestGroups'] }) {
         shadow-camera-bottom={-9}
       />
       <mesh geometry={room} material={material} receiveShadow castShadow />
-      <Sign lit={game.upgrades.neon} />
+      <Sign lit={decorShown(game, 'neon')} />
       <SideWalls />
       <Bartender staff={staff} />
       <CleanupProps staff={staff} />
@@ -898,7 +898,7 @@ function Room({ guestGroups }: { guestGroups: SceneRefs['guestGroups'] }) {
           <meshBasicMaterial color="#96573b" transparent opacity={0.6} />
         </mesh>
       )}
-      {game.upgrades.plant && (
+      {decorShown(game, 'plant') && (
         <group position={[floorPlantPosition[0], 0, floorPlantPosition[1]]}>
           <mesh geometry={floorPlant} material={material} castShadow receiveShadow />
         </group>
@@ -1040,8 +1040,10 @@ function SceneLabels({ elements }: { elements: SceneRefs['elements'] }) {
                   <CocktailArt size={30} />
                 ) : guest.status === 'pay' ? (
                   <CoinArt size={30} />
-                ) : (
+                ) : pleased(guest) ? (
                   <HeartArt size={26} />
+                ) : (
+                  <BrokenHeartArt size={26} />
                 )}
               </span>
               <small>{guest.name}</small>

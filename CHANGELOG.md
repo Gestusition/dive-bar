@@ -4,6 +4,12 @@ All notable changes are recorded here. Versions describe tagged source releases;
 
 ## [Unreleased]
 
+### Added
+
+- A broken heart replaces the heart over a guest who is not happy: their drink scored too low to tip on, or they are leaving without one. Their card says they are not enjoying the drink.
+- A Full back bar setting for a harder pour. The Pour step then lists every bottle, with no amounts to aim for, no check marks and no tick on the step. The recipe list stays the default.
+- Owned decor can be put away and brought back out, one piece at a time, from Decorate. Decor that is put away leaves the room and stops adding to tips; a put-away jukebox stops the music and put-away door lights stop drawing guests in sooner.
+
 ### Changed
 
 - The host greets an arriving party from in front of the waiting spot and shows the way from beside each seat, instead of standing in the guest's path.
