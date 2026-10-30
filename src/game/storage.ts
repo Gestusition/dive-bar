@@ -166,20 +166,48 @@ const guestModel: Record<keyof Guest, true> = {
   waited: true,
   tip: true,
 };
+// ---------- Save versions ----------
+// Every save says which layout it was written in. A save from an earlier version is
+// brought up to date one step at a time, then checked as strictly as a new one; a
+// save from a newer version is refused, not lost. Whenever a field is added, removed
+// or changes meaning, raise the version in newGame() and add the step from the old
+// one here. The save tests fail until both are done.
+/** A save written by a newer version of the game than this one. */
+export class NewerSave extends Error {
+  constructor() {
+    super('This save is from a newer version of Dive Bar. Update the game to load it.');
+  }
+}
+const migrations: Record<number, (save: Raw) => Raw> = {
+  // v0.0.3 to v0.0.3.3. Saves before v0.0.3.3 have no order streak, and none can
+  // have the full back bar setting or decor that is put away.
+  2: (g) => ({
+    recentOrders: [],
+    decorOff: [],
+    ...g,
+    settings: { pourList: 'recipe', ...record(g.settings, 'settings') },
+    version: 3,
+  }),
+};
+/** Bring a save from any earlier version up to this one, without checking it yet. */
+export function migrateSave(raw: unknown): Raw {
+  let g = record(raw, 'save');
+  if (typeof g.version !== 'number' || !Number.isInteger(g.version) || g.version < 1)
+    fail('version');
+  if ((g.version as number) > model.version) throw new NewerSave();
+  while ((g.version as number) < model.version) {
+    const step = migrations[g.version as number];
+    if (!step) fail('version');
+    g = step(g);
+  }
+  return g;
+}
 export function validateSave(raw: unknown): Game {
-  // Saves from before the order streak was kept simply start without one, and saves
-  // from before decor could be put away have all of it on display.
-  const g: Raw = { recentOrders: [], decorOff: [], ...record(raw, 'save') };
-  if (g.version !== model.version) fail('version');
+  const g = migrateSave(raw);
   keys(g, Object.keys(model), 'save');
   const guests = list(g.guests, 20, 'guests').map(guest);
   if (new Set(guests.map((x) => x.id)).size !== guests.length) fail('guests');
-  // Saves from before the full bottle list keep the recipe list.
-  const settings = keys(
-    { pourList: 'recipe', ...record(g.settings, 'settings') },
-    Object.keys(model.settings),
-    'settings',
-  );
+  const settings = keys(g.settings, Object.keys(model.settings), 'settings');
   const stats = keys(g.stats, Object.keys(model.stats), 'stats');
   const closing = keys(g.closing, Object.keys(model.closing), 'closing');
   const upgrades = keys(g.upgrades, Object.keys(model.upgrades), 'upgrades');
@@ -291,7 +319,9 @@ function parse(text: string) {
   try {
     return validateSave(JSON.parse(text));
   } catch (e) {
-    throw e instanceof Invalid ? e : new Invalid('This save is not valid.');
+    throw e instanceof Invalid || e instanceof NewerSave
+      ? e
+      : new Invalid('This save is not valid.');
   }
 }
 
@@ -359,18 +389,53 @@ export async function saveGame(game: Game) {
     db.close();
   }
 }
-export async function clearSave() {
+/** Where a save that could not be loaded is kept, so a later version can still read it. */
+const SET_ASIDE = 'set-aside';
+async function move(from: string, to: string) {
   const db = await database();
   try {
     await new Promise<void>((resolve, reject) => {
       const t = db.transaction('saves', 'readwrite');
-      t.objectStore('saves').delete(KEY);
+      const store = t.objectStore('saves');
+      const r = store.get(from);
+      r.onsuccess = () => {
+        if (r.result !== undefined) {
+          store.put(r.result, to);
+          store.delete(from);
+        }
+      };
       t.oncomplete = () => resolve();
       t.onerror = () => reject(t.error);
     });
   } finally {
     db.close();
   }
+}
+/**
+ * Keep a save this version cannot read, untouched, out of the way of the new bar the
+ * player starts instead. Nothing is deleted.
+ */
+export const setAsideSave = () => move(KEY, SET_ASIDE);
+/**
+ * Bring back a set-aside save once it can be read again, for example after the game
+ * is updated, as long as no newer bar has been started in the meantime.
+ */
+export async function recoverSetAside(): Promise<Game | null> {
+  const db = await database();
+  let raw: unknown;
+  try {
+    raw = await new Promise<unknown>((resolve, reject) => {
+      const r = db.transaction('saves').objectStore('saves').get(SET_ASIDE);
+      r.onsuccess = () => resolve(r.result);
+      r.onerror = () => reject(r.error);
+    });
+  } finally {
+    db.close();
+  }
+  if (raw === undefined) return null;
+  const game = openDevice(raw);
+  await move(SET_ASIDE, KEY);
+  return game;
 }
 
 // ---------- Backup files ----------
@@ -459,7 +524,8 @@ export async function decodeBackup(text: string): Promise<Game> {
     );
     const plain = field(meta, 'encoding') === 'gzip' ? await decompress(data) : data;
     return parse(new TextDecoder().decode(plain));
-  } catch {
-    throw Error('This save file was changed or damaged, so it cannot be loaded.');
+  } catch (e) {
+    if (e instanceof NewerSave) throw Error(e.message, { cause: e });
+    throw Error('This save file was changed or damaged, so it cannot be loaded.', { cause: e });
   }
 }

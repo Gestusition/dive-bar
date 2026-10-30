@@ -14,7 +14,15 @@ import { deviceRandom } from './random';
 import { cleanupInfo, cleanupTarget, type CleanupJob, type CleanupKind } from './cleanup';
 import { hostDestination, hostHome, type HostVisit } from './host';
 import { play, setMusic, setSoundSwitch } from './audio';
-import { clearSave, decodeBackup, loadSave, MAX_BACKUP_BYTES, saveGame } from './storage';
+import {
+  decodeBackup,
+  loadSave,
+  MAX_BACKUP_BYTES,
+  NewerSave,
+  recoverSetAside,
+  saveGame,
+  setAsideSave,
+} from './storage';
 import {
   advanceWalk,
   guestPath,
@@ -215,11 +223,19 @@ export const useGame = create<Store>((set, get) => ({
   pause: () => set((s) => ({ paused: !s.paused })),
   boot: async () => {
     try {
-      const game = await loadSave();
+      // A save set aside by an earlier boot comes back once it can be read again.
+      const game = (await loadSave()) ?? (await recoverSetAside().catch(() => null));
       if (game) set({ game, hasSave: game.phase !== 'title' });
-    } catch {
-      // An old or altered save is not loaded; the bar starts fresh instead.
-      await clearSave().catch(() => {});
+    } catch (e) {
+      // A save this version cannot read is never deleted: it is kept on the device,
+      // out of the way of the new bar, and the player is told.
+      await setAsideSave().catch(() => {});
+      set({
+        saveError:
+          e instanceof NewerSave
+            ? 'Your saved bar is from a newer version of Dive Bar, so a new bar was started. The save is kept on this device and comes back when the game is updated.'
+            : 'Your saved bar could not be read, so a new bar was started. The old save is kept on this device.',
+      });
     }
     set({ loaded: true });
   },

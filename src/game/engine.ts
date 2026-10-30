@@ -70,8 +70,8 @@ export interface Guest {
 export type Upgrade =
   'barback' | 'plant' | 'neon' | 'doorLights' | 'jukebox' | 'counterDecor' | 'wallArt';
 export interface Game {
-  /** Saves from earlier versions are not loaded; the game starts a fresh bar. */
-  version: 2;
+  /** The save layout. Saves from earlier versions are brought up to date when loaded. */
+  version: 3;
   phase: Phase;
   day: number;
   seconds: number;
@@ -205,7 +205,7 @@ export const emptyPrep = (): Prep => ({
 });
 export function newGame(): Game {
   return {
-    version: 2,
+    version: 3,
     phase: 'title',
     day: 1,
     seconds: 0,

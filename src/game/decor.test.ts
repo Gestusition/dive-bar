@@ -53,7 +53,8 @@ describe('decor on display', () => {
     expect(validateSave(JSON.parse(JSON.stringify(game))).decorOff).toEqual(['neon']);
     const { decorOff, ...older } = game;
     expect(decorOff).toEqual(['neon']);
-    expect(validateSave(older).decorOff).toEqual([]);
+    // Saves before this version (layout 2) had no decor to put away.
+    expect(validateSave({ ...older, version: 2 }).decorOff).toEqual([]);
     expect(() => validateSave({ ...game, decorOff: ['barback'] })).toThrow();
     expect(() => validateSave({ ...game, decorOff: ['neon', 'neon'] })).toThrow();
   });
@@ -65,7 +66,9 @@ describe('pour list setting', () => {
     expect(game.settings.pourList).toBe('recipe');
     const { pourList, ...settings } = game.settings;
     expect(pourList).toBe('recipe');
-    expect(validateSave({ ...game, settings }).settings.pourList).toBe('recipe');
+    expect(validateSave({ ...game, version: 2, settings }).settings.pourList).toBe('recipe');
+    // A save in this version's layout must have it.
+    expect(() => validateSave({ ...game, settings })).toThrow();
     const full = reduceGame(game, { type: 'setting', key: 'pourList', value: 'full' });
     expect(validateSave(full).settings.pourList).toBe('full');
     expect(() =>

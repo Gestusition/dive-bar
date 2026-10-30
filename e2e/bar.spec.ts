@@ -399,6 +399,37 @@ test('steps are ticked only when they are really done', async ({ page }) => {
   await pour(page, 'Triple Sec');
   await expect(pourStep).toHaveClass(/done/);
 });
+test('a device save this version cannot read is kept, not deleted', async ({ page }) => {
+  const store = (action: 'put' | 'read') =>
+    page.evaluate(
+      (action) =>
+        new Promise<Record<string, unknown>>((resolve, reject) => {
+          const open = indexedDB.open('dive-bar', 1);
+          open.onupgradeneeded = () => open.result.createObjectStore('saves');
+          open.onerror = () => reject(open.error);
+          open.onsuccess = () => {
+            const t = open.result.transaction('saves', 'readwrite');
+            const saves = t.objectStore('saves');
+            const found: Record<string, unknown> = {};
+            if (action === 'put') saves.put('v9:a save from some other version', 'current');
+            else
+              for (const key of ['current', 'set-aside'])
+                saves.get(key).onsuccess = (e) =>
+                  (found[key] = (e.target as IDBRequest).result ?? null);
+            t.oncomplete = () => resolve(found);
+          };
+        }),
+      action,
+    );
+  await page.goto('./');
+  await store('put');
+  await page.reload();
+  await expect(page.getByText('The old save is kept on this device.')).toBeVisible();
+  expect(await store('read')).toEqual({
+    current: null,
+    'set-aside': 'v9:a save from some other version',
+  });
+});
 test('the full back bar lists every bottle with nothing to aim for', async ({ page }) => {
   await enter(page);
   await page.getByRole('button', { name: 'Settings', exact: true }).click();

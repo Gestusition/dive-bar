@@ -1,14 +1,23 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { newGame, reduceGame } from './engine';
 import { startClock, useGame } from './store';
-import { clearSave, decodeBackup, loadSave, saveGame } from './storage';
+import {
+  decodeBackup,
+  loadSave,
+  NewerSave,
+  recoverSetAside,
+  saveGame,
+  setAsideSave,
+} from './storage';
 
 vi.mock('./audio', () => ({ play: vi.fn(), setMusic: vi.fn(), setSoundSwitch: vi.fn() }));
 vi.mock('./storage', () => ({
-  clearSave: vi.fn(),
   decodeBackup: vi.fn(),
   loadSave: vi.fn(),
+  recoverSetAside: vi.fn().mockResolvedValue(null),
   saveGame: vi.fn().mockResolvedValue(undefined),
+  setAsideSave: vi.fn().mockResolvedValue(undefined),
+  NewerSave: class NewerSave extends Error {},
   MAX_BACKUP_BYTES: 524288,
 }));
 
@@ -245,12 +254,26 @@ describe('service clock and queue', () => {
     vi.advanceTimersByTime(1000);
     expect(useGame.getState().game.seconds).toBe(1);
   });
-  it('recovers from a rejected device save without preventing startup', async () => {
+  it('keeps a device save it cannot read instead of deleting it, and says so', async () => {
     vi.mocked(loadSave).mockRejectedValueOnce(new Error('damaged'));
-    vi.mocked(clearSave).mockResolvedValueOnce(undefined);
     await useGame.getState().boot();
-    expect(clearSave).toHaveBeenCalled();
+    expect(setAsideSave).toHaveBeenCalled();
+    expect(useGame.getState().saveError).toMatch(/kept on this device/);
     expect(useGame.getState().loaded).toBe(true);
+  });
+  it('keeps a save from a newer version for when the game is updated', async () => {
+    vi.mocked(loadSave).mockRejectedValueOnce(new NewerSave());
+    await useGame.getState().boot();
+    expect(setAsideSave).toHaveBeenCalled();
+    expect(useGame.getState().saveError).toMatch(/newer version/);
+  });
+  it('brings back a set-aside save once it can be read again', async () => {
+    const kept = { ...newGame(), day: 7, phase: 'opening' as const };
+    vi.mocked(loadSave).mockResolvedValueOnce(null);
+    vi.mocked(recoverSetAside).mockResolvedValueOnce(kept);
+    await useGame.getState().boot();
+    expect(useGame.getState().game.day).toBe(7);
+    expect(useGame.getState().hasSave).toBe(true);
   });
   it('rejects an oversized import before reading the file or changing the game', async () => {
     const before = useGame.getState().game;

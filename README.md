@@ -82,7 +82,7 @@ Escape closes a drawer or window, or pauses. Windows pause service. The pause me
 
 **Saving**
 
-- Saves on the device and `.divebar` backup files are encrypted and signed: an edited, hand-made, damaged or oversized file is refused, and every field is checked before it is used. Saves from earlier versions are not loaded; the game starts a fresh bar.
+- Saves on the device and `.divebar` backup files are encrypted and signed: an edited, hand-made, damaged or oversized file is refused, and every field is checked before it is used. Each save records its layout version. Saves and backups from earlier versions since v0.0.3 are brought up to date when loaded, and real backups from released versions are tested on every change. A save the game cannot read, or one from a newer version, is kept on the device rather than deleted, and comes back once the game can read it.
 
 The conversation banks hold 24 encounters and 96 responses. The game picks social encounters that fit the moment; service-draft encounters stay in the source rather than appearing in the wrong situation. There is no ingredient-provenance screen or truth/lie badge.
 

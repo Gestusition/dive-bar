@@ -81,7 +81,8 @@ describe('menus, coaching and live randomness', () => {
     expect(game.guests[0].recipeId).toBe('moscow_mule');
     const { recentOrders, ...older } = game;
     expect(recentOrders).toHaveLength(maxRepeatOrders);
-    expect(validateSave(older).recentOrders).toEqual([]);
+    // Saves in layout 2 from before v0.0.3.3 had no streak.
+    expect(validateSave({ ...older, version: 2 }).recentOrders).toEqual([]);
     expect(() => validateSave({ ...game, recentOrders: ['unknown'] })).toThrow();
     game = validateSave(game);
     expect(game.recentOrders).toEqual(recentOrders);

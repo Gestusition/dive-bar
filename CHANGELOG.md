@@ -22,6 +22,8 @@ All notable changes are recorded here. Versions describe tagged source releases;
 
 ### Fixed
 
+- A device save the game could not read was deleted when the game started, so an update that did not recognise a save lost the player's bar. It is now kept on the device, the title screen says so, and it comes back once the game can read it. Saves from a newer version are recognised as newer instead of damaged.
+- Saves now record their layout version and are upgraded step by step when loaded, instead of depending on each new field being given a default by hand. Backups from v0.0.3.2 and v0.0.3.3 load with all their progress, checked by tests on real backups from those releases.
 - The glass being washed no longer sinks into the counter or stands in front of the tap. It is held over the basin in both hands, tilted with its rim under the tap's spout, and turned round while water runs into it, with suds at the rim. It and the glasses waiting beside the sink are the real glass the latest drink was served in, the same shape as at the counter, instead of a plain cylinder.
 - The trash bin is round instead of visibly ten-sided.
 - The scene no longer stutters while people walk around each other. Planning a route round other people took around 8 ms and every walker did it four times a second; it now takes under 1 ms and finds the same routes.
