@@ -1,25 +1,37 @@
-import { Suspense, useCallback, useMemo, useRef, Component, type ReactNode } from 'react';
+import {
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  Component,
+  type ReactNode,
+} from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { ContactShadows } from '@react-three/drei';
 import * as THREE from 'three';
 import { useGame } from '../game/store';
-import { decorShown, mood, type Guest, type Prep } from '../game/engine';
+import { decorShown, mood, type Prep } from '../game/engine';
 import { hostHome } from '../game/host';
-import { cleanupInfo } from '../game/cleanup';
+import { cleanupInfo, cleanupTarget } from '../game/cleanup';
 import {
-  advanceWalk,
   bartenderHome,
-  entrance,
+  doorReach,
+  guestPath,
   guestPosition,
   guestSpeed,
-  newWalker,
-  personClearance,
+  newAgent,
+  outsideDoor,
   roomEdge,
   seatFacing,
+  servicePosition,
   setDoorX,
+  stepCrowd,
   tables,
-  walkFrame,
+  walkingRoute,
   walkingSpeed,
+  type Agent,
   type FloorPoint,
 } from '../game/navigation';
 import {
@@ -54,6 +66,39 @@ type SceneRefs = {
   guestGroups: { current: Map<number, THREE.Group> };
 };
 type StaffRefs = { current: Partial<Record<'host' | 'bartender', THREE.Group | null>> };
+// Everyone on the floor, staff included. Each member adds themselves while they are in
+// the scene; the Crowd below moves them all together, once a frame, before they draw.
+const crowd: Agent[] = [];
+function useCrowdMember(agent: Agent) {
+  useEffect(() => {
+    crowd.push(agent);
+    return () => {
+      crowd.splice(crowd.indexOf(agent), 1);
+    };
+  }, [agent]);
+}
+const setGoal = (agent: Agent, [x, z]: FloorPoint) => {
+  agent.goal[0] = x;
+  agent.goal[1] = z;
+};
+const walkingAbout = (s: ReturnType<typeof useGame.getState>) =>
+  !s.title && !s.paused && ['floor', 'station'].includes(s.panel);
+/** Steps the crowd before anyone reads their position this frame. */
+function Crowd() {
+  useFrame((_, delta) => {
+    const s = useGame.getState();
+    if (!walkingAbout(s)) return;
+    if (s.game.settings.reducedMotion)
+      for (const a of crowd) {
+        a.position[0] = a.goal[0];
+        a.position[1] = a.goal[1];
+        a.path = [];
+        a.plannedFor = [...a.goal];
+      }
+    else stepCrowd(crowd, Math.min(delta, 0.1));
+  }, -1);
+  return null;
+}
 const oak = '#805137';
 const material = voxelMaterial;
 const geometry = voxelGeometry;
@@ -164,11 +209,23 @@ function roomParts() {
     box(0, y, -4.05, 5.1, 0.13, 0.66, dark);
     for (let i = 0; i < 13; i++) {
       const x = -2.3 + i * 0.38;
-      const c = ['#497c69', '#7b4437', '#c9944a', '#466a62', '#9c594c'][i % 5];
-      box(x, y + 0.23, -4.01, 0.18, 0.34, 0.2, c);
-      box(x, y + 0.44, -4.01, 0.085, 0.12, 0.09, c);
-      box(x, y + 0.26, -3.9, 0.18, 0.13, 0.025, cream);
-      box(x, y + 0.52, -4.01, 0.09, 0.05, 0.1, brass);
+      // No two neighbours alike: tall, squat, slim, square-shouldered and long-necked.
+      const n = (i * 3 + (y > 2 ? 2 : 0)) % 7;
+      const c = ['#497c69', '#7b4437', '#c9944a', '#466a62', '#9c594c', '#b9c6b0', '#3c3a44'][n];
+      const [w, h, nw, nh] = (
+        [
+          [0.18, 0.34, 0.085, 0.12],
+          [0.24, 0.22, 0.08, 0.1],
+          [0.14, 0.38, 0.06, 0.16],
+          [0.22, 0.3, 0.1, 0.06],
+          [0.16, 0.22, 0.06, 0.24],
+        ] as const
+      )[(i + (y > 2 ? 3 : 0)) % 5];
+      const base = y + 0.065;
+      box(x, base + h / 2, -4.01, w, h, 0.2, c);
+      box(x, base + h + nh / 2, -4.01, nw, nh, 0.09, c);
+      box(x, base + h * 0.45, -3.9, w, h * 0.4, 0.025, ['#ead7ac', '#f4efe2', '#d8b98a'][i % 3]);
+      box(x, base + h + nh + 0.025, -4.01, nw + 0.01, 0.05, 0.1, i % 2 ? brass : dark);
     }
   }
   // Counter: panelling, brass foot rail, drawers, POS and working mat.
@@ -230,22 +287,11 @@ function roomParts() {
   return p;
 }
 /**
- * The way to face while walking. Someone held up by another person, or backing off
- * a step to let them by, keeps facing the way they were going rather than spinning
- * round and back.
+ * The way to face while walking. Someone held up or edging round another person keeps
+ * facing the way they were going rather than spinning round and back.
  */
-function walkingFacing(
-  current: number,
-  [x, z]: FloorPoint,
-  step: FloorPoint,
-  people: FloorPoint[],
-) {
-  if (Math.hypot(...step) < 1e-6) return current;
-  const heading = Math.atan2(step[0], step[1]);
-  const near = people.some((p) => Math.hypot(p[0] - x, p[1] - z) < personClearance * 1.6);
-  return near && Math.abs(Math.atan2(Math.sin(heading - current), Math.cos(heading - current))) > 2
-    ? current
-    : heading;
+function walkingFacing(current: number, [dx, dz]: FloorPoint, speed: number, delta: number) {
+  return Math.hypot(dx, dz) < speed * 0.35 * Math.min(delta, 0.1) ? current : Math.atan2(dx, dz);
 }
 /** How far from their seat a guest starts to rise onto it. */
 const seatRise = 0.5;
@@ -253,48 +299,62 @@ function turnTowards(current: number, facing: number, delta: number, rate: numbe
   const turn = Math.atan2(Math.sin(facing - current), Math.cos(facing - current));
   return current + turn * (1 - Math.exp(-Math.min(delta, 0.1) * rate));
 }
-function Person({
-  guest,
-  guestGroups,
-  staff,
-}: {
-  guest: Guest;
-  guestGroups: SceneRefs['guestGroups'];
-  staff: StaffRefs;
-}) {
+function Person({ id, guestGroups }: { id: number; guestGroups: SceneRefs['guestGroups'] }) {
   const ref = useRef<THREE.Group>(null);
   const setGroup = useCallback(
     (group: THREE.Group | null) => {
-      if (group) guestGroups.current.set(guest.id, group);
-      else guestGroups.current.delete(guest.id);
+      if (group) guestGroups.current.set(id, group);
+      else guestGroups.current.delete(id);
     },
-    [guest.id, guestGroups],
+    [id, guestGroups],
   );
-  const body = personBody(guest.customerId);
   const setSelected = useGame((s) => s.select);
-  // Where the guest is standing on the floor. New guests start in the doorway.
-  const walker = useRef(
-    newWalker(
-      guest.status === 'waiting'
-        ? [entrance[0], entrance[2]]
-        : [guestPosition(guest)[0], guestPosition(guest)[2]],
-    ),
+  // Where the guest is standing on the floor. New guests come in from outside the door,
+  // the second of a party a step behind the first.
+  const [agent] = useState(() => {
+    const guest = useGame.getState().game.guests.find((g) => g.id === id);
+    const place = guest && guestPosition(guest);
+    return newAgent(
+      !guest || !place || guest.status === 'waiting'
+        ? outsideDoor(guest?.lead === false ? 1 : 0)
+        : [place[0], place[2]],
+      guestSpeed,
+    );
+  });
+  useCrowdMember(agent);
+  const [body] = useState(() =>
+    personBody(useGame.getState().game.guests.find((g) => g.id === id)?.customerId ?? String(id)),
   );
-  const step = useRef<FloorPoint>([0, 0]);
+  const last = useRef<FloorPoint>([...agent.position]);
   useFrame(({ clock }, delta) => {
     if (!ref.current) return;
     const state = useGame.getState();
-    if (state.title || state.paused || !['floor', 'station'].includes(state.panel)) return;
+    if (!walkingAbout(state)) return;
+    const guest = state.game.guests.find((g) => g.id === id);
+    if (!guest) return;
     const [tx, ty, tz] = guestPosition(guest);
-    const host = staff.current.host;
-    const people: FloorPoint[] = host ? [[host.position.x, host.position.z]] : [];
-    const before = walker.current.position;
-    if (useGame.getState().game.settings.reducedMotion && !people.length)
-      walker.current = newWalker([tx, tz]);
-    else walkFrame(walker.current, [tx, tz], guestSpeed * Math.min(delta, 0.1), delta, people);
-    const [x, z] = walker.current.position;
-    step.current = [x - before[0], z - before[1]];
-    const left = Math.hypot(x - tx, z - tz);
+    const leaving = guest.status === 'leaving';
+    // Through the door they are out of everyone's way, and walk on out of sight.
+    if (leaving && Math.hypot(agent.position[0] - tx, agent.position[1] - tz) < doorReach)
+      agent.gone = true;
+    setGoal(agent, agent.gone ? outsideDoor() : [tx, tz]);
+    // Someone held up on the way out hurries, so nobody vanishes in the middle of the room.
+    if (leaving && !agent.gone) {
+      let left = 0,
+        from = agent.position;
+      for (const p of agent.path) {
+        left += Math.hypot(p[0] - from[0], p[1] - from[1]);
+        from = p;
+      }
+      agent.speed = Math.min(
+        guestSpeed * 1.8,
+        Math.max(guestSpeed, left / Math.max(guest.remaining - 0.3, 0.1)),
+      );
+    }
+    const [x, z] = agent.position;
+    const step: FloorPoint = [x - last.current[0], z - last.current[1]];
+    last.current = [x, z];
+    const left = agent.gone ? Infinity : Math.hypot(x - tx, z - tz);
     const moving = left > 0.001;
     // Rise onto the seat over the last steps in, and ease back down on getting up,
     // instead of jumping between the floor and the seat in a single frame.
@@ -309,7 +369,7 @@ function Person({
     // Walk facing where they are going; sit facing the table or the counter.
     const seated = !moving && !['waiting', 'leaving'].includes(guest.status);
     const facing = moving
-      ? walkingFacing(ref.current.rotation.y, [x, z], step.current, people)
+      ? walkingFacing(ref.current.rotation.y, step, agent.speed, delta)
       : seated
         ? seatFacing(guest.seat)
         : 0;
@@ -320,7 +380,7 @@ function Person({
         ? Math.sin(clock.elapsedTime * 9) * 0.045
         : Math.sin(clock.elapsedTime * 1.5 + guest.id) * 0.009;
     if (
-      !useGame.getState().game.settings.reducedMotion &&
+      !state.game.settings.reducedMotion &&
       guest.status === 'drinking' &&
       guest.seat >= 2 &&
       guest.id % 3 === 0 &&
@@ -336,7 +396,7 @@ function Person({
         ref.current = group;
         setGroup(group);
       }}
-      position={[walker.current.position[0], 0, walker.current.position[1]]}
+      position={[agent.position[0], 0, agent.position[1]]}
     >
       <mesh
         geometry={body}
@@ -344,7 +404,7 @@ function Person({
         castShadow
         onClick={(e) => {
           e.stopPropagation();
-          setSelected(guest.id);
+          setSelected(id);
         }}
       />
     </group>
@@ -412,15 +472,18 @@ function StaffFigure({ id, actor }: { id: string; actor: Actor }) {
     let aside = 0;
     for (const g of goals) if (g) aside += figure.parent.worldToLocal(scratch.goal.copy(g)).x;
     aside = count ? aside / count : 0;
-    const working = count > 0 && ahead > 0 && ahead < 1.4 && Math.abs(aside) < 0.9;
-    const step = working ? THREE.MathUtils.clamp(ahead - staffReach * 0.9, 0, 0.4) : 0;
+    const working = count > 0 && ahead > 0 && ahead < 1.4 && Math.abs(aside) < 1.3;
+    const step = working ? THREE.MathUtils.clamp(ahead - staffReach * 0.75, 0, 0.32) : 0;
     const lean = working ? THREE.MathUtils.clamp((ahead - step - 0.3) * 0.4, 0, 0.12) : 0;
+    // Turn towards the work, so both hands get to it without crossing in front of the face.
+    const turn = working ? THREE.MathUtils.clamp(Math.atan2(aside, ahead) * 0.5, -0.42, 0.42) : 0;
     // Behind the bar, staff stand on the raised boards there, so the counter comes to
     // their waist and their hands reach the work on it.
     const raised = figure.parent.getWorldPosition(scratch.goal).z < behindBar ? boardHeight : 0;
     figure.position.y += (raised - figure.position.y) * ease;
     figure.position.z += (step - figure.position.z) * ease;
     figure.rotation.x += (lean - figure.rotation.x) * ease;
+    figure.rotation.y += (turn - figure.rotation.y) * ease;
     figure.updateMatrixWorld();
     arms.current.forEach((pivot, side) => {
       if (!pivot) return;
@@ -455,47 +518,49 @@ function StaffFigure({ id, actor }: { id: string; actor: Actor }) {
 }
 function Bartender({ staff }: { staff: StaffRefs }) {
   const ref = useRef<THREE.Group>(null);
-  const cleanupWalk = useRef(newWalker(bartenderHome));
+  const [agent] = useState(() =>
+    newAgent(bartenderHome, walkingSpeed, { route: walkingRoute, rails: true }),
+  );
+  useCrowdMember(agent);
+  const last = useRef<FloorPoint>([...agent.position]);
   useFrame(({ clock }, delta) => {
     if (!ref.current) return;
     const s = useGame.getState();
-    if (s.title || s.paused || !['floor', 'station'].includes(s.panel)) return;
+    if (!walkingAbout(s)) return;
+    const job = s.cleanupJob?.actor === 'bartender' ? s.cleanupJob : null;
+    const atCleanupStation = !!job && ['working', 'emptying'].includes(job.stage);
+    // One route to where they are going. Cleanup walks go round the furniture; service
+    // walks go round the end of the counter.
+    const task = s.tasks[0];
+    const guest = task && s.game.guests.find((g) => g.id === task.id);
+    const route = job ? guestPath : walkingRoute;
+    if (agent.route !== route) {
+      agent.route = route;
+      agent.rails = !job;
+      agent.plannedFor = null;
+    }
+    setGoal(agent, job ? cleanupTarget(job) : guest ? servicePosition(guest) : bartenderHome);
+    // Making a drink or scrubbing a glass, they stay put and others walk round them.
+    agent.anchored = atCleanupStation || s.panel === 'station';
     const current = ref.current.position;
-    const atCleanupStation =
-      s.cleanupJob?.actor === 'bartender' && ['working', 'emptying'].includes(s.cleanupJob.stage);
-    const walking =
-      !s.game.settings.reducedMotion && !atCleanupStation && s.cleanupJob?.actor === 'bartender';
-    // A cleanup walk keeps its route between frames; it is planned again only when the
-    // destination moves.
-    if (walking) cleanupWalk.current.position = [current.x, current.z];
-    else cleanupWalk.current.to = null;
-    const next =
-      s.game.settings.reducedMotion || atCleanupStation
-        ? s.bartenderPosition
-        : walking
-          ? walkFrame(cleanupWalk.current, s.bartenderPosition, delta * walkingSpeed, delta)
-              .position
-          : advanceWalk([current.x, current.z], s.bartenderPosition, delta * walkingSpeed);
-    const moving = Math.hypot(next[0] - current.x, next[1] - current.z) > 0.001;
+    const [x, z] = agent.position;
+    const dx = x - last.current[0],
+      dz = z - last.current[1];
+    last.current = [x, z];
+    const moving = Math.hypot(dx, dz) > 0.001;
     {
       // Standing still, turn back to face the room.
-      const angle =
-        moving && !atCleanupStation ? Math.atan2(next[0] - current.x, next[1] - current.z) : 0;
+      const angle = moving && !atCleanupStation ? Math.atan2(dx, dz) : 0;
       const difference = Math.atan2(
         Math.sin(angle - ref.current.rotation.y),
         Math.cos(angle - ref.current.rotation.y),
       );
       ref.current.rotation.y += difference * (1 - Math.exp(-delta * 12));
     }
-    current.set(next[0], 0.08, next[1]);
+    current.set(x, 0.08, z);
     ref.current.rotation.z =
       moving && !s.game.settings.reducedMotion ? Math.sin(clock.elapsedTime * 10) * 0.04 : 0;
-    if (
-      s.cleanupJob?.actor === 'bartender' &&
-      s.cleanupJob.stage === 'working' &&
-      !s.paused &&
-      !s.game.settings.reducedMotion
-    )
+    if (job?.stage === 'working' && !s.game.settings.reducedMotion)
       ref.current.rotation.z = Math.sin(clock.elapsedTime * 8) * 0.07;
   });
   return (
@@ -579,53 +644,38 @@ const glow = (color: string) => (
   <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.55} />
 );
 /** The hired host walks inside the room, independently of the side walls. */
-function Host({ staff, guestGroups }: { staff: StaffRefs; guestGroups: SceneRefs['guestGroups'] }) {
+function Host({ staff }: { staff: StaffRefs }) {
   const ref = useRef<THREE.Group>(null);
-  const walker = useRef(newWalker(hostHome));
+  const [agent] = useState(() => newAgent(hostHome, guestSpeed));
+  useCrowdMember(agent);
+  const last = useRef<FloorPoint>([...agent.position]);
   useFrame(({ clock }, delta) => {
     const state = useGame.getState();
-    if (!ref.current || state.title || state.paused || !['floor', 'station'].includes(state.panel))
-      return;
+    if (!ref.current || !walkingAbout(state)) return;
     // Walk one route to where the host is heading. Chasing the position the clock
     // steps every 250 ms would stop, start and change direction four times a second.
-    const target = state.cleanupJob?.actor === 'host' ? state.hostPosition : state.hostTarget;
-    const people: FloorPoint[] = [...guestGroups.current.values()].map((g) => [
-      g.position.x,
-      g.position.z,
-    ]);
-    const before = walker.current.position;
-    walkFrame(walker.current, target, guestSpeed * Math.min(delta, 0.1), delta, people);
+    const job = state.cleanupJob?.actor === 'host' ? state.cleanupJob : null;
+    setGoal(agent, job ? cleanupTarget(job) : state.hostTarget);
     const atCleanupStation =
-      state.cleanupJob?.actor === 'host' &&
-      ['working', 'emptying'].includes(state.cleanupJob.stage);
-    if (
-      (state.game.settings.reducedMotion && !people.length) ||
-      (atCleanupStation &&
-        !people.some((p) => Math.hypot(p[0] - target[0], p[1] - target[1]) < 0.9))
-    ) {
-      walker.current.position = [...target];
-      walker.current.path = [];
-    }
-    const [x, z] = walker.current.position;
-    const dx = x - before[0],
-      dz = z - before[1];
+      !!job && ['working', 'emptying'].includes(job.stage) && !agent.path.length;
+    agent.anchored = atCleanupStation;
+    const [x, z] = agent.position;
+    const dx = x - last.current[0],
+      dz = z - last.current[1];
+    last.current = [x, z];
     const moving = Math.hypot(dx, dz) > 1e-6;
     ref.current.position.set(x, 0, z);
     ref.current.rotation.y = atCleanupStation
       ? 0
       : turnTowards(
           ref.current.rotation.y,
-          walkingFacing(ref.current.rotation.y, [x, z], [dx, dz], people),
+          walkingFacing(ref.current.rotation.y, [dx, dz], agent.speed, delta),
           delta,
           12,
         );
     ref.current.rotation.z =
       moving && !state.game.settings.reducedMotion ? Math.sin(clock.elapsedTime * 9) * 0.045 : 0;
-    if (
-      state.cleanupJob?.actor === 'host' &&
-      state.cleanupJob.stage === 'working' &&
-      !state.game.settings.reducedMotion
-    )
+    if (job?.stage === 'working' && !state.game.settings.reducedMotion)
       ref.current.rotation.z = Math.sin(clock.elapsedTime * 8) * 0.07;
   });
   return (
@@ -691,17 +741,11 @@ function CleanupProps({ staff }: { staff: StaffRefs }) {
       const position = job.actor === 'host' ? state.hostPosition : state.bartenderPosition;
       const turn = actor?.rotation.y ?? 0;
       tool.current.position.set(
-        (actor?.position.x ?? position[0]) + Math.cos(turn) * 0.42,
-        0.42,
-        (actor?.position.z ?? position[1]) - Math.sin(turn) * 0.42,
+        (actor?.position.x ?? position[0]) + Math.cos(turn) * 0.38,
+        0.27,
+        (actor?.position.z ?? position[1]) - Math.sin(turn) * 0.38,
       );
-      tool.current.updateMatrixWorld();
-      reachFor(
-        job.actor,
-        clock.elapsedTime,
-        null,
-        tool.current.localToWorld(right.set(0, 0.38, 0)),
-      );
+      tool.current.rotation.y = turn;
     } else if (job.kind === 'wash') {
       // Held over the basin under the running tap and turned round in the hands: one
       // hand steadies it while the other scrubs inside the rim.
@@ -780,13 +824,14 @@ function CleanupProps({ staff }: { staff: StaffRefs }) {
             </mesh>
           ) : job.kind === 'trash' ? (
             <>
-              <mesh>
-                <sphereGeometry args={[0.28, 20, 14]} />
-                <meshStandardMaterial color="#353f43" />
+              {/* A full bag, gathered at the neck under the hand that carries it. */}
+              <mesh scale={[1, 1.15, 0.85]} castShadow>
+                <sphereGeometry args={[0.19, 16, 12]} />
+                <meshStandardMaterial color="#353f43" roughness={0.45} />
               </mesh>
-              <mesh position={[0, 0.3, 0]}>
-                <boxGeometry args={[0.12, 0.13, 0.1]} />
-                <meshStandardMaterial color="#353f43" />
+              <mesh position={[0, 0.235, 0]}>
+                <cylinderGeometry args={[0.045, 0.03, 0.09, 8]} />
+                <meshStandardMaterial color="#2a3235" />
               </mesh>
             </>
           ) : (
@@ -977,7 +1022,13 @@ function Room({ guestGroups }: { guestGroups: SceneRefs['guestGroups'] }) {
       }
     return geometry(parts);
   }, [theme]);
-  const game = useGame((s) => s.game);
+  // Only what this draws: the whole game changes four times a second, and redrawing the
+  // scene's React tree that often for nothing is a stutter of its own.
+  const guestIds = useGame((s) => s.game.guests.map((g) => g.id).join());
+  const barback = useGame((s) => s.game.upgrades.barback);
+  const mess = useGame((s) => s.game.mess);
+  const neon = useGame((s) => decorShown(s.game, 'neon'));
+  const plant = useGame((s) => decorShown(s.game, 'plant'));
   const floorPlant = useMemo(() => geometry(floorPlantParts), []);
   return (
     <>
@@ -996,23 +1047,26 @@ function Room({ guestGroups }: { guestGroups: SceneRefs['guestGroups'] }) {
         shadow-camera-bottom={-9}
       />
       <mesh geometry={room} material={material} receiveShadow castShadow />
-      <Sign lit={decorShown(game, 'neon')} />
+      <Sign lit={neon} />
       <SideWalls />
+      <Crowd />
       <Bartender staff={staff} />
       <CleanupProps staff={staff} />
-      {game.upgrades.barback && <Host staff={staff} guestGroups={guestGroups} />}
-      {game.guests.map((g) => (
-        <Person guest={g} guestGroups={guestGroups} staff={staff} key={g.id} />
-      ))}
+      {barback && <Host staff={staff} />}
+      {guestIds &&
+        guestIds
+          .split(',')
+          .map(Number)
+          .map((id) => <Person id={id} guestGroups={guestGroups} key={id} />)}
       <DrinkStage />
       <Decor />
-      {game.mess > 0 && (
+      {mess > 0 && (
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[1, 1.262, -1.5]}>
-          <circleGeometry args={[0.15 + game.mess * 0.03, 12]} />
+          <circleGeometry args={[0.15 + mess * 0.03, 12]} />
           <meshBasicMaterial color="#96573b" transparent opacity={0.6} />
         </mesh>
       )}
-      {decorShown(game, 'plant') && (
+      {plant && (
         <group position={[floorPlantPosition[0], 0, floorPlantPosition[1]]}>
           <mesh geometry={floorPlant} material={material} castShadow receiveShadow />
         </group>
@@ -1047,12 +1101,14 @@ function SceneProjector({ elements, guestGroups }: SceneRefs) {
     const heights = new Map<HTMLElement, number>();
     for (const element of elements.current.guests.values())
       heights.set(element, element.querySelector<HTMLElement>('.guest-card')?.offsetHeight ?? 200);
+    const anchors: { element: HTMLElement; x: number; y: number; shift: number }[] = [];
     const place = (element: HTMLElement | null, position: THREE.Vector3) => {
       if (!element) return;
       position.project(camera);
       const x = (position.x * 0.5 + 0.5) * size.width;
       const y = (-position.y * 0.5 + 0.5) * size.height;
       element.style.transform = `translate3d(${x}px,${y}px,0) translate(-50%,-50%)`;
+      anchors.push({ element, x, y, shift: 0 });
       element.style.visibility = position.z < -1 || position.z > 1 ? 'hidden' : 'visible';
       element.style.zIndex = String(Math.round((1 - position.z) * 1000));
       // Keep the guest's action card on screen near the edges of the scene.
@@ -1079,6 +1135,23 @@ function SceneProjector({ elements, guestGroups }: SceneRefs) {
       const group = guestGroups.current.get(id);
       if (group) place(element, group.getWorldPosition(projected));
     }
+    // Guests sitting across a table are close together on screen, so their bubbles would
+    // cover each other's faces and names: spread them apart along the row.
+    const clearance = 62 * scale;
+    for (let pass = 0; pass < 2; pass++)
+      for (let i = 0; i < anchors.length; i++)
+        for (let j = i + 1; j < anchors.length; j++) {
+          const a = anchors[i],
+            b = anchors[j];
+          if (Math.abs(a.y - b.y) > clearance * 1.1) continue;
+          const gap = b.x + b.shift - (a.x + a.shift);
+          const push = clearance - Math.abs(gap);
+          if (push <= 0) continue;
+          const side = gap >= 0 ? 0.5 : -0.5;
+          a.shift -= push * side;
+          b.shift += push * side;
+        }
+    for (const a of anchors) a.element.style.setProperty('--spread', a.shift / scale + 'px');
   });
   return null;
 }

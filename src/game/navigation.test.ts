@@ -6,7 +6,6 @@ import {
   entrance,
   guestObstacles,
   guestPath,
-  guestPosition,
   guestRadius,
   guestSpeed,
   seatApproach,
@@ -14,16 +13,16 @@ import {
   stepAlong,
   walkingRoute,
   walkingSpeed,
-  walkAvoidingPeople,
-  walkFrame,
-  newWalker,
+  doorReach,
+  newAgent,
+  outsideDoor,
   personClearance,
-  replanInterval,
-  blockedReplan,
+  personGap,
+  stepCrowd,
+  type Agent,
   type FloorPoint,
 } from './navigation';
-import { hostDestination, hostHome, type HostVisit } from './host';
-import type { Guest } from './engine';
+import { escortOffset, hostHome } from './host';
 
 const targets: FloorPoint[] = [
   [-4.4, 5.4],
@@ -154,46 +153,6 @@ function walkGuest(from: FloorPoint, to: FloorPoint) {
   throw new Error('Guest never arrives');
 }
 describe('guest walkway', () => {
-  it('routes departing guests from every seat around the host without crossing their body', () => {
-    const target: FloorPoint = [entrance[0], entrance[2]];
-    for (const [x, , z] of seats) {
-      let position: FloorPoint = [x, z];
-      let arrived = false;
-      for (let tick = 0; tick < 1000; tick++) {
-        position = walkAvoidingPeople(position, target, guestSpeed / 60, [hostHome]).position;
-        expect(
-          Math.hypot(position[0] - hostHome[0], position[1] - hostHome[1]),
-        ).toBeGreaterThanOrEqual(personClearance - 1e-6);
-        if (Math.hypot(position[0] - target[0], position[1] - target[1]) < 1e-6) {
-          expect(tick / 60).toBeLessThan(6);
-          arrived = true;
-          break;
-        }
-      }
-      expect(arrived, `Seat ${x},${z} must still reach the exit`).toBe(true);
-    }
-  });
-  it('waits for an occupied destination to clear instead of crossing a person', () => {
-    const from: FloorPoint = [-4, 6.3];
-    const to: FloorPoint = [-5.5, 6.3];
-    expect(walkAvoidingPeople(from, to, 1, [to]).position).toEqual(from);
-    expect(walkAvoidingPeople(from, to, 1, []).position).not.toEqual(from);
-  });
-  it('keeps a moving host and departing guest apart while both cross the entrance area', () => {
-    let host: FloorPoint = [...hostHome];
-    let guest: FloorPoint = [-4.4, 6.3];
-    const door: FloorPoint = [entrance[0], entrance[2]];
-    const hostTarget: FloorPoint = [entrance[0] + 1.2, entrance[2]];
-    for (let tick = 0; tick < 600; tick++) {
-      host = walkAvoidingPeople(host, hostTarget, guestSpeed / 60, [guest]).position;
-      guest = walkAvoidingPeople(guest, door, guestSpeed / 60, [host]).position;
-      expect(Math.hypot(host[0] - guest[0], host[1] - guest[1])).toBeGreaterThanOrEqual(
-        personClearance - 1e-6,
-      );
-    }
-    expect(host).toEqual(hostTarget);
-    expect(guest).toEqual(door);
-  });
   const door: FloorPoint = [entrance[0], entrance[2]];
   const chairs = seats.map(([x, , z]): FloorPoint => [x, z]);
   const waiting: FloorPoint = [-4.4, 6.3];
@@ -216,115 +175,6 @@ describe('guest walkway', () => {
       walkGuest(p, door);
     }
   });
-});
-
-describe('route planning budget', () => {
-  // Planning is the expensive part of walking on a phone. With the host about, it
-  // used to run for every guest on almost every frame, so service stuttered from
-  // the night the host was hired until the guests went home.
-  const counting = () => {
-    const plan = (from: FloorPoint, to: FloorPoint, people?: FloorPoint[]) => {
-      plan.calls++;
-      return guestPath(from, to, people);
-    };
-    plan.calls = 0;
-    return plan;
-  };
-  it('walks in to a seat around a moving host without planning on every frame', () => {
-    const plan = counting();
-    const door: FloorPoint = [entrance[0], entrance[2]];
-    const seat = seatApproach[1];
-    const guest = newWalker(door);
-    let frames = 0;
-    for (; frames < 60 * 20; frames++) {
-      // The host paces across the room the whole time.
-      const t = frames / 60;
-      const host: FloorPoint = [-5 + 4 * Math.sin(t), 4.6];
-      walkFrame(guest, seat, guestSpeed / 60, 1 / 60, [host], plan);
-      if (Math.hypot(guest.position[0] - seat[0], guest.position[1] - seat[1]) < 1e-6) break;
-    }
-    expect(frames, 'the guest still reaches the seat').toBeLessThan(60 * 20);
-    expect(plan.calls).toBeLessThanOrEqual(Math.ceil(frames / 60 / replanInterval) + 1);
-  });
-  it('keeps planning rare while two people stand in each other’s way', () => {
-    const plan = counting();
-    const guest = newWalker([-4.4, 6.3]);
-    const host: FloorPoint = [-5.1, 6.3];
-    const door: FloorPoint = [entrance[0], entrance[2]];
-    for (let frame = 0; frame < 120; frame++)
-      walkFrame(guest, door, guestSpeed / 60, 1 / 60, [host], plan);
-    // Every frame would be 120 plans; a blocked walker looks again ten times a second.
-    expect(plan.calls).toBeLessThanOrEqual(Math.ceil(2 / blockedReplan) + 1);
-    expect(Math.hypot(guest.position[0] - host[0], guest.position[1] - host[1])).toBeGreaterThan(0);
-  });
-  it('keeps throttled walkers apart on every frame and still gets both where they are going', () => {
-    // The scene's real pairing: the host escorts a party in while a guest walks out.
-    const door: FloorPoint = [entrance[0], entrance[2]];
-    for (const seat of seatApproach) {
-      const host = newWalker(hostHome);
-      const guest = newWalker(seat);
-      const hostTarget: FloorPoint = [seat[0], seat[1]];
-      for (let frame = 0; frame < 60 * 20; frame++) {
-        walkFrame(host, hostTarget, guestSpeed / 60, 1 / 60, [guest.position]);
-        walkFrame(guest, door, guestSpeed / 60, 1 / 60, [host.position]);
-        expect(
-          Math.hypot(host.position[0] - guest.position[0], host.position[1] - guest.position[1]),
-          `seat ${seat} frame ${frame}`,
-        ).toBeGreaterThanOrEqual(personClearance - 1e-6);
-      }
-      expect(guest.position, `guest from ${seat} reaches the door`).toEqual(door);
-      expect(host.position, `host reaches ${seat}`).toEqual(hostTarget);
-    }
-  });
-  it('sits every escorted guest in their own seat while the others are taken', () => {
-    // As in the scene: the host greets at the door and escorts the party in, routing
-    // round everyone seated; the guest routes round the host. Both refresh routes on
-    // the way, which once sent a guest stepping back out of the chair they sat in.
-    for (let seat = 0; seat < seats.length; seat++) {
-      const guest = { id: 1, status: 'waiting', seat: -1, lead: true } as Guest;
-      const seated = seats.filter((_, i) => i !== seat).map(([x, , z]): FloorPoint => [x, z]);
-      const host = newWalker(hostHome);
-      const walker = newWalker([entrance[0], entrance[2]]);
-      let visit: HostVisit | null = null;
-      let hostTarget: FloorPoint = hostHome;
-      let sat = false;
-      for (let frame = 0; frame < 60 * 10 && !sat; frame++) {
-        if (frame === 120) Object.assign(guest, { status: 'reading', seat });
-        // The store moves the host's goal on its 250 ms clock.
-        if (frame % 15 === 0)
-          ({ visit, target: hostTarget } = hostDestination([guest], visit, host.position));
-        const [x, , z] = guestPosition(guest);
-        walkFrame(host, hostTarget, guestSpeed / 60, 1 / 60, [walker.position, ...seated]);
-        walkFrame(walker, [x, z], guestSpeed / 60, 1 / 60, [host.position]);
-        expect(
-          Math.hypot(host.position[0] - walker.position[0], host.position[1] - walker.position[1]),
-        ).toBeGreaterThanOrEqual(personClearance - 1e-6);
-        sat =
-          guest.status === 'reading' &&
-          Math.hypot(walker.position[0] - x, walker.position[1] - z) < 1e-6;
-      }
-      expect(sat, `seat ${seat} is reached`).toBe(true);
-    }
-  });
-  it('walks a new guest in from the door without stepping round the greeting host', () => {
-    const guest = { id: 1, status: 'waiting', seat: -1, lead: true } as Guest;
-    const { target } = hostDestination([guest], null, hostHome);
-    const [x, , z] = guestPosition(guest);
-    // The host sets off from home to greet them as they come in.
-    const host = newWalker(hostHome);
-    const walker = newWalker([entrance[0], entrance[2]]);
-    for (let frame = 0; frame < 60 * 5; frame++) {
-      const before = walker.position;
-      walkFrame(host, target, guestSpeed / 60, 1 / 60, [walker.position]);
-      walkFrame(walker, [x, z], guestSpeed / 60, 1 / 60, [host.position]);
-      // Every step heads on towards the waiting spot; none backs off from the host.
-      const toSpot = Math.hypot(x - walker.position[0], z - walker.position[1]);
-      expect(toSpot, `frame ${frame}`).toBeLessThanOrEqual(
-        Math.hypot(x - before[0], z - before[1]) + 1e-9,
-      );
-    }
-    expect(walker.position).toEqual([x, z]);
-  });
   it('keeps a guest walking into their chair when the route is refreshed on the way in', () => {
     for (let seat = 0; seat < seats.length; seat++) {
       const chair: FloorPoint = [seats[seat][0], seats[seat][2]];
@@ -338,32 +188,298 @@ describe('route planning budget', () => {
       }
     }
   });
-  it('plans a route round several people well within a frame', () => {
-    // Each plan once took around 8 ms with people about, so every walker refreshing
-    // its route four times a second made the scene stutter even on fast graphics.
-    const door: FloorPoint = [entrance[0], entrance[2]];
-    const people: FloorPoint[] = [
-      [-2, 5],
-      ...seats.slice(0, 4).map(([x, , z]): FloorPoint => [x, z]),
+});
+
+describe('the crowd', () => {
+  const door: FloorPoint = [entrance[0], entrance[2]];
+  const chairs = seats.map(([x, , z]): FloorPoint => [x, z]);
+  const apart = (agents: Agent[], label: string) => {
+    for (let i = 0; i < agents.length; i++)
+      for (let j = i + 1; j < agents.length; j++) {
+        const a = agents[i],
+          b = agents[j];
+        if (a.gone || b.gone) continue;
+        // Someone seated is inside their chair's furniture.
+        if (inChair(a) || inChair(b)) continue;
+        expect(
+          personGap(a.position, b.position),
+          `${label}: people ${i} and ${j} at ${a.position} and ${b.position}`,
+        ).toBeGreaterThanOrEqual(personClearance - 1e-6);
+      }
+  };
+  // Sitting in a chair, or only just rising from it, with the chair's furniture round them.
+  const inChair = (a: Agent) =>
+    chairs.some((c) => Math.hypot(a.position[0] - c[0], a.position[1] - c[1]) < 0.3);
+  const at = (a: Agent, p: FloorPoint) =>
+    Math.hypot(a.position[0] - p[0], a.position[1] - p[1]) < 1e-6;
+  const run = (agents: Agent[], seconds: number, label: string, dt = 1 / 60) => {
+    for (let t = 0; t < seconds; t += dt) {
+      stepCrowd(agents, dt);
+      apart(agents, `${label} at ${t.toFixed(2)}s`);
+    }
+  };
+  const bartender = (position: FloorPoint = bartenderHome) =>
+    newAgent(position, walkingSpeed, { route: walkingRoute, rails: true });
+
+  it('walks two guests round each other instead of through each other', () => {
+    const a = newAgent([-1, 5], guestSpeed, { goal: [3, 5] });
+    const b = newAgent([3, 5], guestSpeed, { goal: [-1, 5] });
+    run([a, b], 4, 'head on');
+    expect(at(a, [3, 5])).toBe(true);
+    expect(at(b, [-1, 5])).toBe(true);
+  });
+  it('passes two people between tables, where there is only just room for both', () => {
+    const a = newAgent([-4.4, 4.2], guestSpeed, { goal: [-4.4, 0.4] });
+    const b = newAgent([-4.4, 0.4], guestSpeed, { goal: [-4.4, 4.2] });
+    run([a, b], 6, 'between tables');
+    expect(at(a, [-4.4, 0.4])).toBe(true);
+    expect(at(b, [-4.4, 4.2])).toBe(true);
+  });
+  it('keeps the bartender and the host apart behind the counter, both ways', () => {
+    for (const [from, to] of [
+      [-3, 3],
+      [3, -3],
+    ]) {
+      const host = newAgent([from, -3.05], guestSpeed, { goal: [to, -3.05] });
+      const barkeep = bartender([to, -3.05]);
+      barkeep.goal = [from, -3.05];
+      run([host, barkeep], 5, 'behind the bar');
+      expect(at(host, [to, -3.05])).toBe(true);
+      expect(at(barkeep, [from, -3.05])).toBe(true);
+    }
+  });
+  it('walks the host to the sink past a bartender busy at the counter', () => {
+    const barkeep = bartender();
+    barkeep.anchored = true;
+    const host = newAgent([3, -3.05], guestSpeed, { goal: [-2.6, -3.05] });
+    run([host, barkeep], 5, 'to the sink');
+    expect(at(host, [-2.6, -3.05])).toBe(true);
+    expect(at(barkeep, bartenderHome)).toBe(true);
+  });
+  it('keeps the bartender clear of guests on the walk round the counter', () => {
+    const barkeep = bartender();
+    barkeep.goal = [-2.7, 0.5];
+    const crossing = [
+      newAgent([-5.5, 0.2], guestSpeed, { goal: [-0.5, 0.45] }),
+      newAgent([0, 0.5], guestSpeed, { goal: [-5, 0.2] }),
+      newAgent([4.6, -2], guestSpeed, { goal: [4.6, 3.5] }),
     ];
-    const from: FloorPoint = [seats[7][0], seats[7][2]];
-    guestPath(from, door, people);
+    run([barkeep, ...crossing], 8, 'round the counter');
+    expect(at(barkeep, [-2.7, 0.5])).toBe(true);
+  });
+  it('waits for an occupied destination to clear instead of walking into a person', () => {
+    const standing = newAgent([-5.5, 6.3], guestSpeed);
+    const walker = newAgent([-3, 6.3], guestSpeed, { goal: [-5.5, 6.3] });
+    run([standing, walker], 3, 'occupied');
+    expect(at(walker, [-5.5, 6.3])).toBe(false);
+    standing.goal = [-5.5, 4];
+    run([standing, walker], 3, 'cleared');
+    expect(at(walker, [-5.5, 6.3])).toBe(true);
+  });
+  it('steps aside for someone who cannot get past, then goes back', () => {
+    // Standing in the narrowest gap between two tables.
+    const spot: FloorPoint = [-4.4, 2.2];
+    const standing = newAgent(spot, guestSpeed);
+    const walker = newAgent([-4.4, 4.2], guestSpeed, { goal: [-4.4, 0.4] });
+    run([standing, walker], 8, 'narrow gap');
+    expect(at(walker, [-4.4, 0.4])).toBe(true);
+    expect(at(standing, spot)).toBe(true);
+  });
+  it('sits a whole party down at once and sees them all out of the door', () => {
+    const people = chairs.map((_, i) => newAgent(outsideDoor(i), guestSpeed));
+    people.forEach((p, i) => (p.goal = [...chairs[i]]));
+    run(people, 24, 'going in');
+    people.forEach((p, i) => expect(at(p, chairs[i]), `seat ${i}`).toBe(true));
+    for (const p of people) p.goal = [...door];
+    // Whoever reaches the door goes out of it and is no longer in anyone's way.
+    for (let t = 0; t < 10; t += 1 / 60) {
+      stepCrowd(people, 1 / 60);
+      apart(people, 'going out');
+      for (const p of people)
+        if (Math.hypot(p.position[0] - door[0], p.position[1] - door[1]) < doorReach) p.gone = true;
+    }
+    expect(people.every((p) => p.gone)).toBe(true);
+  });
+  it('never lets anyone touch through a long busy night, whatever the frame rate', () => {
+    // A small seeded generator: the same night every run.
+    let seed = 7;
+    const random = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    const pick = <T>(list: T[]) => list[Math.floor(random() * list.length)];
+    const guests = [0, 1, 2, 3, 4, 5, 6, 7].map((i) => newAgent(outsideDoor(i), guestSpeed));
+    const host = newAgent(hostHome, guestSpeed);
+    const barkeep = bartender();
+    const crowd = [...guests, host, barkeep];
+    const stops: FloorPoint[] = [
+      [-4.4, 5.2],
+      hostHome,
+      [-2.6, -3.05],
+      [1, -3.05],
+      [5.95, -2.9],
+      // Showing the way from beside each seat, as the host does, not in front of it.
+      ...seatApproach.map(([x, z]): FloorPoint => [x + Math.sign(x) * escortOffset, z]),
+    ];
+    const service: FloorPoint[] = [
+      bartenderHome,
+      [-1.2, -3.05],
+      [1.2, -3.05],
+      [-2.7, 0.5],
+      [2.25, 0.5],
+      [-6.1, 0.5],
+    ];
+    // Guests come straight in from outside; nobody stands about in the doorway.
+    const next = new Map<Agent, number>(
+      crowd.map((a) => [a, guests.includes(a) ? 0 : random() * 3]),
+    );
+    let time = 0,
+      arrivals = 0;
+    const taken = new Set<number>();
+    const seatOf = new Map<Agent, number>();
+    for (let frame = 0; time < 240; frame++) {
+      const dt = [1 / 144, 1 / 60, 1 / 60, 1 / 30, 1 / 20][frame % 5];
+      time += dt;
+      for (const a of crowd) {
+        if (time < next.get(a)! || a.path.length) continue;
+        arrivals++;
+        next.set(a, time + 1 + random() * 6);
+        if (a === host) a.goal = [...pick(stops)];
+        else if (a === barkeep) a.goal = [...pick(service)];
+        else if (seatOf.has(a)) {
+          taken.delete(seatOf.get(a)!);
+          seatOf.delete(a);
+          // Everyone has a spot of their own, as they do at the door.
+          a.goal = [-6 + guests.indexOf(a) * 1.5, 5.6 + (guests.indexOf(a) % 2) * 0.9];
+        } else {
+          const open = chairs.map((_, i) => i).filter((i) => !taken.has(i));
+          if (!open.length) continue;
+          const seat = pick(open);
+          taken.add(seat);
+          seatOf.set(a, seat);
+          a.goal = [...chairs[seat]];
+        }
+      }
+      stepCrowd(crowd, dt);
+      apart(crowd, `night at ${time.toFixed(2)}s`);
+      for (const a of crowd)
+        expect(a.squeezing, `squeezed at ${time.toFixed(2)}s`).toBeLessThanOrEqual(0);
+    }
+    expect(arrivals, 'everyone keeps getting where they are going').toBeGreaterThan(150);
+  });
+  it('walks someone who has gone through the door on out of sight, without stopping', () => {
+    const leaving = newAgent(door, guestSpeed);
+    const coming = newAgent(outsideDoor(0), guestSpeed, { goal: [-4.4, 6.3] });
+    leaving.gone = true;
+    leaving.goal = outsideDoor();
+    let last = leaving.position[0];
+    for (let t = 0; t < 0.4; t += 1 / 60) {
+      stepCrowd([leaving, coming], 1 / 60);
+      expect(leaving.position[0], 'never turning back in the doorway').toBeLessThan(last);
+      last = leaving.position[0];
+    }
+    run([leaving, coming], 1, 'through the door');
+    expect(at(leaving, outsideDoor())).toBe(true);
+  });
+  it('lets the bartender through a gap with room for one, the guest backing out', () => {
+    // Between a stool and the corner of a table, on the bartender's walk along the front.
+    const barkeep = bartender([0.2, 0.5]);
+    barkeep.goal = [-2.7, 0.5];
+    const guest = newAgent([-3.4, 0.2], guestSpeed, { goal: [-0.2, 0.62] });
+    run([barkeep, guest], 6, 'in the gap');
+    expect(at(barkeep, [-2.7, 0.5])).toBe(true);
+    expect(at(guest, [-0.2, 0.62])).toBe(true);
+    expect(barkeep.squeezing <= 0 && guest.squeezing <= 0).toBe(true);
+  });
+  it('works a whole night without a host: the bartender seats, serves and cleans up', () => {
+    const barkeep = bartender();
+    const lead = newAgent(outsideDoor(0), guestSpeed, { goal: [-4.4, 6.3] });
+    const partner = newAgent(outsideDoor(1), guestSpeed, { goal: [-3.6, 6.55] });
+    const later = newAgent(outsideDoor(2), guestSpeed, { goal: chairs[2] });
+    const crowd = [barkeep, lead, partner, later];
+    const stage = (seconds: number, label: string) => run(crowd, seconds, label);
+    // Come in, and the bartender walks round the counter to greet them at the door.
+    barkeep.goal = [-4.4, 5.4];
+    stage(5, 'greeting');
+    expect(at(lead, [-4.4, 6.3])).toBe(true);
+    expect(at(partner, [-3.6, 6.55])).toBe(true);
+    expect(at(barkeep, [-4.4, 5.4])).toBe(true);
+    // Having got there, nobody fidgets or nudges anybody off their spot.
+    for (let t = 0; t < 3; t += 1 / 60) {
+      stepCrowd(crowd, 1 / 60);
+      expect(at(lead, [-4.4, 6.3]) && at(partner, [-3.6, 6.55])).toBe(true);
+      expect(at(barkeep, [-4.4, 5.4])).toBe(true);
+    }
+    // Shown to a table: they walk past the bartender, who goes back behind the bar.
+    lead.goal = [...chairs[0]];
+    partner.goal = [...chairs[6]];
+    barkeep.goal = [...bartenderHome];
+    stage(7, 'seating');
+    expect(at(lead, chairs[0])).toBe(true);
+    expect(at(partner, chairs[6])).toBe(true);
+    expect(at(later, chairs[2])).toBe(true);
+    expect(at(barkeep, bartenderHome)).toBe(true);
+    // Takes an order at the table, right in front of the far chair, and comes back.
+    barkeep.goal = [-2.7, 0.5];
+    stage(3, 'at the table');
+    expect(at(barkeep, [-2.7, 0.5])).toBe(true);
+    // The guest in that chair gets up past them as they head for the stools.
+    partner.goal = [...door];
+    barkeep.goal = [-1.2, -3.05];
+    stage(5, 'leaving');
+    expect(at(barkeep, [-1.2, -3.05])).toBe(true);
+    expect(at(partner, door)).toBe(true);
+    // Cleaning up goes round the furniture instead of along the service route.
+    barkeep.route = guestPath;
+    barkeep.rails = false;
+    barkeep.plannedFor = null;
+    barkeep.goal = [...binStandSpot];
+    stage(4, 'to the bin');
+    expect(at(barkeep, binStandSpot)).toBe(true);
+    barkeep.goal = [entrance[0] + 1.2, entrance[2]];
+    stage(5, 'to the door');
+    expect(at(barkeep, [entrance[0] + 1.2, entrance[2]])).toBe(true);
+    expect(crowd.every((a) => a.squeezing <= 0)).toBe(true);
+  });
+  it('plans a route only when told to go somewhere, not because of other people', () => {
+    let plans = 0;
+    const route = (from: FloorPoint, to: FloorPoint) => {
+      plans++;
+      return guestPath(from, to);
+    };
+    const agents = [0, 1, 2, 3, 4, 5].map((i) =>
+      newAgent([-6 + i * 2.4, 5 + (i % 2)], guestSpeed, {
+        route,
+        goal: [6 - i * 2.4, 5 + ((i + 1) % 2)],
+      }),
+    );
+    for (let frame = 0; frame < 60 * 6; frame++) stepCrowd(agents, 1 / 60);
+    // One each to set off; a dodge may rarely cut someone off from where they were going.
+    expect(plans).toBeLessThanOrEqual(agents.length * 3);
+  });
+  it('does not plan at all for someone already where they want to be', () => {
+    let plans = 0;
+    const seat = seatApproach[0];
+    const route = (from: FloorPoint, to: FloorPoint) => {
+      plans++;
+      return guestPath(from, to);
+    };
+    const guest = newAgent(seat, guestSpeed, { route });
+    const passer = newAgent([-6, 6], guestSpeed, { goal: [4, 6] });
+    stepCrowd([guest, passer], 1 / 60);
+    plans = 0;
+    for (let frame = 0; frame < 600; frame++) stepCrowd([guest, passer], 1 / 60);
+    expect(plans).toBe(0);
+  });
+  it('steps a full room well within a frame', () => {
+    const agents = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((i) =>
+      newAgent([-6 + i, 5 + (i % 2)], guestSpeed, { goal: [6 - i, 6 - (i % 2)] }),
+    );
+    stepCrowd(agents, 1 / 60);
     const times: number[] = [];
     for (let batch = 0; batch < 5; batch++) {
       const start = performance.now();
-      for (let i = 0; i < 20; i++) guestPath(from, door, people);
+      for (let i = 0; i < 20; i++) stepCrowd(agents, 1 / 60);
       times.push((performance.now() - start) / 20);
     }
     times.sort((a, b) => a - b);
-    expect(times[2], 'median milliseconds per plan').toBeLessThan(2.5);
-  });
-  it('does not plan at all for someone already where they want to be', () => {
-    const plan = counting();
-    const seat = seatApproach[0];
-    const guest = newWalker(seat);
-    guest.to = [...seat];
-    for (let frame = 0; frame < 600; frame++)
-      walkFrame(guest, seat, guestSpeed / 60, 1 / 60, [[-5 + frame / 100, 4.6]], plan);
-    expect(plan.calls).toBe(0);
+    expect(times[2], 'median milliseconds per frame').toBeLessThan(1);
   });
 });

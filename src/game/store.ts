@@ -48,8 +48,11 @@ interface Store {
   dialogue: { id: string; node: string; reply: string; next?: string } | null;
   /** What the hands are doing at the counter right now, for the drink on screen. */
   mixing: 'shake' | 'stir' | 'muddle' | null;
-  /** The last bottle poured, so the counter can show it tipping into the tin. */
-  pouring: { id: string; at: number } | null;
+  /**
+   * The last bottle poured, so the counter can show it tipping into the tin. A free pour
+   * is `holding` for as long as the button is held down.
+   */
+  pouring: { id: string; at: number; holding?: boolean } | null;
   tasks: {
     id: number;
     operation: 'seat' | 'order' | 'serve' | 'pay' | 'food' | 'move';

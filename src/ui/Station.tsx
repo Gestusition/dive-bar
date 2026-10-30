@@ -82,6 +82,8 @@ const glassName = Object.fromEntries(glasses.map(([id, label]) => [id, label.toL
 // ideal waters the drink down; letting go too soon leaves it under-mixed.
 const motionTime: Record<Motion, number> = { shake: 3, stir: 2.5, muddle: 1.5 };
 const sweetZone = [0.7, 1.35];
+/** How far through a pour's movement, in milliseconds, the bottle starts to tip back. */
+const bottleTipBack = 1050;
 const plural = (n: number, unit: string) =>
   n === 1 || unit === 'ml' ? unit : unit === 'dash' ? 'dashes' : unit + 's';
 const spirits = new Set(ingredients.filter((i) => i.kind === 'spirit').map((i) => i.id));
@@ -150,6 +152,12 @@ export default function Station() {
     pour.current = null;
     // A free pour goes straight from the bottle into the tin.
     prepAction('transfer');
+    // Let go: the bottle tips back up from where it is, rather than pouring all over again.
+    const poured = useGame.getState().pouring;
+    if (poured)
+      useGame.setState({
+        pouring: { id: poured.id, at: performance.now() - bottleTipBack },
+      });
   }, [prepAction]);
   // Shake, stir and muddle happen while the button is held down.
   const held = useRef<{ motion: Motion; elapsed: number; at: number } | null>(null);
@@ -226,6 +234,7 @@ export default function Station() {
   const startPour = (bottle: string) => {
     if (pour.current || busy) return;
     const unit = ingredients.find((i) => i.id === bottle)!.unit;
+    useGame.setState({ pouring: { id: bottle, at: performance.now(), holding: true } });
     pour.current = setInterval(() => {
       const s = useGame.getState();
       if (s.paused || s.panel !== 'station') {

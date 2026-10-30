@@ -908,7 +908,7 @@ a {
 }
 .guest-bubble {
   position: absolute;
-  left: 0;
+  left: var(--spread, 0px);
   bottom: 52px;
   transform: translateX(-50%);
   pointer-events: auto;
