@@ -7,7 +7,7 @@ All notable changes are recorded here. Versions describe tagged source releases;
 ### Changed
 
 - The host greets an arriving party from in front of the waiting spot and shows the way from beside each seat, instead of standing in the guest's path.
-- Thin scrollbars in the game's colours replace the browser's default scrollbars.
+- Thin scrollbars in the game's colours, without arrow buttons, replace the browser's default scrollbars.
 
 ### Fixed
 
