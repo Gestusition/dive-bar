@@ -14,6 +14,7 @@ import {
   guestPosition,
   guestSpeed,
   newWalker,
+  personClearance,
   roomEdge,
   seatFacing,
   setDoorX,
@@ -22,7 +23,13 @@ import {
   walkingSpeed,
   type FloorPoint,
 } from '../game/navigation';
-import { binPosition, binRadius, cornerPlantParts, floorPlantParts } from '../game/room-layout';
+import {
+  binPosition,
+  binRadius,
+  cornerPlantParts,
+  floorPlantParts,
+  floorPlantPosition,
+} from '../game/room-layout';
 import { money } from '../game/content';
 import DrinkStage from './DrinkStage';
 import { CocktailArt, CoinArt, HeartArt } from '../ui/art';
@@ -146,7 +153,9 @@ function roomParts() {
         ['#ab7851', '#b48359', '#a16d49', '#ba8b62'][(x * 7 + z * 3) % 4],
       );
   box(0, 7.6, -4.55, 31.8, 15.4, 0.25, '#6b463b');
-  for (let i = 0; i < 32; i++) box(i - 15.5, 0.7, -4.37, 0.05, 1.55, 0.1, brass);
+  // Wall battens carry the floor's seams up the wall, so they stay clear of anything
+  // standing in the middle of a board.
+  for (let x = -15; x <= 15; x++) box(x, 0.7, -4.37, 0.05, 1.55, 0.1, brass);
   box(0, 0.12, -4.32, 31.5, 0.18, 0.18, dark);
   box(0, 3.15, -4.3, 31.5, 0.15, 0.2, dark);
   // Framed windows and their little glowing sill lamps.
@@ -263,6 +272,28 @@ function personParts(id: string, bartender = false): Part[] {
       : []),
   ];
 }
+/**
+ * The way to face while walking. Someone held up by another person, or backing off
+ * a step to let them by, keeps facing the way they were going rather than spinning
+ * round and back.
+ */
+function walkingFacing(
+  current: number,
+  [x, z]: FloorPoint,
+  step: FloorPoint,
+  people: FloorPoint[],
+) {
+  if (Math.hypot(...step) < 1e-6) return current;
+  const heading = Math.atan2(step[0], step[1]);
+  const near = people.some((p) => Math.hypot(p[0] - x, p[1] - z) < personClearance * 1.6);
+  return near && Math.abs(Math.atan2(Math.sin(heading - current), Math.cos(heading - current))) > 2
+    ? current
+    : heading;
+}
+function turnTowards(current: number, facing: number, delta: number, rate: number) {
+  const turn = Math.atan2(Math.sin(facing - current), Math.cos(facing - current));
+  return current + turn * (1 - Math.exp(-Math.min(delta, 0.1) * rate));
+}
 function Person({
   guest,
   guestGroups,
@@ -308,17 +339,12 @@ function Person({
     ref.current.position.set(x, moving ? 0 : ty, z);
     // Walk facing where they are going; sit facing the table or the counter.
     const seated = !moving && !['waiting', 'leaving'].includes(guest.status);
-    const facing =
-      moving && Math.hypot(...step.current) > 1e-6
-        ? Math.atan2(step.current[0], step.current[1])
-        : seated
-          ? seatFacing(guest.seat)
-          : 0;
-    const turn = Math.atan2(
-      Math.sin(facing - ref.current.rotation.y),
-      Math.cos(facing - ref.current.rotation.y),
-    );
-    ref.current.rotation.y += turn * (1 - Math.exp(-Math.min(delta, 0.1) * 10));
+    const facing = moving
+      ? walkingFacing(ref.current.rotation.y, [x, z], step.current, people)
+      : seated
+        ? seatFacing(guest.seat)
+        : 0;
+    ref.current.rotation.y = turnTowards(ref.current.rotation.y, facing, delta, 10);
     ref.current.rotation.z = state.game.settings.reducedMotion
       ? 0
       : moving
@@ -469,8 +495,10 @@ function Sign({ lit }: { lit: boolean }) {
     c.fillText('GOOD DRINKS · BETTER STORIES', 384, 134);
     return new THREE.CanvasTexture(canvas);
   }, [lit]);
+  // Tilted forward to face the camera looking down on the room, so the lettering is
+  // not squashed to look stretched sideways.
   return (
-    <mesh position={[0, 3.12, -4.12]}>
+    <mesh position={[0, 3.17, -4.05]} rotation={[-Math.atan2(13, 16.25), 0, 0]}>
       <planeGeometry args={[3.7, 0.78]} />
       <meshBasicMaterial map={texture} />
     </mesh>
@@ -488,7 +516,9 @@ function Host({ staff, guestGroups }: { staff: StaffRefs; guestGroups: SceneRefs
     const state = useGame.getState();
     if (!ref.current || state.title || state.paused || !['floor', 'station'].includes(state.panel))
       return;
-    const target = state.hostPosition;
+    // Walk one route to where the host is heading. Chasing the position the clock
+    // steps every 250 ms would stop, start and change direction four times a second.
+    const target = state.cleanupJob?.actor === 'host' ? state.hostPosition : state.hostTarget;
     const people: FloorPoint[] = [...guestGroups.current.values()].map((g) => [
       g.position.x,
       g.position.z,
@@ -511,8 +541,14 @@ function Host({ staff, guestGroups }: { staff: StaffRefs; guestGroups: SceneRefs
       dz = z - before[1];
     const moving = Math.hypot(dx, dz) > 1e-6;
     ref.current.position.set(x, 0, z);
-    if (moving) ref.current.rotation.y = Math.atan2(dx, dz);
-    if (atCleanupStation) ref.current.rotation.y = 0;
+    ref.current.rotation.y = atCleanupStation
+      ? 0
+      : turnTowards(
+          ref.current.rotation.y,
+          walkingFacing(ref.current.rotation.y, [x, z], [dx, dz], people),
+          delta,
+          12,
+        );
     ref.current.rotation.z =
       moving && !state.game.settings.reducedMotion ? Math.sin(clock.elapsedTime * 9) * 0.045 : 0;
     if (
@@ -654,29 +690,52 @@ function CleanupProps({ staff }: { staff: StaffRefs }) {
   );
 }
 /** String lights attached to the responsive front door once bought. */
+// The string runs over the lintel and down the front jamb. Seen edge-on, the
+// lintel run lands in line with the jamb, so the bulbs are spaced evenly on
+// screen rather than along the string, and a cord joins them up.
+const doorString = new THREE.CatmullRomCurve3(
+  (
+    [
+      [2.56, 5.72],
+      [2.47, 6.5],
+      [2.56, 7.26],
+      [2.1, 7.3],
+      [1.3, 7.3],
+      [0.6, 7.28],
+    ] as const
+  ).map(([y, z]) => new THREE.Vector3(0.22, y, z)),
+);
+const doorCord = new THREE.TubeGeometry(doorString, 96, 0.014, 5);
+const doorBulbs = (() => {
+  // The camera looks down at atan(13 / 16.25); this is how far up the screen a point is.
+  const up = (p: THREE.Vector3) => p.y * 0.781 - p.z * 0.625;
+  const samples = doorString.getSpacedPoints(400);
+  const colors = ['#ffd36b', '#ff7a85', '#7fe3d4', '#ffd36b', '#b8a4ff'];
+  const list: [THREE.Vector3, string][] = [];
+  let travelled = 0;
+  for (let i = 1; i < samples.length; i++) {
+    travelled += Math.abs(up(samples[i]) - up(samples[i - 1]));
+    if (!list.length || travelled >= 0.2) {
+      list.push([samples[list.length ? i : 0], colors[list.length % colors.length]]);
+      travelled = 0;
+    }
+  }
+  return list;
+})();
 function DoorDecor() {
   const lights = useGame((s) => s.game.upgrades.doorLights);
-  const bulbs = useMemo(() => {
-    const list: [number, number, string][] = [];
-    const colors = ['#ffd36b', '#ff7a85', '#7fe3d4', '#ffd36b', '#b8a4ff'];
-    let n = 0;
-    // Seen edge-on, a string up the back jamb would land on top of the one
-    // over the lintel, so the string runs over the lintel and down the front
-    // jamb only.
-    for (let z = 5.72; z <= 7.28; z += 0.26)
-      list.push([z, 2.55 - Math.sin(((z - 5.72) / 1.56) * Math.PI) * 0.12, colors[n++ % 5]]);
-    for (let y = 2.2; y > 0.6; y -= 0.3) list.push([7.28, y, colors[n++ % 5]]);
-    return list;
-  }, []);
+  if (!lights) return null;
   return (
     <>
-      {lights &&
-        bulbs.map(([z, y, color], i) => (
-          <mesh key={i} position={[0.22, y, z]}>
-            <sphereGeometry args={[0.055, 8, 6]} />
-            {glow(color)}
-          </mesh>
-        ))}
+      <mesh geometry={doorCord}>
+        <meshStandardMaterial color="#3b2b25" />
+      </mesh>
+      {doorBulbs.map(([p, color], i) => (
+        <mesh key={i} position={p}>
+          <sphereGeometry args={[0.055, 8, 6]} />
+          {glow(color)}
+        </mesh>
+      ))}
     </>
   );
 }
@@ -828,7 +887,7 @@ function Room({ guestGroups }: { guestGroups: SceneRefs['guestGroups'] }) {
         </mesh>
       )}
       {game.upgrades.plant && (
-        <group position={[7.2, 0, 4.6]}>
+        <group position={[floorPlantPosition[0], 0, floorPlantPosition[1]]}>
           <mesh geometry={floorPlant} material={material} castShadow receiveShadow />
         </group>
       )}
@@ -857,6 +916,11 @@ function SceneProjector({ elements, guestGroups }: SceneRefs) {
     [size.height],
   );
   useFrame(() => {
+    // Read every card's height before moving any of them. Reading after a move makes
+    // the browser lay the page out again for each guest, every frame.
+    const heights = new Map<HTMLElement, number>();
+    for (const element of elements.current.guests.values())
+      heights.set(element, element.querySelector<HTMLElement>('.guest-card')?.offsetHeight ?? 200);
     const place = (element: HTMLElement | null, position: THREE.Vector3) => {
       if (!element) return;
       position.project(camera);
@@ -872,8 +936,7 @@ function SceneProjector({ elements, guestGroups }: SceneRefs) {
       element.style.setProperty('--nudge', nudge / scale + 'px');
       // Open the card on the side with room for it, and slide it to stay on screen
       // when neither side has enough (short phones).
-      const card = element.querySelector<HTMLElement>('.guest-card');
-      const tall = (card?.offsetHeight ?? 200) * scale;
+      const tall = (heights.get(element) ?? 200) * scale;
       const above = y - 134 * scale - tall;
       const below = size.height - (y + 30 * scale + tall);
       const under = above < 8 && below > above;

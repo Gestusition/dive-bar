@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { newGame, reduceGame, upgradeInfo } from './engine';
 import { hostDestination, hostHome } from './host';
-import { guestPath, seatApproach, stepAlong } from './navigation';
+import { guestPath, personClearance, seatApproach, stepAlong } from './navigation';
 
 describe('hired host', () => {
   it('starts unowned, charges exactly once and leaves washing to the timed worker queue', () => {
@@ -27,13 +27,18 @@ describe('hired host', () => {
     const guest = game.guests[0];
     let next = hostDestination(game.guests, null, hostHome);
     expect(next.visit).toEqual({ id: guest.id, escorting: false });
-    expect(next.target[0]).toBeCloseTo(-5.4);
-    expect(next.target[1]).toBeCloseTo(6.3);
+    // In front of the waiting spot at (-4.4, 6.3), off the guest's way in from the door.
+    expect(next.target[0]).toBeCloseTo(-4.4);
+    expect(next.target[1]).toBeCloseTo(5.2);
     const greeted = stepAlong(hostHome, guestPath(hostHome, next.target), 100).position;
     Object.assign(guest, { status: 'reading', seat: 0 });
     next = hostDestination(game.guests, next.visit, greeted);
     expect(next.visit?.escorting).toBe(true);
-    expect(next.target).toEqual(seatApproach[0]);
+    // Beside the spot in front of the chair, leaving it free for the guest.
+    expect(next.target[1]).toBe(seatApproach[0][1]);
+    expect(
+      Math.hypot(next.target[0] - seatApproach[0][0], next.target[1] - seatApproach[0][1]),
+    ).toBeGreaterThanOrEqual(personClearance);
     const path = guestPath(greeted, next.target);
     const first = stepAlong(greeted, path, 0.1);
     expect(first.position).not.toEqual(greeted);

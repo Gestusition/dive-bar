@@ -245,6 +245,16 @@ export function guestPath(
   // Already part-way into the chair being sat on: carry on rather than step back out,
   // or a route refreshed on the way in would keep a guest from ever sitting down.
   if (blocked(from) && blocked(to) && nearestApproach(from) === nearestApproach(to)) return [to];
+  // Between the spot in front of a chair and the chair itself, keep going in: a
+  // refreshed route would otherwise walk back out to that spot first.
+  if (blocked(to)) {
+    const approach = nearestApproach(to);
+    if (
+      distance(approach, from) + distance(from, to) < distance(approach, to) + 1e-6 &&
+      !people.some((p) => distance(to, p) < personClearance - 1e-6)
+    )
+      return [to];
+  }
   // Just clear of someone but inside the square kept free around them, every route
   // would start by crossing that square and none would be found, leaving both people
   // waiting for each other. Step straight away from them first: moving away never

@@ -2,6 +2,22 @@
 
 All notable changes are recorded here. Versions describe tagged source releases; GitHub Pages follows `main` and may show a different revision. This project is still an early playable release.
 
+## [Unreleased]
+
+### Changed
+
+- The host greets an arriving party from in front of the waiting spot and shows the way from beside each seat, instead of standing in the guest's path.
+- Thin scrollbars in the game's colours replace the browser's default scrollbars.
+
+### Fixed
+
+- Guests no longer step back and forth by the door while the host comes to greet them, and no longer step back out of their chair when their route is refreshed on the way in.
+- Characters held up by someone keep facing the way they were walking instead of turning round and back. The host turns smoothly and walks one route to where it is heading.
+- Guest cards are measured once a frame before they are moved, so the page is no longer laid out again for every guest on every frame.
+- The plants no longer line up with floor seams and wall battens, which made the lines look as if they ran through the pots. The battens now continue the floor seams up the wall.
+- The door string lights hang on a cord with evenly spaced bulbs.
+- The bar sign faces the camera, so its lettering no longer looks stretched sideways.
+
 ## [0.0.3.3] - 2026-10-30
 
 ### Fixed

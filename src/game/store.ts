@@ -50,6 +50,8 @@ interface Store {
   }[];
   bartenderPosition: FloorPoint;
   hostPosition: FloorPoint;
+  /** Where the host is heading, so the scene can walk one smooth route there. */
+  hostTarget: FloorPoint;
   hostVisit: HostVisit | null;
   cleanupJob: CleanupJob | null;
   cleanupQueue: CleanupKind[];
@@ -136,6 +138,7 @@ export const useGame = create<Store>((set, get) => ({
   tasks: [],
   bartenderPosition: [...bartenderHome],
   hostPosition: [...hostHome],
+  hostTarget: [...hostHome],
   hostVisit: null,
   cleanupJob: null,
   cleanupQueue: [],
@@ -178,6 +181,7 @@ export const useGame = create<Store>((set, get) => ({
         tasks: [],
         bartenderPosition: [...bartenderHome],
         hostPosition: [...hostHome],
+        hostTarget: [...hostHome],
         hostVisit: null,
         cleanupJob: null,
         cleanupQueue: [],
@@ -274,6 +278,7 @@ export const useGame = create<Store>((set, get) => ({
       tasks: [],
       bartenderPosition: [...bartenderHome],
       hostPosition: [...hostHome],
+      hostTarget: [...hostHome],
       hostVisit: null,
       cleanupJob: null,
       cleanupQueue: [],
@@ -296,7 +301,11 @@ export function startClock() {
         guestPath(current.hostPosition, next.target),
         guestSpeed * 0.25,
       );
-      useGame.setState({ hostPosition: walk.position, hostVisit: next.visit });
+      useGame.setState({
+        hostPosition: walk.position,
+        hostTarget: next.target,
+        hostVisit: next.visit,
+      });
     }
     if (useGame.getState().cleanupJob?.actor === 'bartender') return;
     const before = useGame.getState().tasks;

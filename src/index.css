@@ -51,6 +51,30 @@
 * {
   box-sizing: border-box;
 }
+/* Thin scrollbars in the game's own colours instead of the browser's. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--ink-soft) transparent;
+}
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--ink-soft);
+  border: 2px solid transparent;
+  border-radius: 8px;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--ink);
+}
+::-webkit-scrollbar-button {
+  display: none;
+}
 body {
   margin: 0;
   overflow: hidden;

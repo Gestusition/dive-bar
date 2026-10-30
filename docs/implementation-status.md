@@ -33,7 +33,7 @@ Customer conversations are authored English choices with rapport, patience, orde
 
 Local saves use IndexedDB. Export/import validates the save shape and known content IDs. Payment accounting uses integer minor units; repeated settlement cannot duplicate revenue or tips. Reading dialogs and hidden tabs pause service; interrupted free pouring stops and needs deliberate input to resume.
 
-Fresh profiles and New game start with all seven shop upgrades unowned. New game clears transient selections, dialogue and preparation effects, and immediately queues the replacement save. The hired host stands inside the visible room, greets arriving parties and follows furniture-aware paths to their seat approaches before returning to the entrance area.
+Fresh profiles and New game start with all seven shop upgrades unowned. New game clears transient selections, dialogue and preparation effects, and immediately queues the replacement save. The hired host stands inside the visible room, greets arriving parties from in front of the waiting spot, off their way in from the door, and follows furniture-aware paths to a spot beside their seat approach before returning to the entrance area.
 
 ## Verification
 

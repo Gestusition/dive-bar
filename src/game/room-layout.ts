@@ -10,7 +10,8 @@ export const binStandSpot: [number, number] = [5.95, -2.9];
 // Leave the right-hand walkway clear, including the foliage and the rotating
 // bartender's arms. Keep the entire plant inside the back wall and floor, in
 // front of the skirting board and clear of the window sill to its left.
-const plantX = 5.25,
+// Centred on a floorboard, so no seam or wall batten lines up with the pot.
+const plantX = 5.5,
   plantZ = -3.92,
   plantScale = 0.8;
 const plant = (
@@ -45,15 +46,18 @@ export const cornerPlantParts: VoxelPart[] = [
   plant(0.04, 1.32, 0.02, 0.36, 0.16, 0.34, '#8da16a'),
 ];
 
-// The bought plant in the front right corner: a tall leafy plant in a pot.
+// The bought plant in the front right corner: a tall leafy plant in a pot,
+// centred on a floorboard so the pot and leaves stand clear of the seams either side.
+export const floorPlantPosition: [number, number] = [6.5, 6.2];
+
 export const floorPlantParts: VoxelPart[] = [
   [0, 0.25, 0, 0.6, 0.5, 0.6, '#bc7960'],
   [0, 0.52, 0, 0.66, 0.06, 0.66, '#a8644a'],
   [0, 0.56, 0, 0.52, 0.04, 0.52, '#6b4a35'],
   [0, 0.75, 0, 0.07, 0.4, 0.07, '#5d7a4c'],
   [0, 1.05, 0, 0.5, 0.4, 0.48, '#6c8c58'],
-  [-0.3, 0.85, 0.08, 0.4, 0.14, 0.36, '#7c9a65'],
-  [0.3, 0.92, -0.05, 0.4, 0.14, 0.36, '#5f8050'],
+  [-0.26, 0.85, 0.08, 0.32, 0.14, 0.36, '#7c9a65'],
+  [0.26, 0.92, -0.05, 0.32, 0.14, 0.36, '#5f8050'],
   [0.02, 0.8, 0.3, 0.44, 0.14, 0.26, '#91ad73'],
   [0.15, 1.3, 0.12, 0.36, 0.14, 0.32, '#91ad73'],
   [-0.15, 1.38, -0.12, 0.38, 0.14, 0.32, '#5f8050'],

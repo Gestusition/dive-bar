@@ -3,6 +3,10 @@ import { guestPosition, seatApproach, type FloorPoint } from './navigation';
 
 // A visible spot inside the room, independent of the responsive side walls.
 export const hostHome: FloorPoint = [-5.1, 5.4];
+/** How far in front of a waiting guest the host stands to greet them. */
+export const greetingDistance = 1.1;
+/** How far to the side of a seat's approach the host stops when showing the way. */
+export const escortOffset = 1;
 export interface HostVisit {
   id: number;
   escorting: boolean;
@@ -20,10 +24,18 @@ export function hostDestination(
   }
   if (!guest || !visit) return { visit: null, target: hostHome };
   if (guest.status === 'waiting') {
+    // Greet from in front of the waiting spot, off the line in from the door, so the
+    // guest never has to step round the host to get there.
     const [x, , z] = guestPosition(guest);
-    return { visit, target: [x - 1, z] };
+    return { visit, target: [x, z - greetingDistance] };
   }
-  const target = seatApproach[guest.seat];
+  const approach = seatApproach[guest.seat];
+  // Show the way to the chair from beside the spot in front of it, so the guest can
+  // step past into their seat and the host can walk away without either waiting.
+  const target: FloorPoint | undefined = approach && [
+    approach[0] + Math.sign(approach[0]) * escortOffset,
+    approach[1],
+  ];
   if (
     !target ||
     (visit.escorting && Math.hypot(position[0] - target[0], position[1] - target[1]) < 0.05)

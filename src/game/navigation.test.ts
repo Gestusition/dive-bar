@@ -306,6 +306,38 @@ describe('route planning budget', () => {
       expect(sat, `seat ${seat} is reached`).toBe(true);
     }
   });
+  it('walks a new guest in from the door without stepping round the greeting host', () => {
+    const guest = { id: 1, status: 'waiting', seat: -1, lead: true } as Guest;
+    const { target } = hostDestination([guest], null, hostHome);
+    const [x, , z] = guestPosition(guest);
+    // The host sets off from home to greet them as they come in.
+    const host = newWalker(hostHome);
+    const walker = newWalker([entrance[0], entrance[2]]);
+    for (let frame = 0; frame < 60 * 5; frame++) {
+      const before = walker.position;
+      walkFrame(host, target, guestSpeed / 60, 1 / 60, [walker.position]);
+      walkFrame(walker, [x, z], guestSpeed / 60, 1 / 60, [host.position]);
+      // Every step heads on towards the waiting spot; none backs off from the host.
+      const toSpot = Math.hypot(x - walker.position[0], z - walker.position[1]);
+      expect(toSpot, `frame ${frame}`).toBeLessThanOrEqual(
+        Math.hypot(x - before[0], z - before[1]) + 1e-9,
+      );
+    }
+    expect(walker.position).toEqual([x, z]);
+  });
+  it('keeps a guest walking into their chair when the route is refreshed on the way in', () => {
+    for (let seat = 0; seat < seats.length; seat++) {
+      const chair: FloorPoint = [seats[seat][0], seats[seat][2]];
+      const approach = seatApproach[seat];
+      for (const t of [0.1, 0.5, 0.9]) {
+        const from: FloorPoint = [
+          approach[0] + (chair[0] - approach[0]) * t,
+          approach[1] + (chair[1] - approach[1]) * t,
+        ];
+        expect(guestPath(from, chair), `seat ${seat} at ${t}`).toEqual([chair]);
+      }
+    }
+  });
   it('does not plan at all for someone already where they want to be', () => {
     const plan = counting();
     const seat = seatApproach[0];
