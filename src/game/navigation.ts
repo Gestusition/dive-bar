@@ -370,6 +370,7 @@ const steerMargin = 0.1;
 const clearAhead = 0.12;
 const settleDistance = 0.3;
 const backOutAfter = 0.6;
+const rightOfWay = 1.5;
 const backOutFor = 0.9;
 const horizon = 2.5;
 const inRoom = ([x, z]: FloorPoint) =>
@@ -432,7 +433,8 @@ function wantedVelocity(a: Agent, agents: Agent[], dt: number) {
     )
   )
     return;
-  const speed = Math.min(a.speed, d / dt);
+  // Held up, even the quick bartender slows to a walk rather than dart about in the crowd.
+  const speed = Math.min(a.stuck > 0.5 ? Math.min(a.speed, guestSpeed) : a.speed, d / dt);
   a.want[0] = ((next[0] - a.position[0]) / d) * speed;
   a.want[1] = ((next[1] - a.position[1]) / d) * speed;
 }
@@ -440,9 +442,13 @@ function wantedVelocity(a: Agent, agents: Agent[], dt: number) {
 function makeWay(a: Agent, agents: Agent[]) {
   if (a.anchored || !solid(a) || !inRoom(a.position)) return;
   // Someone only a step from their spot has nowhere to be, and can step aside again.
-  if (!still(a.want) && (a.path.length > 1 || distance(a.position, a.goal) > 1.2)) return;
+  const idle = still(a.want) || (a.path.length <= 1 && distance(a.position, a.goal) <= 1.2);
   for (const o of agents) {
     if (o === a || o.stuck < 0.25 || still(o.want)) continue;
+    // On the way somewhere themselves, they still give way to anyone held up for longer:
+    // whoever has waited longest has the right of way, so nobody waits for good.
+    if (!idle && !(o.stuck > rightOfWay && o.stuck > a.stuck + 0.5)) continue;
+    if (!still(a.want) && o.stuck <= a.stuck) continue;
     const dx = a.position[0] - o.position[0],
       dz = a.position[1] - o.position[1];
     const d = Math.hypot(dx, dz);
@@ -532,18 +538,22 @@ function steer(a: Agent, agents: Agent[], dt: number) {
   }
   // Going into or out of a chair, or along a rail through a chair's space, is a straight
   // line: only people can hold it up.
-  // The bartender's walk along the front runs close by the chairs, though, and held up
-  // there they must give way like anyone else, or they and a guest would wait for good.
+  // Held up on that line, though, they must give way like anyone else, or someone
+  // getting up from a chair and someone standing by it would wait for each other for good.
   const startsFree = free(a.position);
-  const docking =
-    a.gone ||
-    ((!startsFree || (a.path.length > 0 && blocked(a.path[0]))) &&
-      a.backing <= 0 &&
-      !(a.rails && a.stuck > 0.5));
   nearby.length = 0;
   const look = personClearance + (a.speed + guestSpeed) * horizon * 0.5;
   for (const o of agents)
     if (o !== a && solid(o) && distance(a.position, o.position) < look) nearby.push(o);
+  // Only with someone actually beside them: alone, they would only ever circle the line.
+  const pressed =
+    a.stuck > 0.5 && nearby.some((o) => personGap(a.position, o.position) < personClearance + 0.4);
+  const docking =
+    a.gone ||
+    ((!startsFree || (a.path.length > 0 && blocked(a.path[0]))) &&
+      a.backing <= 0 &&
+      // Someone going in stays on the line: off it, they could never get back into the chair.
+      !(pressed && (a.rails || !startsFree)));
   // The last step onto a spot that is clear of everyone needs no steering: judged by
   // its speed, that one small step would look like running into whoever stands beside it.
   if (
@@ -653,6 +663,9 @@ function move(a: Agent, agents: Agent[], dt: number) {
     }
   a.position[0] += dx * share;
   a.position[1] += dz * share;
+  // What others see is how they actually move: someone held up is not coming at anybody.
+  a.velocity[0] *= share;
+  a.velocity[1] *= share;
   // Getting nowhere counts however busy it looks: stepping to and fro makes no progress.
   const wanted = Math.hypot(a.want[0], a.want[1]);
   if (((dx * a.want[0] + dz * a.want[1]) * share) / wanted < wanted * dt * 0.3) a.stuck += dt;

@@ -1009,6 +1009,34 @@ function Decor() {
     </>
   );
 }
+/**
+ * Compiles every kind of material the bar will ever need while the title screen is up.
+ * A shader is otherwise compiled the first time something using it comes on screen, the
+ * first dirty glass or the first bottle, and that stalls the frame on any hardware.
+ */
+function ShaderWarmup() {
+  const { gl, camera, scene } = useThree();
+  useEffect(() => {
+    const stand = new THREE.Scene();
+    const box = new THREE.BoxGeometry(0.01, 0.01, 0.01);
+    const materials = [false, true].flatMap((transparent) =>
+      [THREE.FrontSide, THREE.DoubleSide].flatMap((side) => [
+        new THREE.MeshStandardMaterial({ transparent, side }),
+        new THREE.MeshBasicMaterial({ transparent, side }),
+      ]),
+    );
+    for (const m of materials) {
+      const mesh = new THREE.Mesh(box, m);
+      mesh.castShadow = mesh.receiveShadow = true;
+      stand.add(mesh);
+    }
+    // Using the room's own lights, or the compiled shaders would not fit it.
+    gl.compile(stand, camera, scene);
+    box.dispose();
+    materials.forEach((m) => m.dispose());
+  }, [gl, camera, scene]);
+  return null;
+}
 function Room({ guestGroups }: { guestGroups: SceneRefs['guestGroups'] }) {
   const staff = useRef<StaffRefs['current']>({});
   const theme = useGame((s) => s.game.settings.theme);
@@ -1050,6 +1078,7 @@ function Room({ guestGroups }: { guestGroups: SceneRefs['guestGroups'] }) {
       <Sign lit={neon} />
       <SideWalls />
       <Crowd />
+      <ShaderWarmup />
       <Bartender staff={staff} />
       <CleanupProps staff={staff} />
       {barback && <Host staff={staff} />}

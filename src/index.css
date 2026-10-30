@@ -1136,8 +1136,9 @@ a {
 /* The tip pops up over the guest the moment they pay. */
 .tip-float {
   position: absolute;
-  left: 50%;
-  bottom: calc(100% + 30px);
+  left: calc(50% + var(--spread, 0px));
+  /* Clear above the bubble, which stands 52px over the guest and hides anything lower. */
+  bottom: 116px;
   translate: -50% 0;
   padding: 4px 10px;
   background: var(--sun);
