@@ -18,7 +18,7 @@ All notable changes are recorded here. Versions describe tagged source releases;
 
 ### Fixed
 
-- The glass being washed no longer sinks into the counter: it stands in the sink's basin, held from either side. The glass being washed and the ones waiting beside the sink are the real glass the latest drink was served in, the same shape and size as at the counter, instead of a plain cylinder.
+- The glass being washed no longer sinks into the counter or stands in front of the tap. It is held over the basin in both hands, tilted with its rim under the tap's spout, and turned round while water runs into it, with suds at the rim. It and the glasses waiting beside the sink are the real glass the latest drink was served in, the same shape as at the counter, instead of a plain cylinder.
 - The trash bin is round instead of visibly ten-sided.
 - The scene no longer stutters while people walk around each other. Planning a route round other people took around 8 ms and every walker did it four times a second; it now takes under 1 ms and finds the same routes.
 - Guests no longer step back and forth by the door while the host comes to greet them, and no longer step back out of their chair when their route is refreshed on the way in.

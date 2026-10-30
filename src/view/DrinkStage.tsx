@@ -133,10 +133,18 @@ export const stageScale = 1.7;
  * An empty glass of the same shape and size as the one a drink is made in, for the
  * glasses waiting at the sink and the one being washed. It stands on its base.
  */
-export function EmptyGlass({ glass, dirty = false }: { glass: GlassId; dirty?: boolean }) {
+export function EmptyGlass({
+  glass,
+  dirty = false,
+  scale = stageScale,
+}: {
+  glass: GlassId;
+  dirty?: boolean;
+  scale?: number;
+}) {
   const outline = useMemo(() => shell(glassShapes[glass].outer), [glass]);
   return (
-    <group scale={stageScale}>
+    <group scale={scale}>
       <mesh renderOrder={2}>
         <latheGeometry args={[outline, 28]} />
         <meshStandardMaterial
@@ -158,11 +166,12 @@ export function EmptyGlass({ glass, dirty = false }: { glass: GlassId; dirty?: b
   );
 }
 /** Width and height of an empty glass as drawn, in room units. */
-export function glassSize(glass: GlassId) {
+export function glassSize(glass: GlassId, scale = stageScale) {
   const outer = glassShapes[glass].outer;
   return {
-    radius: Math.max(...outer.map(([r]) => r)) * stageScale,
-    height: top(outer)[1] * stageScale,
+    radius: Math.max(...outer.map(([r]) => r)) * scale,
+    rim: top(outer)[0] * scale,
+    height: top(outer)[1] * scale,
   };
 }
 

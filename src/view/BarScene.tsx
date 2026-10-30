@@ -532,6 +532,14 @@ function Host({ staff, guestGroups }: { staff: StaffRefs; guestGroups: SceneRefs
 // The counter top and the floor of the sink's basin, so props stand on them.
 const counterTop = 1.25,
   sinkBasinTop = 1.28 + 0.065 + 0.0125;
+// The tap's spout reaches forward over the basin; water falls from its tip.
+const sinkX = -2.6,
+  spoutZ = -1.8,
+  spoutBottom = 1.28 + 0.72 - 0.025;
+/** A glass being washed leans towards the camera, its rim held under the running tap. */
+const washTilt = 0.35;
+/** Glasses at the sink are drawn the size they are next to the staff, not the close-up size. */
+const sinkScale = 1;
 /** Physical tools make each maintenance job visible in the room. */
 function CleanupProps({ staff }: { staff: StaffRefs }) {
   const job = useGame((s) => s.cleanupJob);
@@ -543,8 +551,12 @@ function CleanupProps({ staff }: { staff: StaffRefs }) {
   const lastGlass = useRef<Prep['glass']>('old_fashioned_glass');
   if (served) lastGlass.current = served;
   const glass = lastGlass.current;
-  const { radius, height } = glassSize(glass);
+  const { radius, rim, height } = glassSize(glass, sinkScale);
+  // Where the glass stands so that its rim sits right under the spout.
+  const washZ = spoutZ - height * Math.sin(washTilt);
+  const rimY = sinkBasinTop + 0.05 + height * Math.cos(washTilt);
   const tool = useRef<THREE.Group>(null);
+  const spin = useRef<THREE.Group>(null);
   const elapsed = useRef(0);
   useFrame((_, delta) => {
     if (!tool.current || !job) return;
@@ -560,16 +572,15 @@ function CleanupProps({ staff }: { staff: StaffRefs }) {
         0.5,
         actor?.position.z ?? position[1],
       );
+    } else if (job.kind === 'wash') {
+      // Held in the basin under the running tap, turned round in the hands to rinse
+      // every side; it never touches the counter or the tap.
+      tool.current.position.set(sinkX + Math.sin(t * 4) * 0.03, sinkBasinTop + 0.05, washZ);
+      if (spin.current) spin.current.rotation.y = t * 2.5;
     } else {
       const [x] = cleanupInfo[job.kind].position;
-      // The sponge rides on the counter top; the glass stands in the sink's basin,
-      // never sunk into the counter.
-      tool.current.position.set(
-        x + (job.kind === 'wipe' ? Math.sin(t * 7) * 0.75 : Math.sin(t * 5) * 0.08),
-        job.kind === 'wash' ? sinkBasinTop + 0.02 : 1.34,
-        job.kind === 'wash' ? -1.7 : -1.65,
-      );
-      tool.current.rotation.z = job.kind === 'wash' ? Math.sin(t * 6) * 0.08 : 0;
+      // The sponge rides on the counter top.
+      tool.current.position.set(x + Math.sin(t * 7) * 0.75, 1.34, -1.65);
     }
   });
   const working = job?.stage === 'working';
@@ -584,21 +595,27 @@ function CleanupProps({ staff }: { staff: StaffRefs }) {
           <boxGeometry args={[0.68, 0.025, 0.45]} />
           <meshStandardMaterial color={working && job.kind === 'wash' ? '#a7e7ec' : '#435d63'} />
         </mesh>
-        <mesh position={[0, 0.3, -0.27]}>
-          <boxGeometry args={[0.06, 0.5, 0.06]} />
+        {/* The tap: a pillar at the back of the sink and a spout over the basin. */}
+        <mesh position={[0, 0.4, -0.27]}>
+          <boxGeometry args={[0.06, 0.7, 0.06]} />
           <meshStandardMaterial color="#c1d4cf" />
         </mesh>
-        {working && job.kind === 'wash' && (
-          <mesh position={[0, 0.22, -0.12]}>
-            <cylinderGeometry args={[0.025, 0.035, 0.3, 8]} />
-            <meshStandardMaterial color="#a5e6ef" transparent opacity={0.7} />
-          </mesh>
-        )}
+        <mesh position={[0, 0.72, (-0.27 + spoutZ + 1.7) / 2]}>
+          <boxGeometry args={[0.06, 0.05, spoutZ + 1.7 + 0.3]} />
+          <meshStandardMaterial color="#c1d4cf" />
+        </mesh>
       </group>
+      {working && job.kind === 'wash' && (
+        // Water running from the spout into the glass.
+        <mesh position={[sinkX, (spoutBottom + rimY - 0.06) / 2, spoutZ]}>
+          <cylinderGeometry args={[0.022, 0.03, spoutBottom - rimY + 0.06, 10]} />
+          <meshStandardMaterial color="#a5e6ef" transparent opacity={0.7} />
+        </mesh>
+      )}
       {dirty > 0 && (
         // Waiting on the counter top beside the sink.
         <group position={[-2.6 + 0.45 + radius + 0.04, counterTop, -1.7]}>
-          <EmptyGlass glass={glass} dirty />
+          <EmptyGlass glass={glass} dirty scale={sinkScale} />
         </group>
       )}
       <group position={[binPosition[0], 0.4, binPosition[1]]}>
@@ -625,14 +642,6 @@ function CleanupProps({ staff }: { staff: StaffRefs }) {
               </mesh>
             </>
           )}
-          {job.kind === 'wash' &&
-            // A hand either side of the glass, holding it halfway up.
-            [-1, 1].map((side) => (
-              <mesh key={side} position={[side * (radius + 0.07), height * 0.45, 0]}>
-                <boxGeometry args={[0.13, 0.13, 0.17]} />
-                <meshStandardMaterial color="#db9e78" />
-              </mesh>
-            ))}
           {job.kind === 'wipe' ? (
             <mesh>
               <boxGeometry args={[0.38, 0.08, 0.28]} />
@@ -650,15 +659,32 @@ function CleanupProps({ staff }: { staff: StaffRefs }) {
               </mesh>
             </>
           ) : (
-            <>
-              <EmptyGlass glass={glass} />
-              {[-0.2, 0, 0.2].map((x) => (
-                <mesh key={x} position={[x, height + 0.06 + Math.abs(x) * 0.5, 0.1]}>
-                  <sphereGeometry args={[0.06, 12, 8]} />
-                  <meshStandardMaterial color="#eefcfa" />
+            <group rotation={[washTilt, 0, 0]}>
+              {/* A hand either side holds it halfway up while it turns. */}
+              {[-1, 1].map((side) => (
+                <mesh key={side} position={[side * (radius + 0.06), height * 0.45, 0]}>
+                  <boxGeometry args={[0.11, 0.11, 0.14]} />
+                  <meshStandardMaterial color="#db9e78" />
                 </mesh>
               ))}
-            </>
+              <group ref={spin}>
+                <EmptyGlass glass={glass} scale={sinkScale} />
+                {/* Suds round the rim. */}
+                {[0, 1, 2, 3, 4].map((i) => (
+                  <mesh
+                    key={i}
+                    position={[
+                      Math.cos((i * Math.PI * 2) / 5) * rim * 0.85,
+                      height - 0.01,
+                      Math.sin((i * Math.PI * 2) / 5) * rim * 0.85,
+                    ]}
+                  >
+                    <sphereGeometry args={[0.035, 12, 8]} />
+                    <meshStandardMaterial color="#eefcfa" />
+                  </mesh>
+                ))}
+              </group>
+            </group>
           )}
         </group>
       )}
