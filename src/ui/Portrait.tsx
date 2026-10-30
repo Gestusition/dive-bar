@@ -1,35 +1,49 @@
-import { personLook } from '../game/looks';
+import { personModel } from '../game/person';
 
-// The front of the character's voxel head, in the same units and colours as their
-// body in the room (see personParts in BarScene). Each box is [centre x, centre
-// height, width, height, colour]; later boxes sit in front. The view is centred on
-// the head and wide enough that every corner stays inside the round frame.
-const centre = 1.04,
-  view = 1.12;
-type Box = [number, number, number, number, string];
-function faceBoxes(id: string): Box[] {
-  const { skin, hair } = personLook(id);
-  return [
-    [-0.33, 1, 0.09, 0.16, skin],
-    [0.33, 1, 0.09, 0.16, skin],
-    [0, 1, 0.6, 0.58, skin],
-    [0, 1.3, 0.65, 0.14, hair],
-    [-0.24, 1.18, 0.14, 0.16, hair],
-    [-0.13, 1.04, 0.055, 0.07, '#352b2b'],
-    [0.13, 1.04, 0.055, 0.07, '#352b2b'],
-    [0, 0.89, 0.13, 0.035, '#a85d51'],
-    [-0.21, 0.95, 0.08, 0.04, '#d68d79'],
-    [0.21, 0.95, 0.08, 0.04, '#d68d79'],
-  ];
+/**
+ * The front of a character's voxel head, drawn from the same parts as their body in
+ * the room. Parts nearer the front are painted last, and the view is fitted round
+ * the head so no corner reaches the round frame, whatever the model looks like.
+ */
+export function portraitFace(id: string) {
+  const parts = personModel(id).head;
+  const rects = parts
+    .map(([x, y, z, w, h, d, color]) => ({
+      x: x - w / 2,
+      y: -(y + h / 2),
+      w,
+      h,
+      front: z + d / 2,
+      color,
+    }))
+    .sort((a, b) => a.front - b.front);
+  const left = Math.min(...rects.map((r) => r.x)),
+    right = Math.max(...rects.map((r) => r.x + r.w)),
+    top = Math.min(...rects.map((r) => r.y)),
+    bottom = Math.max(...rects.map((r) => r.y + r.h));
+  const cx = (left + right) / 2,
+    cy = (top + bottom) / 2;
+  // The farthest corner from the middle sets the size, with a little air inside the frame.
+  const reach = Math.max(
+    ...rects.flatMap((r) => [
+      Math.hypot(r.x - cx, r.y - cy),
+      Math.hypot(r.x + r.w - cx, r.y - cy),
+      Math.hypot(r.x - cx, r.y + r.h - cy),
+      Math.hypot(r.x + r.w - cx, r.y + r.h - cy),
+    ]),
+  );
+  const size = (reach * 2) / 0.9;
+  return { rects, viewBox: `${cx - size / 2} ${cy - size / 2} ${size} ${size}` };
 }
 
 /** A guest's face in a round frame, for their card and their conversations. */
 export function Portrait({ id, big = false }: { id: string; big?: boolean }) {
+  const { rects, viewBox } = portraitFace(id);
   return (
     <span className={'portrait ' + (big ? 'big ' : '') + id} aria-hidden="true">
-      <svg viewBox={`${-view / 2} ${-view / 2} ${view} ${view}`} shapeRendering="crispEdges">
-        {faceBoxes(id).map(([x, y, w, h, color], i) => (
-          <rect key={i} x={x - w / 2} y={centre - y - h / 2} width={w} height={h} fill={color} />
+      <svg viewBox={viewBox} shapeRendering="crispEdges">
+        {rects.map((r, i) => (
+          <rect key={i} x={r.x} y={r.y} width={r.w} height={r.h} fill={r.color} />
         ))}
       </svg>
     </span>

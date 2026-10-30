@@ -31,7 +31,7 @@ import {
   floorPlantPosition,
 } from '../game/room-layout';
 import { money } from '../game/content';
-import { personLook } from '../game/looks';
+import { brass, cream, dark, personModel, teal } from '../game/person';
 import DrinkStage from './DrinkStage';
 import { BrokenHeartArt, CocktailArt, CoinArt, HeartArt } from '../ui/art';
 import { GuestActions, patience } from '../ui/GuestActions';
@@ -44,11 +44,7 @@ type SceneRefs = {
   guestGroups: { current: Map<number, THREE.Group> };
 };
 type StaffRefs = { current: Partial<Record<'host' | 'bartender', THREE.Group | null>> };
-const oak = '#805137',
-  dark = '#50352e',
-  brass = '#c9995d',
-  cream = '#ead7ac',
-  teal = '#478f83';
+const oak = '#805137';
 const material = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.87 });
 function geometry(parts: Part[]) {
   const geometries = parts.map(([x, y, z, w, h, d, color]) => {
@@ -73,7 +69,10 @@ function geometry(parts: Part[]) {
 const bodies = new Map<string, THREE.BufferGeometry>();
 function personBody(id: string) {
   let body = bodies.get(id);
-  if (!body) bodies.set(id, (body = geometry(personParts(id, id === 'bartender'))));
+  if (!body) {
+    const { head, body: rest } = personModel(id, id === 'bartender');
+    bodies.set(id, (body = geometry([...rest, ...head])));
+  }
   return body;
 }
 // The left wall (with the front door) and the right wall, drawn around x=0
@@ -236,38 +235,6 @@ function roomParts() {
   box(-6.2, 2.25, -4.38, 1, 1.3, 0.1, dark);
   box(-6.2, 2.25, -4.31, 0.8, 1.1, 0.04, '#ddc594');
   return p;
-}
-function personParts(id: string, bartender = false): Part[] {
-  const { skin, hair, shirt } = personLook(id, bartender);
-  return [
-    [0, 0.56, 0, 0.5, 0.48, 0.3, shirt],
-    [0, 0.3, 0, 0.46, 0.16, 0.31, '#3c4546'],
-    [-0.14, 0.14, 0, 0.18, 0.28, 0.21, '#424957'],
-    [0.14, 0.14, 0, 0.18, 0.28, 0.21, '#424957'],
-    [-0.14, 0.035, 0.045, 0.24, 0.09, 0.32, dark],
-    [0.14, 0.035, 0.045, 0.24, 0.09, 0.32, dark],
-    [-0.34, 0.56, 0, 0.16, 0.42, 0.22, shirt],
-    [0.34, 0.56, 0, 0.16, 0.42, 0.22, shirt],
-    [-0.34, 0.31, 0.02, 0.15, 0.13, 0.19, skin],
-    [0.34, 0.31, 0.02, 0.15, 0.13, 0.19, skin],
-    [0, 1, 0, 0.6, 0.58, 0.48, skin],
-    [-0.33, 1, 0, 0.09, 0.16, 0.17, skin],
-    [0.33, 1, 0, 0.09, 0.16, 0.17, skin],
-    [0, 1.3, -0.02, 0.65, 0.14, 0.53, hair],
-    [0, 1.14, -0.22, 0.64, 0.26, 0.12, hair],
-    [-0.24, 1.18, 0.2, 0.14, 0.16, 0.12, hair],
-    [-0.13, 1.04, 0.248, 0.055, 0.07, 0.035, '#352b2b'],
-    [0.13, 1.04, 0.248, 0.055, 0.07, 0.035, '#352b2b'],
-    [0, 0.89, 0.25, 0.13, 0.035, 0.025, '#a85d51'],
-    [-0.21, 0.95, 0.245, 0.08, 0.04, 0.02, '#d68d79'],
-    [0.21, 0.95, 0.245, 0.08, 0.04, 0.02, '#d68d79'],
-    ...(bartender
-      ? [
-          [0, 0.5, 0.17, 0.33, 0.5, 0.035, teal] as Part,
-          [0, 0.7, 0.18, 0.09, 0.09, 0.03, brass] as Part,
-        ]
-      : []),
-  ];
 }
 /**
  * The way to face while walking. Someone held up by another person, or backing off
