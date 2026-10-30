@@ -13,6 +13,7 @@ All notable changes are recorded here. Versions describe tagged source releases;
 
 - The scene no longer stutters while people walk around each other. Planning a route round other people took around 8 ms and every walker did it four times a second; it now takes under 1 ms and finds the same routes.
 - Guests no longer step back and forth by the door while the host comes to greet them, and no longer step back out of their chair when their route is refreshed on the way in.
+- Guests rise onto their seat over their last steps in and ease back down when they get up, instead of jumping between the floor and the seat in one frame.
 - Characters held up by someone keep facing the way they were walking instead of turning round and back. The host turns smoothly and walks one route to where it is heading.
 - Guest cards are measured once a frame before they are moved, so the page is no longer laid out again for every guest on every frame.
 - The plants no longer line up with floor seams and wall battens, which made the lines look as if they ran through the pots. The battens now continue the floor seams up the wall.

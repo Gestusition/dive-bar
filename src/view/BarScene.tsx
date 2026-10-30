@@ -290,6 +290,8 @@ function walkingFacing(
     ? current
     : heading;
 }
+/** How far from their seat a guest starts to rise onto it. */
+const seatRise = 0.5;
 function turnTowards(current: number, facing: number, delta: number, rate: number) {
   const turn = Math.atan2(Math.sin(facing - current), Math.cos(facing - current));
   return current + turn * (1 - Math.exp(-Math.min(delta, 0.1) * rate));
@@ -335,8 +337,18 @@ function Person({
     else walkFrame(walker.current, [tx, tz], guestSpeed * Math.min(delta, 0.1), delta, people);
     const [x, z] = walker.current.position;
     step.current = [x - before[0], z - before[1]];
-    const moving = Math.hypot(x - tx, z - tz) > 0.001;
-    ref.current.position.set(x, moving ? 0 : ty, z);
+    const left = Math.hypot(x - tx, z - tz);
+    const moving = left > 0.001;
+    // Rise onto the seat over the last steps in, and ease back down on getting up,
+    // instead of jumping between the floor and the seat in a single frame.
+    const height = ty * Math.max(0, 1 - left / seatRise);
+    ref.current.position.set(
+      x,
+      state.game.settings.reducedMotion
+        ? height
+        : height + (ref.current.position.y - height) * Math.exp(-Math.min(delta, 0.1) * 12),
+      z,
+    );
     // Walk facing where they are going; sit facing the table or the counter.
     const seated = !moving && !['waiting', 'leaving'].includes(guest.status);
     const facing = moving
