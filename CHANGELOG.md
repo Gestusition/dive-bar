@@ -6,7 +6,7 @@ All notable changes are recorded here. Versions describe tagged source releases;
 
 ### Added
 
-- A broken heart replaces the heart over a guest who is not happy: their drink scored too low to tip on, or they are leaving without one. Their card says they are not enjoying the drink.
+- Guest bubbles show how a guest feels about their drink. A heart means happy (a taste score of 75 or more), no icon at all means the drink is only all right (55 to 74, still tipped), and a broken heart means unhappy: too poor to tip on, or leaving without a drink. Their card says the same.
 - A Full back bar setting for a harder pour. The Pour step then lists every bottle, with no amounts to aim for, no check marks and no tick on the step. The recipe list stays the default.
 - Owned decor can be put away and brought back out, one piece at a time, from Decorate. Decor that is put away leaves the room and stops adding to tips; a put-away jukebox stops the music and put-away door lights stop drawing guests in sooner.
 

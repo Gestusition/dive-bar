@@ -1,7 +1,7 @@
 import { ArrowRight, MessageCircle, Receipt, UtensilsCrossed, Users } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { money, recipeById } from '../game/content';
-import { conversationFor, party, pleased, seatProblem, type Guest } from '../game/engine';
+import { conversationFor, mood, party, seatProblem, type Guest } from '../game/engine';
 import { useGame } from '../game/store';
 
 export const statusLabels: Record<Guest['status'], string> = {
@@ -48,9 +48,13 @@ export function GuestActions({ guest }: { guest: Guest }) {
         <span>
           <strong>{guest.name}</strong>
           <small>
-            {guest.status === 'drinking' && !pleased(guest)
-              ? 'Not enjoying the drink'
-              : statusLabels[guest.status]}
+            {guest.status !== 'drinking'
+              ? statusLabels[guest.status]
+              : {
+                  happy: statusLabels.drinking,
+                  neutral: 'The drink is all right',
+                  unhappy: 'Not enjoying the drink',
+                }[mood(guest)]}
             {regular && ' · regular'}
           </small>
         </span>

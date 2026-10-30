@@ -4,7 +4,7 @@ import { ContactShadows } from '@react-three/drei';
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { useGame } from '../game/store';
-import { decorShown, pleased, type Guest } from '../game/engine';
+import { decorShown, mood, type Guest } from '../game/engine';
 import { hostHome } from '../game/host';
 import { cleanupInfo } from '../game/cleanup';
 import {
@@ -1014,7 +1014,14 @@ function SceneLabels({ elements }: { elements: SceneRefs['elements'] }) {
               </span>
             )}
             <button
-              className={'guest-bubble ' + guest.status}
+              className={
+                'guest-bubble ' +
+                guest.status +
+                // A guest who finds the drink only all right shows nothing but their name.
+                (['drinking', 'leaving'].includes(guest.status) && mood(guest) === 'neutral'
+                  ? ' neutral'
+                  : '')
+              }
               onClick={() => select(isSelected ? null : guest.id)}
               aria-label={'Select ' + guest.name}
             >
@@ -1040,11 +1047,11 @@ function SceneLabels({ elements }: { elements: SceneRefs['elements'] }) {
                   <CocktailArt size={30} />
                 ) : guest.status === 'pay' ? (
                   <CoinArt size={30} />
-                ) : pleased(guest) ? (
+                ) : mood(guest) === 'happy' ? (
                   <HeartArt size={26} />
-                ) : (
+                ) : mood(guest) === 'unhappy' ? (
                   <BrokenHeartArt size={26} />
-                )}
+                ) : null}
               </span>
               <small>{guest.name}</small>
             </button>

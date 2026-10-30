@@ -446,12 +446,15 @@ export function conversationFor(s: Game, g: Guest) {
 }
 /** Below this taste score a drink earns no tip: the guest would rather it were remade. */
 export const tipQuality = 55;
+/** From this taste score a guest is happy with the drink; below it, only so-so. */
+export const happyQuality = 75;
 /**
- * Whether a guest is happy with their visit: they were served a drink good enough to
- * tip on. A guest who leaves without a drink is not.
+ * How a guest feels about their visit. Happy with a good drink, neutral with one that
+ * is only so-so but still worth a tip, and unhappy with one too poor to tip on, or
+ * when leaving without a drink at all.
  */
-export const pleased = (g: Pick<Guest, 'served' | 'quality'>) =>
-  g.served && g.quality >= tipQuality;
+export const mood = (g: Pick<Guest, 'served' | 'quality'>): 'happy' | 'neutral' | 'unhappy' =>
+  !g.served || g.quality < tipQuality ? 'unhappy' : g.quality < happyQuality ? 'neutral' : 'happy';
 /**
  * A tip follows the drink first: a remake-level drink earns nothing, an excellent one
  * around a fifth of the bill. Conversation, quick service, a nice room and paying the
@@ -469,7 +472,7 @@ export function tipFor(s: Game, g: Guest, bonus = 0) {
 export function tipReasons(s: Game, g: Guest) {
   const why: string[] = [];
   if (g.quality >= 90) why.push('a great drink');
-  else if (g.quality < 75) why.push('the drink was only so-so');
+  else if (g.quality < happyQuality) why.push('the drink was only so-so');
   if (g.tipDelta >= 0.04) why.push('a good chat');
   else if (g.tipDelta <= -0.04) why.push('an awkward chat');
   if (g.waited >= 0.7) why.push('quick service');

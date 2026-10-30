@@ -986,6 +986,17 @@ a {
   bottom: 50px;
   opacity: 0.92;
 }
+/* Neutral guests show only their name; the empty bubble still takes taps. */
+.guest-bubble.neutral,
+.guest-anchor.selected .guest-bubble.neutral {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+.guest-bubble.neutral::after,
+.guest-anchor.selected .guest-bubble.neutral::after {
+  display: none;
+}
 .guest-anchor.attention:not(.selected) .guest-bubble {
   animation: bob 1.6s ease-in-out infinite;
 }

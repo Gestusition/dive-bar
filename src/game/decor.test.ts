@@ -4,7 +4,8 @@ import {
   decorIds,
   decorShown,
   newGame,
-  pleased,
+  happyQuality,
+  mood,
   reduceGame,
   tipQuality,
   type Game,
@@ -74,11 +75,13 @@ describe('pour list setting', () => {
 });
 
 describe('guest mood', () => {
-  it('is happy only with a served drink good enough to tip on', () => {
-    expect(pleased({ served: true, quality: tipQuality })).toBe(true);
-    expect(pleased({ served: true, quality: 100 })).toBe(true);
-    expect(pleased({ served: true, quality: tipQuality - 1 })).toBe(false);
+  it('is happy with a good drink, neutral with a so-so one and unhappy without a tip', () => {
+    expect(mood({ served: true, quality: 100 })).toBe('happy');
+    expect(mood({ served: true, quality: happyQuality })).toBe('happy');
+    expect(mood({ served: true, quality: happyQuality - 1 })).toBe('neutral');
+    expect(mood({ served: true, quality: tipQuality })).toBe('neutral');
+    expect(mood({ served: true, quality: tipQuality - 1 })).toBe('unhappy');
     // Leaving without a drink, however the score reads.
-    expect(pleased({ served: false, quality: 100 })).toBe(false);
+    expect(mood({ served: false, quality: 100 })).toBe('unhappy');
   });
 });
