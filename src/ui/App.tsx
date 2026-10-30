@@ -37,6 +37,7 @@ import {
 import { backupName, encodeBackup } from '../game/storage';
 import { startClock, useGame, type Panel } from '../game/store';
 import { MenuPanel, StockPanel } from './Management';
+import { Portrait } from './Portrait';
 import {
   BellArt,
   BookArt,
@@ -513,7 +514,7 @@ function DialoguePanel() {
   return (
     <div className="conversation">
       <div className="speech">
-        <span className={'portrait big ' + (guest?.customerId ?? 'mara')}>{c.customer[0]}</span>
+        <Portrait id={guest?.customerId ?? 'mara'} big />
         <blockquote>“{dialogue.reply || node.line}”</blockquote>
       </div>
       {dialogue.reply ? (

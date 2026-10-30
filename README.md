@@ -49,6 +49,7 @@ Escape closes a drawer or window, or pauses. Windows pause service. The pause me
 
 **The interface**
 
+- Guest cards and conversations show each guest's voxel face.
 - Guest bubbles show a heart while a guest is happy with their drink, only their name when it is just all right, and a broken heart when it was not good enough to tip on, or they left without one.
 - A compact side rail for the night, cash and time, with tiles that slide out drawers: Get ready / Bar tools / Closing, Recipes and Decorate.
 - Speech bubbles over guests show what they need; tap one for its action card.

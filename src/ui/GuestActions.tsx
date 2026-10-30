@@ -3,6 +3,7 @@ import { Button } from '../components/ui/button';
 import { money, recipeById } from '../game/content';
 import { conversationFor, mood, party, seatProblem, type Guest } from '../game/engine';
 import { useGame } from '../game/store';
+import { Portrait } from './Portrait';
 
 export const statusLabels: Record<Guest['status'], string> = {
   waiting: 'At the door',
@@ -44,7 +45,7 @@ export function GuestActions({ guest }: { guest: Guest }) {
   return (
     <div className="guest-card" onClick={(e) => e.stopPropagation()}>
       <div className="guest-card-head">
-        <span className={'portrait ' + guest.customerId}>{guest.name[0]}</span>
+        <Portrait id={guest.customerId} />
         <span>
           <strong>{guest.name}</strong>
           <small>

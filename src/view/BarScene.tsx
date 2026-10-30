@@ -31,6 +31,7 @@ import {
   floorPlantPosition,
 } from '../game/room-layout';
 import { money } from '../game/content';
+import { personLook } from '../game/looks';
 import DrinkStage from './DrinkStage';
 import { BrokenHeartArt, CocktailArt, CoinArt, HeartArt } from '../ui/art';
 import { GuestActions, patience } from '../ui/GuestActions';
@@ -236,12 +237,8 @@ function roomParts() {
   box(-6.2, 2.25, -4.31, 0.8, 1.1, 0.04, '#ddc594');
   return p;
 }
-const shirts = ['#669f8e', '#b97876', '#d2a054', '#8088a8', '#986d98', '#d6bd8b'];
 function personParts(id: string, bartender = false): Part[] {
-  const index = [...id].reduce((n, c) => n + c.charCodeAt(0), 0);
-  const skin = ['#e9b592', '#b97857', '#db9e78', '#f0c7a1'][index % 4],
-    hair = ['#403029', '#a85e39', '#d2a265', '#674143'][index % 4],
-    shirt = bartender ? cream : shirts[index % shirts.length];
+  const { skin, hair, shirt } = personLook(id, bartender);
   return [
     [0, 0.56, 0, 0.5, 0.48, 0.3, shirt],
     [0, 0.3, 0, 0.46, 0.16, 0.31, '#3c4546'],
