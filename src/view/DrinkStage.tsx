@@ -127,6 +127,45 @@ function liquidLayers(p: Prep) {
     .filter((l) => l.amount > 0);
 }
 
+/** How much larger than life the drink is drawn on the counter mat. */
+export const stageScale = 1.7;
+/**
+ * An empty glass of the same shape and size as the one a drink is made in, for the
+ * glasses waiting at the sink and the one being washed. It stands on its base.
+ */
+export function EmptyGlass({ glass, dirty = false }: { glass: GlassId; dirty?: boolean }) {
+  const outline = useMemo(() => shell(glassShapes[glass].outer), [glass]);
+  return (
+    <group scale={stageScale}>
+      <mesh renderOrder={2}>
+        <latheGeometry args={[outline, 28]} />
+        <meshStandardMaterial
+          color={dirty ? '#c9d2c2' : '#dff0ee'}
+          transparent
+          opacity={dirty ? 0.55 : 0.3}
+          roughness={dirty ? 0.7 : 0.08}
+          side={THREE.DoubleSide}
+          depthWrite={false}
+        />
+      </mesh>
+      {glass === 'mug' && (
+        <mesh position={[0.2, 0.17, 0]}>
+          <torusGeometry args={[0.07, 0.018, 8, 16]} />
+          <meshStandardMaterial color="#dff0ee" transparent opacity={0.45} />
+        </mesh>
+      )}
+    </group>
+  );
+}
+/** Width and height of an empty glass as drawn, in room units. */
+export function glassSize(glass: GlassId) {
+  const outer = glassShapes[glass].outer;
+  return {
+    radius: Math.max(...outer.map(([r]) => r)) * stageScale,
+    height: top(outer)[1] * stageScale,
+  };
+}
+
 /** Glass, liquid and ice for one container. */
 function Container({
   shape,
@@ -376,7 +415,7 @@ export default function DrinkStage() {
   })();
   const vesselTop = top(vesselShape.outer)[1];
   return (
-    <group position={[-0.1, 1.27, -1.55]} scale={1.7}>
+    <group position={[-0.1, 1.27, -1.55]} scale={stageScale}>
       {!inGlass && (
         <group position={[-0.3, 0, 0]}>
           <group ref={vesselRef}>

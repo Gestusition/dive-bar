@@ -3,7 +3,7 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { ContactShadows } from '@react-three/drei';
 import * as THREE from 'three';
 import { useGame } from '../game/store';
-import { decorShown, mood, type Guest } from '../game/engine';
+import { decorShown, mood, type Guest, type Prep } from '../game/engine';
 import { hostHome } from '../game/host';
 import { cleanupInfo } from '../game/cleanup';
 import {
@@ -31,7 +31,7 @@ import {
 } from '../game/room-layout';
 import { money } from '../game/content';
 import { brass, cream, dark, personModel, teal } from '../game/person';
-import DrinkStage from './DrinkStage';
+import DrinkStage, { EmptyGlass, glassSize } from './DrinkStage';
 import { voxelGeometry, voxelMaterial } from './voxels';
 import { BrokenHeartArt, CocktailArt, CoinArt, HeartArt } from '../ui/art';
 import { GuestActions, patience } from '../ui/GuestActions';
@@ -529,11 +529,21 @@ function Host({ staff, guestGroups }: { staff: StaffRefs; guestGroups: SceneRefs
     </group>
   );
 }
+// The counter top and the floor of the sink's basin, so props stand on them.
+const counterTop = 1.25,
+  sinkBasinTop = 1.28 + 0.065 + 0.0125;
 /** Physical tools make each maintenance job visible in the room. */
 function CleanupProps({ staff }: { staff: StaffRefs }) {
   const job = useGame((s) => s.cleanupJob);
   const dirty = useGame((s) => s.game.dirtyGlasses);
   const trash = useGame((s) => s.game.trash);
+  // The glasses at the sink are the ones drinks were served in: the latest one served,
+  // or a rocks glass before any drink tonight.
+  const served = useGame((s) => s.game.guests.findLast((g) => g.served)?.prep.glass);
+  const lastGlass = useRef<Prep['glass']>('old_fashioned_glass');
+  if (served) lastGlass.current = served;
+  const glass = lastGlass.current;
+  const { radius, height } = glassSize(glass);
   const tool = useRef<THREE.Group>(null);
   const elapsed = useRef(0);
   useFrame((_, delta) => {
@@ -552,12 +562,14 @@ function CleanupProps({ staff }: { staff: StaffRefs }) {
       );
     } else {
       const [x] = cleanupInfo[job.kind].position;
+      // The sponge rides on the counter top; the glass stands in the sink's basin,
+      // never sunk into the counter.
       tool.current.position.set(
-        x + (job.kind === 'wipe' ? Math.sin(t * 7) * 0.75 : Math.sin(t * 5) * 0.12),
-        1.34,
-        -1.65,
+        x + (job.kind === 'wipe' ? Math.sin(t * 7) * 0.75 : Math.sin(t * 5) * 0.08),
+        job.kind === 'wash' ? sinkBasinTop + 0.02 : 1.34,
+        job.kind === 'wash' ? -1.7 : -1.65,
       );
-      tool.current.rotation.z = job.kind === 'wash' ? Math.sin(t * 6) * 0.25 : 0;
+      tool.current.rotation.z = job.kind === 'wash' ? Math.sin(t * 6) * 0.08 : 0;
     }
   });
   const working = job?.stage === 'working';
@@ -582,26 +594,26 @@ function CleanupProps({ staff }: { staff: StaffRefs }) {
             <meshStandardMaterial color="#a5e6ef" transparent opacity={0.7} />
           </mesh>
         )}
-        {dirty > 0 && (
-          <mesh position={[0.5, 0.14, 0]}>
-            <cylinderGeometry args={[0.12, 0.1, 0.25, 8]} />
-            <meshStandardMaterial color="#9da995" />
-          </mesh>
-        )}
       </group>
+      {dirty > 0 && (
+        // Waiting on the counter top beside the sink.
+        <group position={[-2.6 + 0.45 + radius + 0.04, counterTop, -1.7]}>
+          <EmptyGlass glass={glass} dirty />
+        </group>
+      )}
       <group position={[binPosition[0], 0.4, binPosition[1]]}>
         <mesh>
-          <cylinderGeometry args={[binRadius - 0.03, 0.24, 0.8, 10]} />
+          <cylinderGeometry args={[binRadius - 0.03, 0.24, 0.8, 40]} />
           <meshStandardMaterial color="#476c62" />
         </mesh>
         <mesh position={[0, 0.42, 0]}>
-          <cylinderGeometry args={[binRadius, binRadius, 0.06, 10]} />
+          <cylinderGeometry args={[binRadius, binRadius, 0.06, 40]} />
           <meshStandardMaterial color={trash > 0 ? '#423d3e' : '#8da79a'} />
         </mesh>
       </group>
       {job && (working || job.stage === 'carrying' || job.stage === 'emptying') && (
         <group ref={tool}>
-          {job.kind !== 'trash' && (
+          {job.kind === 'wipe' && (
             <>
               <mesh position={[0.08, 0.12, -0.08]}>
                 <boxGeometry args={[0.19, 0.13, 0.2]} />
@@ -613,6 +625,14 @@ function CleanupProps({ staff }: { staff: StaffRefs }) {
               </mesh>
             </>
           )}
+          {job.kind === 'wash' &&
+            // A hand either side of the glass, holding it halfway up.
+            [-1, 1].map((side) => (
+              <mesh key={side} position={[side * (radius + 0.07), height * 0.45, 0]}>
+                <boxGeometry args={[0.13, 0.13, 0.17]} />
+                <meshStandardMaterial color="#db9e78" />
+              </mesh>
+            ))}
           {job.kind === 'wipe' ? (
             <mesh>
               <boxGeometry args={[0.38, 0.08, 0.28]} />
@@ -631,13 +651,10 @@ function CleanupProps({ staff }: { staff: StaffRefs }) {
             </>
           ) : (
             <>
-              <mesh>
-                <cylinderGeometry args={[0.13, 0.1, 0.3, 10]} />
-                <meshStandardMaterial color="#d7f2ed" transparent opacity={0.8} />
-              </mesh>
+              <EmptyGlass glass={glass} />
               {[-0.2, 0, 0.2].map((x) => (
-                <mesh key={x} position={[x, 0.2 + Math.abs(x), 0.1]}>
-                  <sphereGeometry args={[0.06, 8, 6]} />
+                <mesh key={x} position={[x, height + 0.06 + Math.abs(x) * 0.5, 0.1]}>
+                  <sphereGeometry args={[0.06, 12, 8]} />
                   <meshStandardMaterial color="#eefcfa" />
                 </mesh>
               ))}
