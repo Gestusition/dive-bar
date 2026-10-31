@@ -45,15 +45,15 @@ export function setDoorX(x: number) {
 }
 const waitingSpot: [number, number, number] = [-4.4, 0, 6.3];
 // The second guest of a pair waits beside the first.
-const partnerSpot: [number, number, number] = [-3.6, 0, 6.55];
+const partnerSpot: [number, number, number] = [-3.35, 0, 6.55];
 export const guestSpeed = 3.4;
 /** Just out of sight beyond the door, where the party in the doorway lines up to come in. */
 export const outsideDoor = (place = 0): FloorPoint => [
-  entrance[0] - 1.5 - place * 0.9,
+  entrance[0] - 1.5 - place * 1.05,
   entrance[2],
 ];
-/** Near enough the door to be on the way out, and no longer in anyone's way. */
-export const doorReach = 0.9;
+/** Through the door and out of sight, and so no longer in anyone's way. */
+export const pastDoor = ([x]: FloorPoint) => x < entrance[0] - 0.9;
 export const guestPosition = (
   g: Pick<Guest, 'status' | 'seat'> & { lead?: boolean },
 ): [number, number, number] =>
@@ -68,7 +68,17 @@ export const guestPosition = (
 export function servicePosition(g: Guest): FloorPoint {
   if (g.status !== 'waiting' && counterSeats.includes(g.seat))
     return [seats[g.seat][0], bartenderHome[1]];
-  return [guestPosition(g)[0], g.status === 'waiting' ? 5.4 : frontAisle];
+  return [guestPosition(g)[0], g.status === 'waiting' ? 5.3 : frontAisle];
+}
+/**
+ * Where the bartender is seen standing to help a guest: behind their chair at a table,
+ * out of the aisle people walk along. The service clock goes by `servicePosition`.
+ */
+export function serviceSpot(g: Guest): FloorPoint {
+  const place = seats[g.seat];
+  return g.status !== 'waiting' && !counterSeats.includes(g.seat) && place
+    ? [place[0], place[2] + (seatFacing(g.seat) === 0 ? -1 : 1)]
+    : servicePosition(g);
 }
 // The counter ends at x=±4; 0.6 clearance accommodates the bartender's arms.
 // Keep the front crossing between the stools and the table chairs. Both ends of the
@@ -85,7 +95,8 @@ export function walkingRoute(from: FloorPoint, to: FloorPoint): FloorPoint[] {
     (Math.abs(from[0] - to[0]) < 0.00001 && from[1] >= frontAisle && to[1] >= frontAisle)
   )
     return [to];
-  const behind = (p: FloorPoint) => p[1] <= backEdge;
+  // Nudged forward towards the counter by someone squeezing past is still behind it.
+  const behind = (p: FloorPoint) => p[1] <= backEdge || (Math.abs(p[0]) < 4.45 && p[1] < -1.8);
   // Part-way round one end of the counter, between the back and the front.
   const atEnd = (p: FloorPoint) =>
     Math.abs(p[0]) >= 4.45 && !behind(p) && p[1] < frontAisle - 0.00001;
@@ -169,9 +180,13 @@ export function seatFacing(seat: number) {
   const table = tableZ.get(place[0]);
   return table !== undefined && place[2] < table ? 0 : Math.PI;
 }
-export const seatApproach: FloorPoint[] = seats.map(([x, , z]) =>
-  tableZ.has(x) ? [x, tableZ.get(x)! + (z > tableZ.get(x)! ? 1.95 : -1.95)] : [x, z + 0.8],
-);
+// A chair at a table has a back, so it is sat on from the side, along the gap between
+// the back and the table, from the aisle next to the table. A stool is stepped onto.
+export const seatApproach: FloorPoint[] = seats.map(([x, , z]) => {
+  if (!tableZ.has(x)) return [x, z + 0.8];
+  const towardsAisle = Math.abs(x) < 4 ? Math.sign(x) : -Math.sign(x);
+  return [x + towardsAisle * 1.25, z];
+});
 const pad = ([x, z, w, d]: Rect): Rect => [x, z, w + guestRadius * 2, d + guestRadius * 2];
 const fixedPadded = guestObstacles.map(pad);
 // The swung-open door moves with the left wall.
@@ -246,16 +261,14 @@ const distance = (a: FloorPoint, b: FloorPoint) => Math.hypot(a[0] - b[0], a[1] 
 function nearestApproach(p: FloorPoint) {
   return seatApproach.reduce((best, a) => (distance(p, a) < distance(p, best) ? a : best));
 }
-/** How close two people's middles ever come side by side: their arms just clear. */
-export const personClearance = 0.8;
 /**
- * One behind the other, their bodies are thinner than they are wide, so they may come
- * closer. It is what lets someone squeeze behind the bar past a bartender at work.
+ * How close two people's middles ever come, in any direction: the corners of two bodies
+ * clear however they are turned. Someone walking across the view has their arms front and back, so this is no
+ * smaller from front to back, and on screen anything less looks like walking into them.
  */
-const depthScale = 1.2;
-/** How far apart two people are, measured so that `personClearance` is just clear. */
-export const personGap = (a: FloorPoint, b: FloorPoint) =>
-  Math.hypot(a[0] - b[0], (a[1] - b[1]) * depthScale);
+export const personClearance = 0.95;
+export const seatedClearance = 0.86;
+export const personGap = (a: FloorPoint, b: FloorPoint) => Math.hypot(a[0] - b[0], a[1] - b[1]);
 /** The shortest furniture-free walk from one floor point to another. */
 export function guestPath(from: FloorPoint, to: FloorPoint): FloorPoint[] {
   if (distance(from, to) < 1e-6) return [];
@@ -319,23 +332,27 @@ export interface Agent {
   goal: FloorPoint;
   path: FloorPoint[];
   speed: number;
+  /** A share of that speed, for slowing to a stop and setting off gently. */
+  pace: number;
   /** How routes are found: round the furniture, or the bartender's walk round the bar. */
   route: (from: FloorPoint, to: FloorPoint) => FloorPoint[];
-  /** Following a fixed route that is never shortened, such as the walk round the bar. */
-  rails: boolean;
+  /** Goes through first when two people meet in a gap with room for one. */
+  firstThrough: boolean;
   /** Busy at a spot (a sink, the counter), so others walk round instead of asking them to move. */
   anchored: boolean;
   /** Gone through the door: nobody needs to walk round them any more. */
   gone: boolean;
   velocity: FloorPoint;
+  /** The velocity they were actually moving at last frame. */
+  moving: FloorPoint;
   /** The velocity they would like, before anyone else is taken into account. */
   want: FloorPoint;
   plannedFor: FloorPoint | null;
   replanIn: number;
   /** Seconds spent unable to move as they want. */
   stuck: number;
-  /** Seconds left of squeezing past, the last resort of someone stuck for a long time. */
-  squeezing: number;
+  /** Seconds left of staying out of the way after stepping aside for someone. */
+  aside: number;
   /** Seconds left of backing out of a narrow place to let someone through. */
   backing: number;
   /** Who they are backing away from. */
@@ -344,43 +361,56 @@ export interface Agent {
 export const newAgent = (
   position: FloorPoint,
   speed: number,
-  options: Partial<Pick<Agent, 'route' | 'rails' | 'goal'>> = {},
+  options: Partial<Pick<Agent, 'route' | 'firstThrough' | 'goal'>> = {},
 ): Agent => ({
   position: [...position],
   goal: [...(options.goal ?? position)],
   path: [],
   speed,
+  pace: 1,
   route: options.route ?? guestPath,
-  rails: options.rails ?? false,
+  firstThrough: options.firstThrough ?? false,
   anchored: false,
   gone: false,
   velocity: [0, 0],
+  moving: [0, 0],
   want: [0, 0],
   plannedFor: null,
   replanIn: 0,
   stuck: 0,
-  squeezing: 0,
+  aside: 0,
   backing: 0,
   backingFrom: null,
 });
 /** How often a route is looked over: shortened, or planned again after a dodge. */
 export const routeCheck = 0.3;
 const stuckLimit = 8;
-const steerMargin = 0.1;
+/** With room to spare, people pass this much wider than the least they ever come. */
+const steerMargin = 0.55;
 const clearAhead = 0.12;
 const settleDistance = 0.3;
+/** How quickly people get up to speed and slow down: full speed in a fifth of a second. */
+const briskness = 5;
 const backOutAfter = 0.6;
 const rightOfWay = 1.5;
 const backOutFor = 0.9;
 const horizon = 2.5;
 const inRoom = ([x, z]: FloorPoint) =>
-  x >= doorX + 0.3 && x <= -doorX - 0.3 && z >= -3.85 && z <= 7.3;
+  // The doorway is open to the street, so people can walk through it.
+  (x >= doorX + 0.3 || Math.abs(z - entrance[2]) < 0.6) &&
+  x <= -doorX - 0.3 &&
+  z >= -4.05 &&
+  z <= 7.3;
 const free = (p: FloorPoint) => inRoom(p) && !blocked(p);
 const still = (v: FloorPoint) => v[0] * v[0] + v[1] * v[1] < 1e-12;
 /** Seated in a chair: the chair is already furniture, so nobody has to walk round them. */
 const settled = (a: Agent) =>
   !a.path.length && seats.some(([x, , z]) => distance(a.position, [x, z]) < 1e-3);
 const solid = (a: Agent) => !a.gone && !settled(a);
+/** Everyone keeps clear of everyone, seated or not, until they are out through the door. */
+const blocks = (a: Agent, o: Agent) => o !== a && !o.gone;
+/** How close someone may come to this person: a seated body fills less floor. */
+const clearanceFrom = (o: Agent) => (settled(o) ? seatedClearance : personClearance);
 function followRoute(a: Agent, dt: number) {
   a.replanIn -= dt;
   if (!a.plannedFor || distance(a.plannedFor, a.goal) > 1e-6) {
@@ -396,23 +426,21 @@ function followRoute(a: Agent, dt: number) {
     // back when it is that close: a route could lead the long way round the room.
     if (distance(a.position, a.goal) > 0.01)
       a.path =
-        distance(a.position, a.goal) < 1.5 && clear(a.position, a.goal)
+        distance(a.position, a.goal) < 1.5 && (clear(a.position, a.goal) || blocked(a.goal))
           ? [[...a.goal]]
           : a.route(a.position, a.goal);
     return;
   }
-  // Pushed off the walk round the bar: pick it up again from wherever they are now.
-  if (a.rails && a.stuck > 0.5) {
-    a.path = a.route(a.position, a.goal);
-    return;
-  }
   if (!free(a.position) || blocked(a.path[0])) return;
   if (!clear(a.position, a.path[0])) a.path = a.route(a.position, a.goal);
-  else if (!a.rails && a.path.length > 1 && !blocked(a.path[1]) && clear(a.position, a.path[1]))
-    a.path.shift();
+  else if (a.path.length > 1 && !blocked(a.path[1]) && clear(a.position, a.path[1])) a.path.shift();
 }
 function wantedVelocity(a: Agent, agents: Agent[], dt: number) {
   a.want[0] = a.want[1] = 0;
+  // Stepped aside for someone: stay there until they have gone by, rather than step
+  // straight back into their way.
+  a.aside -= dt;
+  if (a.aside > 0) return;
   while (a.path.length) {
     const d = distance(a.position, a.path[0]);
     // Corners are taken a little wide of the point; a chair and the spot in front of it exactly.
@@ -429,12 +457,19 @@ function wantedVelocity(a: Agent, agents: Agent[], dt: number) {
     a.path.length === 1 &&
     d < personClearance + 0.1 &&
     agents.some(
-      (o) => o !== a && solid(o) && still(o.want) && distance(o.position, next) < personClearance,
+      (o) => blocks(a, o) && still(o.want) && distance(o.position, next) < clearanceFrom(o),
     )
   )
     return;
-  // Held up, even the quick bartender slows to a walk rather than dart about in the crowd.
-  const speed = Math.min(a.stuck > 0.5 ? Math.min(a.speed, guestSpeed) : a.speed, d / dt);
+  // Near anyone, the quick bartender slows to a walk: at a run there is no time to step
+  // round someone, and it looks like barging through them.
+  const crowded =
+    a.speed > guestSpeed &&
+    agents.some((o) => o !== a && solid(o) && personGap(a.position, o.position) < 3);
+  // Brake in time for a stop, rather than walk flat out up to it and halt in one frame.
+  const stops = a.path.length === 1 || blocked(a.path[1]);
+  const braking = stops ? Math.sqrt(1.4 * briskness * a.speed * d) : Infinity;
+  const speed = Math.min((crowded ? guestSpeed : a.speed) * a.pace, braking, d / dt);
   a.want[0] = ((next[0] - a.position[0]) / d) * speed;
   a.want[1] = ((next[1] - a.position[1]) / d) * speed;
 }
@@ -463,14 +498,14 @@ function makeWay(a: Agent, agents: Agent[]) {
     if (Math.abs(off) > personClearance + 0.05) continue;
     const sx = -o.want[1] / w,
       sz = o.want[0] / w;
-    let side = off < 0 ? -1 : 1;
-    if (
-      !free([a.position[0] + sx * side * 0.3, a.position[1] + sz * side * 0.3]) &&
-      free([a.position[0] - sx * side * 0.3, a.position[1] - sz * side * 0.3])
-    )
-      side = -side;
-    a.want[0] = sx * side * a.speed * 0.6;
-    a.want[1] = sz * side * a.speed * 0.6;
+    const side = off < 0 ? -1 : 1;
+    // To the side, or with something there just further on ahead of them: crossing to the
+    // other side would only take this person across the line they are trying to walk.
+    const open = free([a.position[0] + sx * side * 0.3, a.position[1] + sz * side * 0.3]);
+    const pace = Math.min(a.speed, guestSpeed) * 0.6;
+    a.want[0] = (open ? sx * side : dx / (d || 1)) * pace;
+    a.want[1] = (open ? sz * side : dz / (d || 1)) * pace;
+    a.aside = 0.8;
     return;
   }
 }
@@ -496,12 +531,13 @@ function backOut(a: Agent, agents: Agent[], dt: number) {
   if (a.stuck < backOutAfter || still(a.want)) return;
   const w = Math.hypot(a.want[0], a.want[1]);
   for (const o of agents) {
-    if (o === a || !solid(o) || still(o.want) || o.backing > 0) continue;
+    if (o === a || !solid(o) || still(o.want) || o.backing > 0 || o.aside > 0) continue;
     if (personGap(a.position, o.position) > personClearance + 0.35) continue;
     const dx = o.position[0] - a.position[0],
       dz = o.position[1] - a.position[1];
     if ((dx * a.want[0] + dz * a.want[1]) / ((Math.hypot(dx, dz) || 1) * w) < 0.2) continue;
-    const first = o.rails !== a.rails ? o.rails : agents.indexOf(o) < agents.indexOf(a);
+    const first =
+      o.firstThrough !== a.firstThrough ? o.firstThrough : agents.indexOf(o) < agents.indexOf(a);
     if (!first) continue;
     a.backing = backOutFor;
     a.backingFrom = o;
@@ -544,7 +580,7 @@ function steer(a: Agent, agents: Agent[], dt: number) {
   nearby.length = 0;
   const look = personClearance + (a.speed + guestSpeed) * horizon * 0.5;
   for (const o of agents)
-    if (o !== a && solid(o) && distance(a.position, o.position) < look) nearby.push(o);
+    if (blocks(a, o) && distance(a.position, o.position) < look) nearby.push(o);
   // Only with someone actually beside them: alone, they would only ever circle the line.
   const pressed =
     a.stuck > 0.5 && nearby.some((o) => personGap(a.position, o.position) < personClearance + 0.4);
@@ -553,7 +589,7 @@ function steer(a: Agent, agents: Agent[], dt: number) {
     ((!startsFree || (a.path.length > 0 && blocked(a.path[0]))) &&
       a.backing <= 0 &&
       // Someone going in stays on the line: off it, they could never get back into the chair.
-      !(pressed && (a.rails || !startsFree)));
+      !(pressed && !startsFree));
   // The last step onto a spot that is clear of everyone needs no steering: judged by
   // its speed, that one small step would look like running into whoever stands beside it.
   if (
@@ -571,32 +607,41 @@ function steer(a: Agent, agents: Agent[], dt: number) {
   const ahead = (speed: number) => Math.max(dt, clearAhead / Math.max(speed, 1e-6));
   probe[0] = a.position[0] + wx * ahead(wanted);
   probe[1] = a.position[1] + wz * ahead(wanted);
-  if (docking || a.squeezing > 0 || (!nearby.length && free(probe))) {
+  if (docking || (!nearby.length && free(probe))) {
     a.velocity[0] = wx;
     a.velocity[1] = wz;
     return;
   }
-  const reach = personClearance + steerMargin;
+  // How wide of anyone this velocity would pass: touching is what to avoid at nearly any
+  // cost, while passing close is only something to avoid when there is room to go wider.
+  const wide = personClearance + steerMargin;
+  let tightest = 0;
   const soonestTouch = (cx: number, cz: number) => {
     let soonest = Infinity;
+    tightest = 0;
     for (const o of nearby) {
       // Both sides of a meeting take half the avoiding on themselves.
       const shared = !still(o.want) && a.stuck < 0.2;
       const rx = shared ? 2 * cx - a.velocity[0] - o.velocity[0] : cx - o.velocity[0];
       const rz = shared ? 2 * cz - a.velocity[1] - o.velocity[1] : cz - o.velocity[1];
       const px = o.position[0] - a.position[0],
-        pz = (o.position[1] - a.position[1]) * depthScale;
-      // Already nearer than the margin (a tight spot): only actually touching counts,
-      // or two people slipping past each other could never finish doing so.
-      const room = px * px + pz * pz < reach * reach ? personClearance + 0.005 : reach;
-      const t = timeToTouch(px, pz, rx, rz * depthScale, room);
+        pz = o.position[1] - a.position[1];
+      const t = timeToTouch(px, pz, rx, rz, clearanceFrom(o) + 0.005);
       if (t < soonest) soonest = t;
+      const r2 = rx * rx + rz * rz;
+      const along = r2 > 1e-9 ? (px * rx + pz * rz) / r2 : 0;
+      // Going to stand beside someone is not passing them: no use trying to go wide of them.
+      // Nor is there any going wide of someone seated: their chair is on the route already.
+      if (along <= 0 || along > horizon || settled(o) || personGap(a.goal, o.position) < wide)
+        continue;
+      const closest = Math.hypot(px - rx * along, pz - rz * along);
+      if (closest < wide) tightest = Math.max(tightest, (wide - closest) / steerMargin);
     }
     return soonest;
   };
   // Nobody in the way: just go, and forget any dodge. Weighing up alternatives with no
   // reason to could leave someone circling the spot they are trying to reach.
-  if (free(probe) && soonestTouch(wx, wz) >= horizon) {
+  if (free(probe) && soonestTouch(wx, wz) >= horizon && tightest === 0) {
     a.velocity[0] = wx;
     a.velocity[1] = wz;
     return;
@@ -605,16 +650,19 @@ function steer(a: Agent, agents: Agent[], dt: number) {
     bx = 0,
     bz = 0;
   const consider = (cx: number, cz: number, base: number) => {
-    // The longer someone has been held up, the further from their way they will go.
+    // The longer someone has been held up, the further from their way they will go, up to
+    // a point: past that they stand and wait for room rather than wander off.
     let cost =
       base +
-      (Math.hypot(cx - wx, cz - wz) * (1 - Math.min(a.stuck, 1) * 0.85) +
+      (Math.hypot(cx - wx, cz - wz) * (1 - Math.min(a.stuck, 1) * 0.5) +
         0.3 * Math.hypot(cx - a.velocity[0], cz - a.velocity[1])) /
         a.speed;
     if (cost >= bestCost) return;
     const soonest = soonestTouch(cx, cz);
     if (soonest === 0) cost += 100;
     else if (soonest < horizon) cost += 1.2 / soonest;
+    // Gives up on passing wide once someone has been held up.
+    cost += Math.min(tightest, 1) * 0.45 * Math.max(0, 1 - a.stuck);
     if (cost >= bestCost) return;
     if (cx !== 0 || cz !== 0) {
       const look = ahead(Math.hypot(cx, cz));
@@ -631,33 +679,58 @@ function steer(a: Agent, agents: Agent[], dt: number) {
       cz = wx * turnSin[t] + wz * turnCos[t];
     for (const pace of paces) consider(cx * pace, cz * pace, turns[t] < 0 ? 0.04 : 0);
   }
-  consider(0, 0, 0.15 + a.stuck);
+  // Straight along the room's axes too, for edging along a wall past someone.
+  consider(Math.sign(wx) * wanted, 0, 0.02);
+  consider(0, Math.sign(wz) * wanted, 0.02);
+  consider(0, 0, 0.15 + Math.min(a.stuck, 1) * 0.3);
   a.velocity[0] = bx;
   a.velocity[1] = bz;
 }
 /** Take the step, stopping short of anyone it would bring within reach. */
 function move(a: Agent, agents: Agent[], dt: number) {
+  // Braking has already brought them to a stop by the time they want to stand still.
+  if (still(a.want)) a.moving[0] = a.moving[1] = 0;
+  // Nobody goes from standing to walking, or walking to standing, in one frame.
+  const change = Math.hypot(a.velocity[0] - a.moving[0], a.velocity[1] - a.moving[1]);
+  const most = briskness * a.speed * dt;
+  if (change > most) {
+    a.velocity[0] = a.moving[0] + ((a.velocity[0] - a.moving[0]) * most) / change;
+    a.velocity[1] = a.moving[1] + ((a.velocity[1] - a.moving[1]) * most) / change;
+  }
+  // Never past a stop and back: the last step lands on it.
+  const stop = a.path.length === 1 || (a.path.length > 1 && blocked(a.path[1])) ? a.path[0] : null;
+  if (stop) {
+    const left = distance(a.position, stop);
+    const step = Math.hypot(a.velocity[0], a.velocity[1]) * dt;
+    const towards =
+      a.velocity[0] * (stop[0] - a.position[0]) + a.velocity[1] * (stop[1] - a.position[1]) > 0;
+    if (towards && step > left && step > 0) {
+      a.velocity[0] *= left / step;
+      a.velocity[1] *= left / step;
+    }
+  }
   const dx = a.velocity[0] * dt,
     dz = a.velocity[1] * dt;
   if (dx === 0 && dz === 0) {
+    a.moving[0] = a.moving[1] = 0;
     a.stuck = still(a.want) ? 0 : a.stuck + dt;
     return;
   }
   let share = 1;
-  if (a.squeezing <= 0 && !a.gone)
+  if (!a.gone)
     for (const o of agents) {
-      if (o === a || !solid(o)) continue;
+      if (!blocks(a, o)) continue;
       const px = o.position[0] - a.position[0],
-        pz = (o.position[1] - a.position[1]) * depthScale;
-      const b = dx * px + dz * depthScale * pz;
+        pz = o.position[1] - a.position[1];
+      const b = dx * px + dz * pz;
       // Moving away from someone already too close is always allowed.
       if (b <= 0) continue;
-      const c = px * px + pz * pz - personClearance * personClearance;
+      const c = px * px + pz * pz - clearanceFrom(o) * clearanceFrom(o);
       if (c <= 0) {
         share = 0;
         break;
       }
-      const m = dx * dx + dz * depthScale * (dz * depthScale);
+      const m = dx * dx + dz * dz;
       const disc = b * b - m * c;
       if (disc >= 0) share = Math.min(share, Math.max(0, (b - Math.sqrt(disc)) / m));
     }
@@ -666,10 +739,32 @@ function move(a: Agent, agents: Agent[], dt: number) {
   // What others see is how they actually move: someone held up is not coming at anybody.
   a.velocity[0] *= share;
   a.velocity[1] *= share;
+  a.moving[0] = a.velocity[0];
+  a.moving[1] = a.velocity[1];
   // Getting nowhere counts however busy it looks: stepping to and fro makes no progress.
   const wanted = Math.hypot(a.want[0], a.want[1]);
   if (((dx * a.want[0] + dz * a.want[1]) * share) / wanted < wanted * dt * 0.3) a.stuck += dt;
   else a.stuck = Math.max(0, a.stuck - dt * 2);
+}
+/**
+ * Held up for a long time, someone walks well back from whoever is nearest and tries
+ * again. They never walk through anybody, however long it has been.
+ */
+function makeRoom(a: Agent, agents: Agent[]) {
+  a.stuck = 0;
+  let nearest: Agent | null = null;
+  for (const o of agents)
+    if (
+      o !== a &&
+      solid(o) &&
+      (!nearest || personGap(a.position, o.position) < personGap(a.position, nearest.position))
+    )
+      nearest = o;
+  if (nearest) {
+    a.backing = stuckLimit / 4;
+    a.backingFrom = nearest;
+  }
+  a.plannedFor = null;
 }
 /**
  * One frame for the whole crowd. Nothing here depends on the size of a frame, and nobody
@@ -684,12 +779,7 @@ export function stepCrowd(agents: Agent[], dt: number) {
   for (const a of agents) makeWay(a, agents);
   for (const a of agents) backOut(a, agents, dt);
   for (const a of agents) {
-    if (a.stuck > stuckLimit) {
-      // Never left frozen for good: squeeze past as a very last resort.
-      a.squeezing = 1;
-      a.stuck = 0;
-    }
-    a.squeezing -= dt;
+    if (a.stuck > stuckLimit) makeRoom(a, agents);
     steer(a, agents, dt);
     move(a, agents, dt);
   }

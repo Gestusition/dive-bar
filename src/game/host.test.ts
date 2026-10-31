@@ -34,8 +34,8 @@ describe('hired host', () => {
     Object.assign(guest, { status: 'reading', seat: 0 });
     next = hostDestination(game.guests, next.visit, greeted);
     expect(next.visit?.escorting).toBe(true);
-    // Beside the spot in front of the chair, leaving it free for the guest.
-    expect(next.target[1]).toBe(seatApproach[0][1]);
+    // Beside the spot the guest sits down from, leaving it free for them.
+    expect(next.target[0]).toBe(seatApproach[0][0]);
     expect(
       Math.hypot(next.target[0] - seatApproach[0][0], next.target[1] - seatApproach[0][1]),
     ).toBeGreaterThanOrEqual(personClearance);

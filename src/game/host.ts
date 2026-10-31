@@ -1,5 +1,11 @@
 import type { Guest } from './engine';
-import { guestPosition, seatApproach, type FloorPoint } from './navigation';
+import {
+  counterSeats,
+  guestPosition,
+  seatApproach,
+  seatFacing,
+  type FloorPoint,
+} from './navigation';
 
 // A visible spot inside the room, independent of the responsive side walls.
 export const hostHome: FloorPoint = [-5.1, 5.4];
@@ -30,12 +36,14 @@ export function hostDestination(
     return { visit, target: [x, z - greetingDistance] };
   }
   const approach = seatApproach[guest.seat];
-  // Show the way to the chair from beside the spot in front of it, so the guest can
-  // step past into their seat and the host can walk away without either waiting.
-  const target: FloorPoint | undefined = approach && [
-    approach[0] + Math.sign(approach[0]) * escortOffset,
-    approach[1],
-  ];
+  // Show the way to the chair from beside the spot the guest sits down from, so they can
+  // step past into their seat and the host can walk away without either waiting: on the
+  // side away from the table, or towards the middle of the room from a stool.
+  const target: FloorPoint | undefined =
+    approach &&
+    (counterSeats.includes(guest.seat)
+      ? [approach[0] - Math.sign(approach[0]) * escortOffset, approach[1]]
+      : [approach[0], approach[1] + (seatFacing(guest.seat) === 0 ? -1 : 1) * escortOffset]);
   if (
     !target ||
     (visit.escorting && Math.hypot(position[0] - target[0], position[1] - target[1]) < 0.05)
