@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { newGame, reduceGame } from './engine';
+import { hostHome } from './host';
 import { startClock, useGame } from './store';
 import {
   decodeBackup,
@@ -139,6 +140,25 @@ describe('service clock and queue', () => {
     expect(useGame.getState().bartenderPosition).toEqual(initial.bartenderPosition);
     useGame.getState().act({ type: 'finish' });
     expect(useGame.getState().game.phase).toBe('recap');
+  });
+  it('hands the job to the bartender and sends the host home when they go off duty', () => {
+    closing(true);
+    vi.advanceTimersByTime(1000);
+    expect(useGame.getState().cleanupJob).toMatchObject({ kind: 'wipe', actor: 'host' });
+    expect(useGame.getState().hostPosition).not.toEqual(hostHome);
+    useGame.getState().act({ type: 'toggleDecor', item: 'barback' });
+    vi.advanceTimersByTime(250);
+    expect(useGame.getState().cleanupJob).toMatchObject({ kind: 'wipe', actor: 'bartender' });
+    expect(useGame.getState().hostPosition).toEqual(hostHome);
+    expect(useGame.getState().game.mess).toBe(3);
+    // What was already queued gets done, but nothing new is picked up without being asked.
+    vi.advanceTimersByTime(60000);
+    expect(useGame.getState().cleanupJob).toBeNull();
+    expect(useGame.getState().game).toMatchObject({ mess: 0, trash: 0, dirtyGlasses: 0 });
+    useGame.setState({ game: { ...useGame.getState().game, dirtyGlasses: 2 } });
+    vi.advanceTimersByTime(1000);
+    expect(useGame.getState().cleanupJob).toBeNull();
+    expect(useGame.getState().cleanupQueue).toEqual([]);
   });
   it('pauses cleanup progress and worker movement in dialogs and on a hidden tab', () => {
     closing(true);

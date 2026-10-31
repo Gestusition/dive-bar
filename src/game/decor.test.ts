@@ -55,8 +55,33 @@ describe('decor on display', () => {
     expect(decorOff).toEqual(['neon']);
     // Saves before this version (layout 2) had no decor to put away.
     expect(validateSave({ ...older, version: 2 }).decorOff).toEqual([]);
-    expect(() => validateSave({ ...game, decorOff: ['barback'] })).toThrow();
+    expect(() => validateSave({ ...game, decorOff: ['piano'] })).toThrow();
     expect(() => validateSave({ ...game, decorOff: ['neon', 'neon'] })).toThrow();
+  });
+  it('sends the host off duty and back without refunding them or charging again', () => {
+    let game = reduceGame(newGame(), { type: 'buy', item: 'barback' });
+    const cash = game.cash;
+    game = reduceGame(game, { type: 'toggleDecor', item: 'barback' });
+    expect(decorShown(game, 'barback')).toBe(false);
+    expect(game.upgrades.barback).toBe(true);
+    expect(game.cash).toBe(cash);
+    expect(validateSave(JSON.parse(JSON.stringify(game))).decorOff).toEqual(['barback']);
+    game = reduceGame(game, { type: 'toggleDecor', item: 'barback' });
+    expect(decorShown(game, 'barback')).toBe(true);
+    expect(game.cash).toBe(cash);
+  });
+  it('leaves guests at the door for the player while the host is off duty', () => {
+    const waited = (off: boolean) => {
+      let game = reduceGame(reduceGame(newGame(), { type: 'buy', item: 'barback' }), {
+        type: 'open',
+      });
+      if (off) game = reduceGame(game, { type: 'toggleDecor', item: 'barback' });
+      game.spawnIn = 300;
+      for (let i = 0; i < 16; i++) game = reduceGame(game, { type: 'tick', dt: 0.25 });
+      return game.guests[0].status;
+    };
+    expect(waited(false)).toBe('reading');
+    expect(waited(true)).toBe('waiting');
   });
 });
 

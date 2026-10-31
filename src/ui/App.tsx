@@ -26,10 +26,8 @@ import {
 } from '../game/content';
 import {
   ambience,
-  decorIds,
   decorShown,
   upgradeInfo,
-  type Decor,
   type Game,
   type Guest,
   type Upgrade,
@@ -455,8 +453,8 @@ function DecorPanel() {
       <div className="shop-items">
         {decorItems.map((item) => {
           const owned = game.upgrades[item.id];
-          const decor = decorIds.includes(item.id as Decor) ? (item.id as Decor) : null;
-          const shown = decor ? decorShown(game, decor) : owned;
+          const shown = decorShown(game, item.id);
+          const staff = item.id === 'barback';
           return (
             <div
               className={
@@ -469,33 +467,28 @@ function DecorPanel() {
                 <strong>{item.name}</strong>
                 <p>{item.description}</p>
               </div>
-              {owned && decor ? (
-                // Owned decor can be put away and brought back out at any time.
+              {owned ? (
+                // Anything owned can be put away and brought back out at any time.
                 <label className="decor-toggle">
-                  <small>{shown ? 'On display' : 'Put away'}</small>
+                  <small>
+                    {staff ? (shown ? 'On duty' : 'Off duty') : shown ? 'On display' : 'Put away'}
+                  </small>
                   <Switch.Root
                     className="switch"
                     checked={shown}
-                    onCheckedChange={() => act({ type: 'toggleDecor', item: decor })}
-                    aria-label={'Show ' + item.name}
+                    onCheckedChange={() => act({ type: 'toggleDecor', item: item.id })}
+                    aria-label={staff ? item.name + ' on duty' : 'Show ' + item.name}
                   >
                     <Switch.Thumb className="switch-thumb" />
                   </Switch.Root>
                 </label>
               ) : (
                 <Button
-                  variant={owned ? 'secondary' : 'default'}
                   size="sm"
-                  disabled={owned || game.cash < upgradeInfo[item.id].cost}
+                  disabled={game.cash < upgradeInfo[item.id].cost}
                   onClick={() => act({ type: 'buy', item: item.id })}
                 >
-                  {owned ? (
-                    <>
-                      <Check size={14} /> Owned
-                    </>
-                  ) : (
-                    money(upgradeInfo[item.id].cost)
-                  )}
+                  {money(upgradeInfo[item.id].cost)}
                 </Button>
               )}
             </div>
@@ -677,7 +670,7 @@ function ClosingCard() {
       </div>
       <CleanupStatus />
       <p className="hint">
-        {game.upgrades.barback
+        {decorShown(game, 'barback')
           ? 'Your host handles cleanup automatically.'
           : 'The bartender walks over and completes each cleanup job.'}{' '}
         Restock whenever you need supplies; it is optional for closing.

@@ -314,7 +314,15 @@ export function startClock() {
     s.act({ type: 'tick', dt: 0.25 });
     advanceCleanup();
     const current = useGame.getState();
-    if (current.game.upgrades.barback && current.cleanupJob?.actor !== 'host') {
+    if (!decorShown(current.game, 'barback')) {
+      // Sent home: back on duty, the host starts from their spot with nothing in hand.
+      if (current.hostVisit || current.hostPosition.some((v, i) => v !== hostHome[i]))
+        useGame.setState({
+          hostPosition: [...hostHome],
+          hostTarget: [...hostHome],
+          hostVisit: null,
+        });
+    } else if (current.cleanupJob?.actor !== 'host') {
       const next = hostDestination(current.game.guests, current.hostVisit, current.hostPosition);
       const walk = stepAlong(
         current.hostPosition,
@@ -394,7 +402,14 @@ export function startClock() {
 /** Work progresses on the same pausable clock as service; effects commit only on completion. */
 function advanceCleanup() {
   let s = useGame.getState();
-  if (s.game.upgrades.barback) {
+  const host = decorShown(s.game, 'barback');
+  // Sent home mid-job: nothing is written until a job is done, so it starts over.
+  if (!host && s.cleanupJob?.actor === 'host')
+    useGame.setState({
+      cleanupJob: null,
+      cleanupQueue: [s.cleanupJob.kind, ...s.cleanupQueue],
+    });
+  if (host) {
     if (s.game.phase === 'closing') {
       if (!s.game.closing.wipe || s.game.mess > 0) s.queueCleanup('wipe');
       if (!s.game.closing.trash || s.game.trash > 0) s.queueCleanup('trash');
@@ -408,7 +423,7 @@ function advanceCleanup() {
     useGame.setState({
       cleanupJob: {
         kind,
-        actor: s.game.upgrades.barback ? 'host' : 'bartender',
+        actor: host ? 'host' : 'bartender',
         stage: 'walking',
         left: cleanupInfo[kind].seconds,
       },

@@ -116,12 +116,12 @@ export interface Game {
   /** The drinks given to the last few arriving guests, newest last. */
   recentOrders: string[];
   foodStock: Record<'pretzel' | 'toastie', number>;
-  /** Owned decor the player has put away; it stays owned and can go back up. */
-  decorOff: Decor[];
+  /** Owned upgrades the player has put away or sent home; they stay owned and can come back. */
+  decorOff: Upgrade[];
 }
-/** Upgrades that decorate the room and can be put away. The host is staff, not decor. */
-export type Decor = Exclude<Upgrade, 'barback'>;
-export const decorIds: Decor[] = [
+/** Everything in the shop can be put away, the host included. */
+export const decorIds: Upgrade[] = [
+  'barback',
   'plant',
   'neon',
   'doorLights',
@@ -129,8 +129,8 @@ export const decorIds: Decor[] = [
   'counterDecor',
   'wallArt',
 ];
-/** Owned and on display. Only shown decor changes the room, its music or its tips. */
-export const decorShown = (s: Pick<Game, 'upgrades' | 'decorOff'>, item: Decor) =>
+/** Owned and on display. Only shown decor changes the room, its music or its tips; only a host on duty works. */
+export const decorShown = (s: Pick<Game, 'upgrades' | 'decorOff'>, item: Upgrade) =>
   s.upgrades[item] && !s.decorOff.includes(item);
 export type Action =
   | {
@@ -182,7 +182,7 @@ export type Action =
     }
   | { type: 'choice'; id: number; conversationId: string; nodeId: string; choiceId: string }
   | { type: 'buy'; item: Upgrade }
-  | { type: 'toggleDecor'; item: Decor }
+  | { type: 'toggleDecor'; item: Upgrade }
   | {
       type: 'setting';
       key: keyof Game['settings'];
@@ -531,7 +531,7 @@ function tick(s: Game, dt: number) {
   }
   s.guests = s.guests.filter((g) => g.status !== 'leaving' || g.remaining > 0);
   // The host greets guests at the door, shows them to a seat and keeps glasses washed.
-  if (s.upgrades.barback) {
+  if (decorShown(s, 'barback')) {
     const door = s.guests.find((g) => g.status === 'waiting' && g.lead && g.remaining < 87);
     if (door && !seatProblem(s, door) && seatParty(s, door))
       s.notice = 'Your host showed ' + names(party(s, door)) + ' to a seat.';

@@ -581,7 +581,14 @@ test('fresh profiles and New game start with an unowned shop and persist the res
   await expect(page.locator('.shop-item.owned')).toHaveCount(0);
   const host = page.locator('.shop-item').filter({ has: page.getByText('Host', { exact: true }) });
   await host.getByRole('button').click();
-  await expect(host.getByRole('button', { name: 'Owned' })).toBeDisabled();
+  const onDuty = host.getByRole('switch', { name: 'Host on duty' });
+  await expect(onDuty).toBeChecked();
+  await expect(page.locator('.cash')).toHaveText('$60.00');
+  await onDuty.click();
+  await expect(onDuty).not.toBeChecked();
+  await expect(host.getByText('Off duty')).toBeVisible();
+  await onDuty.click();
+  await expect(onDuty).toBeChecked();
   await expect(page.locator('.cash')).toHaveText('$60.00');
   await page.getByRole('button', { name: 'Close panel' }).click();
   await page.clock.runFor(250);

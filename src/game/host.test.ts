@@ -1,9 +1,39 @@
 import { describe, expect, it } from 'vitest';
 import { newGame, reduceGame, upgradeInfo } from './engine';
 import { hostDestination, hostHome } from './host';
-import { guestPath, personClearance, seatApproach, stepAlong } from './navigation';
+import {
+  entrance,
+  guestPath,
+  guestSpeed,
+  newAgent,
+  personClearance,
+  personGap,
+  seatApproach,
+  seats,
+  stepAlong,
+  stepCrowd,
+  type FloorPoint,
+} from './navigation';
 
 describe('hired host', () => {
+  it('stands well clear of guests leaving from every seat', () => {
+    const door: FloorPoint = [entrance[0], entrance[2]];
+    seats.forEach(([x, , z], seat) => {
+      const host = newAgent(hostHome, guestSpeed);
+      const guest = newAgent([x, z], guestSpeed, { goal: door });
+      let closest = Infinity;
+      for (let frame = 0; frame < 60 * 20 && personGap(guest.position, door) > 0.05; frame++) {
+        stepCrowd([host, guest], 1 / 60);
+        closest = Math.min(closest, personGap(host.position, guest.position));
+      }
+      expect(personGap(guest.position, door), `seat ${seat} reached the door`).toBeLessThan(0.05);
+      // Well past the least people ever come: drawn from above, anyone walking behind
+      // the host at that distance would look like they were walking through them.
+      expect(closest, `seat ${seat}`).toBeGreaterThan(1.25);
+      expect(host.position).toEqual(hostHome);
+    });
+  });
+
   it('starts unowned, charges exactly once and leaves washing to the timed worker queue', () => {
     let game = reduceGame(newGame(), { type: 'open' });
     game.spawnIn = 300;

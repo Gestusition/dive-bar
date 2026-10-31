@@ -1095,7 +1095,7 @@ function Room({ guestGroups }: { guestGroups: SceneRefs['guestGroups'] }) {
   // Only what this draws: the whole game changes four times a second, and redrawing the
   // scene's React tree that often for nothing is a stutter of its own.
   const guestIds = useGame((s) => s.game.guests.map((g) => g.id).join());
-  const barback = useGame((s) => s.game.upgrades.barback);
+  const barback = useGame((s) => decorShown(s.game, 'barback'));
   const mess = useGame((s) => s.game.mess);
   const neon = useGame((s) => decorShown(s.game, 'neon'));
   const plant = useGame((s) => decorShown(s.game, 'plant'));

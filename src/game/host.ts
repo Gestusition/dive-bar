@@ -7,8 +7,9 @@ import {
   type FloorPoint,
 } from './navigation';
 
-// A visible spot inside the room, independent of the responsive side walls.
-export const hostHome: FloorPoint = [-5.1, 5.4];
+// A visible spot inside the room, independent of the responsive side walls, and clear of
+// the diagonal that guests walk from the tables down to the door.
+export const hostHome: FloorPoint = [-2, 6.2];
 /** How far in front of a waiting guest the host stands to greet them. */
 export const greetingDistance = 1.1;
 /** How far to the side of a seat's approach the host stops when showing the way. */
