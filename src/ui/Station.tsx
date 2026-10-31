@@ -134,6 +134,10 @@ export default function Station() {
     );
   }, [inspect]);
   const assess = quality(prep, recipe, guest?.extraCherry);
+  // The drink on the counter goes through the strainer on the way to the garnish.
+  useEffect(() => {
+    useGame.setState({ benchStep: step });
+  }, [step]);
   // A new drink starts from the first step.
   useEffect(() => {
     setStep('prep');
@@ -258,6 +262,9 @@ export default function Station() {
     if (unit === 'ml') prepAction('measure', { ingredient: bottle, amount });
     else for (let n = 0; n < amount; n++) prepAction('measure', { ingredient: bottle, amount: 1 });
     prepAction('transfer');
+    // A sugar cube goes straight in, with no measure to transfer; show the hand doing it.
+    if (unit !== 'ml' && unit !== 'dash')
+      useGame.setState({ pouring: { id: bottle, at: performance.now(), quantity: amount } });
   };
   // What is in the tin, plus what is mid-pour in the jigger.
   const poured = (ids: string[]) =>

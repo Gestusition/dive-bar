@@ -52,7 +52,9 @@ interface Store {
    * The last bottle poured, so the counter can show it tipping into the tin. A free pour
    * is `holding` for as long as the button is held down.
    */
-  pouring: { id: string; at: number; holding?: boolean } | null;
+  pouring: { id: string; at: number; holding?: boolean; quantity?: number } | null;
+  /** The step of the drink open at the counter; what is strained follows it. */
+  benchStep: 'prep' | 'pour' | 'mix' | 'garnish';
   tasks: {
     id: number;
     operation: 'seat' | 'order' | 'serve' | 'pay' | 'food' | 'move';
@@ -147,6 +149,7 @@ export const useGame = create<Store>((set, get) => ({
   dialogue: null,
   mixing: null,
   pouring: null,
+  benchStep: 'prep',
   tasks: [],
   bartenderPosition: [...bartenderHome],
   hostPosition: [...hostHome],
@@ -179,7 +182,10 @@ export const useGame = create<Store>((set, get) => ({
     sounds(before, game, a);
     if (a.type === 'prep' && a.operation === 'transfer') {
       const p = a.id === -1 ? before.practice : before.guests.find((g) => g.id === a.id)?.prep;
-      if (p?.measure) set({ pouring: { id: p.measure.id, at: performance.now() } });
+      if (p?.measure)
+        set({
+          pouring: { id: p.measure.id, at: performance.now(), quantity: p.measure.quantity },
+        });
     }
     if (a.type !== 'tick') persist(game);
   },

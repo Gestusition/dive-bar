@@ -42,17 +42,20 @@ import {
   floorPlantPosition,
 } from '../game/room-layout';
 import { money, roster } from '../game/content';
+import { brass, cream, dark, personModel, shoulders, standingParts, teal } from '../game/person';
+import { handTurn, reachFor, reaches, type Actor, type HandPose } from './hands';
 import {
-  armReach,
-  brass,
-  cream,
-  dark,
-  personModel,
-  shoulders,
-  standingParts,
-  teal,
-} from '../game/person';
-import { reachFor, reaches, type Actor } from './hands';
+  armStretch,
+  forearm,
+  forearmGeometry,
+  gripPoint,
+  handGeometry,
+  poseNames,
+  solveElbow,
+  upperArm,
+  upperArmGeometry,
+} from './staffRig';
+import BackBar from './backBar';
 import DrinkStage, { EmptyGlass, glassSize } from './DrinkStage';
 import { portraitImage } from './portraitRender';
 import { voxelGeometry, voxelMaterial } from './voxels';
@@ -204,30 +207,10 @@ function roomParts() {
     box(x, 2, -4.1, 1.4, 0.06, 0.05, cream);
     box(x, 1.15, -4.1, 1.9, 0.12, 0.5, brass);
   }
-  // Bottle shelves: one merged mesh rather than a mesh for every voxel.
-  // Low enough that the top row of bottles stays under the sign.
+  // Bottle shelves, low enough that the top row of bottles stays under the sign; the
+  // bottles on them are in backBar.tsx.
   for (const y of [1.45, 2.12]) {
     box(0, y, -4.05, 5.1, 0.13, 0.66, dark);
-    for (let i = 0; i < 13; i++) {
-      const x = -2.3 + i * 0.38;
-      // No two neighbours alike: tall, squat, slim, square-shouldered and long-necked.
-      const n = (i * 3 + (y > 2 ? 2 : 0)) % 7;
-      const c = ['#497c69', '#7b4437', '#c9944a', '#466a62', '#9c594c', '#b9c6b0', '#3c3a44'][n];
-      const [w, h, nw, nh] = (
-        [
-          [0.18, 0.34, 0.085, 0.12],
-          [0.24, 0.22, 0.08, 0.1],
-          [0.14, 0.38, 0.06, 0.16],
-          [0.22, 0.3, 0.1, 0.06],
-          [0.16, 0.22, 0.06, 0.24],
-        ] as const
-      )[(i + (y > 2 ? 3 : 0)) % 5];
-      const base = y + 0.065;
-      box(x, base + h / 2, -4.01, w, h, 0.2, c);
-      box(x, base + h + nh / 2, -4.01, nw, nh, 0.09, c);
-      box(x, base + h * 0.45, -3.9, w, h * 0.4, 0.025, ['#ead7ac', '#f4efe2', '#d8b98a'][i % 3]);
-      box(x, base + h + nh + 0.025, -4.01, nw + 0.01, 0.05, 0.1, i % 2 ? brass : dark);
-    }
   }
   // Counter: panelling, brass foot rail, drawers, POS and working mat.
   box(0, 0.56, -1.8, 7.6, 1.1, 1.05, oak);
@@ -239,7 +222,8 @@ function roomParts() {
     box(x, 0.66, -1.18, 0.64, 0.56, 0.03, '#86573a');
   }
   // The working mat and the ice well sit on the staff side, in reach from behind the bar.
-  box(-0.1, 1.26, -2.15, 2, 0.025, 0.6, '#28473f');
+  box(0.05, 1.26, -2.15, 2.5, 0.025, 0.64, '#28473f');
+  for (let z = -2.41; z < -1.87; z += 0.06) box(0.05, 1.274, z, 2.42, 0.006, 0.028, '#335a50');
   box(3, 1.38, -1.7, 0.55, 0.3, 0.45, '#3c4547');
   box(3, 1.58, -1.8, 0.55, 0.14, 0.28, '#98c8ac');
   box(-1.55, 1.32, -1.6, 0.58, 0.12, 0.6, '#617d7a');
@@ -454,101 +438,275 @@ const staffShoulders = shoulders.map(([x, y, z]) => new THREE.Vector3(x, y * sta
   THREE.Vector3,
   THREE.Vector3,
 ];
-const staffReach = armReach * staffHeight;
-const staffParts = new Map<string, { body: THREE.BufferGeometry; arm: THREE.BufferGeometry }>();
+/** Where the head turns from: the top of the neck. */
+const neckY = 0.78 * staffHeight;
+const staffParts = new Map<
+  string,
+  {
+    body: THREE.BufferGeometry;
+    head: THREE.BufferGeometry;
+    upper: THREE.BufferGeometry;
+    fore: THREE.BufferGeometry;
+    hands: [THREE.BufferGeometry, THREE.BufferGeometry];
+  }
+>();
 function staffGeometry(id: string) {
   let parts = staffParts.get(id);
   if (!parts) {
     const model = personModel(id, id === 'bartender');
-    const body = geometry([...model.body, ...model.head]);
+    // Shoulders the arms turn in, so that no gap opens over a raised arm.
+    const body = geometry([
+      ...model.body,
+      [-0.3, 0.73, 0, 0.2, 0.16, 0.25, model.shirt],
+      [0.3, 0.73, 0, 0.2, 0.16, 0.25, model.shirt],
+      [0, 0.82, 0, 0.2, 0.1, 0.2, model.skin],
+    ]);
     body.scale(1, staffHeight, 1);
-    const arm = geometry(model.arms[0]);
-    arm.scale(1, staffHeight, 1);
-    staffParts.set(id, (parts = { body, arm }));
+    const head = geometry(model.head);
+    head.scale(1, staffHeight, 1);
+    head.translate(0, -neckY, 0);
+    parts = {
+      body,
+      head,
+      upper: upperArmGeometry(model.shirt),
+      fore: forearmGeometry(model.shirt, model.skin),
+      hands: [handGeometry(model.skin, -1), handGeometry(model.skin, 1)],
+    };
+    staffParts.set(id, parts);
   }
   return parts;
 }
 const hanging = new THREE.Vector3(0, -1, 0);
 /** Behind the counter (towards the back wall from here) the floor is raised boards. */
 const behindBar = -2.5,
-  boardHeight = 0.5;
+  boardHeight = 0.68;
+/** From the wrist to the elbow's way out: out from the body, down and back. */
+const elbowPole = (side: number, out: THREE.Vector3) => out.set(side ? 0.5 : -0.5, -1, -0.8);
+/** Arms at rest: bent a little, the hands by the hips with their palms turned in. */
+const restWrists = [new THREE.Vector3(-0.37, 0.4, 0.05), new THREE.Vector3(0.37, 0.4, 0.05)];
+/** Hanging at rest an arm is drawn a little shorter than one reaching out to work. */
+const restArm = 0.78;
+const restTurns = [
+  handTurn([0, -1, 0.1], [1, 0, 0], new THREE.Quaternion()),
+  handTurn([0, -1, 0.1], [-1, 0, 0], new THREE.Quaternion()),
+];
 /**
  * A member of staff whose arms reach for whatever they are working with (see
  * hands.ts). When it is out of reach they step up to the counter and lean in, and
- * when nothing needs their hands the arms hang at their sides again.
+ * when nothing needs their hands the arms come back to rest. They look at the work.
  */
 function StaffFigure({ id, actor }: { id: string; actor: Actor }) {
-  const { body, arm } = staffGeometry(id);
+  const { body, head, upper, fore, hands } = staffGeometry(id);
   const root = useRef<THREE.Group>(null);
-  const arms = useRef<(THREE.Group | null)[]>([]);
+  const headRef = useRef<THREE.Group>(null);
+  const uppers = useRef<(THREE.Group | null)[]>([]);
+  const fores = useRef<(THREE.Group | null)[]>([]);
+  const handRefs = useRef<(THREE.Mesh | null)[]>([]);
   const scratch = useMemo(
-    () => ({ goal: new THREE.Vector3(), aim: new THREE.Vector3(), turn: new THREE.Quaternion() }),
+    () => ({
+      goal: new THREE.Vector3(),
+      aim: new THREE.Vector3(),
+      wrist: new THREE.Vector3(),
+      grip: new THREE.Vector3(),
+      elbow: new THREE.Vector3(),
+      pole: new THREE.Vector3(),
+      bone: new THREE.Vector3(),
+      look: new THREE.Vector3(),
+      turn: new THREE.Quaternion(),
+      undo: new THREE.Quaternion(),
+      spare: new THREE.Quaternion(),
+    }),
     [],
   );
+  const held = useMemo(
+    () =>
+      [0, 1].map((side) => ({
+        wrist: restWrists[side].clone(),
+        turn: restTurns[side].clone(),
+        // How far the hand still has to travel to what it has just gone for.
+        away: new THREE.Vector3(),
+        awayTurn: new THREE.Quaternion(),
+        key: 'rest',
+      })),
+    [],
+  );
+  const motion = useRef({
+    last: null as THREE.Vector3 | null,
+    walk: 0,
+    raised: 0,
+    length: restArm,
+  });
   useFrame(({ clock }, delta) => {
     const figure = root.current;
     if (!figure?.parent) return;
     const reach = reaches[actor];
+    const dt = Math.min(delta, 0.1);
     // Written this frame or the one before, however long frames take on this device.
     const fresh = clock.elapsedTime - reach.at <= Math.max(0.2, delta * 2.5);
-    const goals = [
-      fresh && reach.useLeft ? reach.left : null,
-      fresh && reach.useRight ? reach.right : null,
-    ];
-    const ease = 1 - Math.exp(-Math.min(delta, 0.1) * 12);
+    const goals = [0, 1].map((side) => (fresh && reach.use[side] ? reach.hands[side] : null));
+    const ease = 1 - Math.exp(-dt * 12);
     // How far forward the work is, in the character's own frame (they face +z).
     let ahead = 0,
+      aside = 0,
       count = 0;
     for (const g of goals)
       if (g) {
-        ahead += figure.parent.worldToLocal(scratch.goal.copy(g)).z;
+        figure.parent.worldToLocal(scratch.goal.copy(g.at));
+        ahead += scratch.goal.z;
+        aside += scratch.goal.x;
         count++;
       }
     ahead = count ? ahead / count : 0;
+    aside = count ? aside / count : 0;
     // Only work in front of them and within a step is theirs to reach for; walking
     // past the counter, they keep their arms at their sides.
-    let aside = 0;
-    for (const g of goals) if (g) aside += figure.parent.worldToLocal(scratch.goal.copy(g)).x;
-    aside = count ? aside / count : 0;
     const working = count > 0 && ahead > 0 && ahead < 1.4 && Math.abs(aside) < 1.3;
-    const step = working ? THREE.MathUtils.clamp(ahead - staffReach * 0.75, 0, 0.32) : 0;
-    const lean = working ? THREE.MathUtils.clamp((ahead - step - 0.3) * 0.4, 0, 0.12) : 0;
+    const step = working ? THREE.MathUtils.clamp(ahead - 0.41, 0, 0.26) : 0;
+    const lean = working ? THREE.MathUtils.clamp((ahead - step - 0.3) * 0.2, 0, 0.05) : 0;
     // Turn towards the work, so both hands get to it without crossing in front of the face.
-    const turn = working ? THREE.MathUtils.clamp(Math.atan2(aside, ahead) * 0.5, -0.42, 0.42) : 0;
+    const turn = working ? THREE.MathUtils.clamp(Math.atan2(aside, ahead) * 0.2, -0.08, 0.08) : 0;
     // Behind the bar, staff stand on the raised boards there, so the counter comes to
     // their waist and their hands reach the work on it.
-    const raised = figure.parent.getWorldPosition(scratch.goal).z < behindBar ? boardHeight : 0;
-    figure.position.y += (raised - figure.position.y) * ease;
+    const m = motion.current;
+    figure.parent.getWorldPosition(scratch.goal);
+    const moved = m.last ? m.last.distanceTo(scratch.goal) : 0;
+    if (m.last) m.last.copy(scratch.goal);
+    else m.last = scratch.goal.clone();
+    const raised = scratch.goal.z < behindBar ? boardHeight : 0;
+    m.raised += (raised - m.raised) * ease;
+    figure.position.y = m.raised + (working ? reach.bob : 0);
     figure.position.z += (step - figure.position.z) * ease;
     figure.rotation.x += (lean - figure.rotation.x) * ease;
     figure.rotation.y += (turn - figure.rotation.y) * ease;
     figure.updateMatrixWorld();
-    arms.current.forEach((pivot, side) => {
-      if (!pivot) return;
+    // Walking swings the arms, one forward as the other goes back.
+    m.walk += (Number(!working && moved > 0.0005) - m.walk) * (1 - Math.exp(-dt * 8));
+    const swing = Math.sin(clock.elapsedTime * 10) * 0.13 * m.walk;
+    m.length += ((working ? 1 : restArm) - m.length) * ease;
+    figure.getWorldQuaternion(scratch.undo).invert();
+    scratch.look.set(0, 0, 0);
+    let looks = 0;
+    held.forEach((hand, side) => {
       const goal = working ? goals[side] : null;
-      let stretch = 1;
+      const thumb = side ? 1 : -1;
+      const { wrist, turn: grip } = scratch;
+      let pose: HandPose = 'relaxed';
+      let key = 'rest';
       if (goal) {
-        figure.worldToLocal(scratch.aim.copy(goal)).sub(staffShoulders[side]);
-        const length = scratch.aim.length();
-        stretch = THREE.MathUtils.clamp(length / staffReach, 0.55, 1.25);
-        scratch.turn.setFromUnitVectors(hanging, scratch.aim.normalize());
-      } else scratch.turn.identity();
-      pivot.quaternion.slerp(scratch.turn, ease);
-      pivot.scale.y += (stretch - pivot.scale.y) * ease;
+        figure.worldToLocal(scratch.aim.copy(goal.at));
+        scratch.look.add(scratch.aim);
+        looks++;
+        pose = goal.pose;
+        key = goal.key;
+        if (goal.fixedTurn) grip.copy(scratch.undo).multiply(goal.turn);
+        else {
+          // Reaching with no particular grip: on along the line of the arm, palm down.
+          const a = scratch.bone.copy(scratch.aim).sub(staffShoulders[side]).normalize();
+          handTurn([a.x, a.y, a.z], [0, -1, 0.1], grip);
+        }
+        wrist.copy(scratch.aim).sub(gripPoint(pose, thumb, scratch.grip).applyQuaternion(grip));
+      } else {
+        wrist.copy(restWrists[side]);
+        wrist.z += side ? -swing : swing;
+        grip.copy(restTurns[side]);
+      }
+      if (hand.key !== key) {
+        hand.key = key;
+        hand.away.subVectors(hand.wrist, wrist);
+        hand.awayTurn.copy(grip).invert().multiply(hand.turn);
+      }
+      const travel = Math.exp(-dt * (goal ? 13 : 8));
+      hand.away.multiplyScalar(travel);
+      hand.awayTurn.slerp(scratch.spare.identity(), 1 - travel);
+      hand.wrist.addVectors(wrist, hand.away);
+      hand.turn.copy(grip).multiply(hand.awayTurn);
+      // Two bones from the shoulder to the wrist, the elbow out from the body.
+      const stretch =
+        m.length *
+        Math.min(
+          armStretch,
+          solveElbow(
+            staffShoulders[side],
+            hand.wrist,
+            elbowPole(side, scratch.pole),
+            scratch.elbow,
+            upperArm * m.length,
+            forearm * m.length,
+          ),
+        );
+      const up = uppers.current[side],
+        lower = fores.current[side],
+        palm = handRefs.current[side];
+      if (up) {
+        scratch.bone.subVectors(scratch.elbow, staffShoulders[side]).normalize();
+        up.quaternion.setFromUnitVectors(hanging, scratch.bone);
+        up.scale.y = stretch;
+      }
+      if (lower) {
+        lower.position.copy(scratch.elbow);
+        scratch.bone.subVectors(hand.wrist, scratch.elbow).normalize();
+        lower.quaternion.setFromUnitVectors(hanging, scratch.bone);
+        lower.scale.y = stretch;
+      }
+      if (palm) {
+        palm.position.copy(hand.wrist);
+        palm.quaternion.copy(hand.turn);
+        const shape = palm.morphTargetInfluences;
+        if (shape) {
+          const closing = 1 - Math.exp(-dt * 16);
+          poseNames.forEach((name, i) => {
+            shape[i] += (Number(name === pose) - shape[i]) * closing;
+          });
+        }
+      }
     });
+    // The head follows the hands, turning more than it nods: the camera is above them.
+    const face = headRef.current;
+    if (face) {
+      let yaw = 0,
+        nod = 0;
+      if (looks) {
+        scratch.look.divideScalar(looks);
+        yaw = THREE.MathUtils.clamp(Math.atan2(scratch.look.x, scratch.look.z) * 0.25, -0.12, 0.12);
+        nod = THREE.MathUtils.clamp((neckY + 0.2 - scratch.look.y) * 0.2, 0, 0.07);
+      }
+      face.rotation.y += (yaw - face.rotation.y) * ease;
+      face.rotation.x += (nod - face.rotation.x) * ease;
+    }
   });
   return (
     <group ref={root}>
       <mesh geometry={body} material={material} castShadow />
+      <group ref={headRef} position={[0, neckY, 0]} rotation={[0, 0, 0, 'YXZ']}>
+        <mesh geometry={head} material={material} castShadow />
+      </group>
       {staffShoulders.map((shoulder, side) => (
-        <group
-          key={side}
-          position={shoulder}
-          ref={(g) => {
-            arms.current[side] = g;
-          }}
-        >
-          <mesh geometry={arm} material={material} castShadow />
+        <group key={side}>
+          <group
+            position={shoulder}
+            ref={(g) => {
+              uppers.current[side] = g;
+            }}
+          >
+            <mesh geometry={upper} material={material} castShadow />
+          </group>
+          <group
+            ref={(g) => {
+              fores.current[side] = g;
+            }}
+          >
+            <mesh geometry={fore} material={material} castShadow />
+          </group>
+          <mesh
+            ref={(m) => {
+              handRefs.current[side] = m;
+              // The geometry is set after the mesh is made, so it has to look for its poses.
+              m?.updateMorphTargets();
+            }}
+            geometry={hands[side]}
+            material={material}
+            castShadow
+          />
         </group>
       ))}
     </group>
@@ -568,9 +726,10 @@ function Bartender({ staff }: { staff: StaffRefs }) {
     // One route to where they are going, round the furniture like everyone else.
     const task = s.tasks[0];
     const guest = task && s.game.guests.find((g) => g.id === task.id);
-    setGoal(agent, job ? cleanupTarget(job) : guest ? serviceSpot(guest) : bartenderHome);
+    const atMat = s.panel === 'station' && !job;
+    setGoal(agent, job ? cleanupTarget(job) : atMat || !guest ? bartenderHome : serviceSpot(guest));
     // Making a drink or scrubbing a glass, they stay put and others walk round them.
-    agent.anchored = atCleanupStation || s.panel === 'station';
+    agent.anchored = atCleanupStation || (atMat && !agent.path.length);
     const current = ref.current.position;
     const [x, z] = agent.position;
     const dx = x - last.current[0],
@@ -1130,6 +1289,7 @@ function Room({ guestGroups }: { guestGroups: SceneRefs['guestGroups'] }) {
           .map(Number)
           .map((id) => <Person id={id} guestGroups={guestGroups} key={id} />)}
       <DrinkStage />
+      <BackBar />
       <Decor />
       {mess > 0 && (
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[1, 1.262, -1.5]}>

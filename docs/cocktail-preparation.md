@@ -82,6 +82,20 @@ A player-triggered dialogue, recipe-book reading, detailed POS, or pause screen 
 
 Barback upgrades can replenish ice and bottles, stage clean glassware, or clear waste. Keep ingredient choice and preparation under player control unless an explicit later automation upgrade is designed. Customization, stock placement, and equipment capacity can affect workflow while preserving touch accessibility.
 
+## How the bartender's hands move
+The counter close-up follows what working bartenders do. These are the sources for the movements, and the places the game departs from them for a chibi character seen from the front:
+
+- Jigger: held by the waist between the index and middle fingers rather than pinched with the thumb ([Advanced Mixology](https://advancedmixology.com/blogs/art-of-mixology/how-to-use-a-jigger)), level, and close to the mouth of the vessel to keep spills in the drink ([Bartender Mechanics](https://leopard-cone-sx22.squarespace.com/bar-knowledge/bartender-mechanics)).
+- Dashes: the dasher tips over with a downward flick of the wrist and comes straight back ([Bartender Mechanics](https://leopard-cone-sx22.squarespace.com/bar-knowledge/bartender-mechanics)).
+- Shaking: one hand on each end of the shaker, the tin fitted over the glass and the drink driven back and forth along the shaker's length until the tin frosts ([Bartender Mechanics](https://leopard-cone-sx22.squarespace.com/bar-knowledge/bartender-mechanics)). The shaker is held across the chest rather than over the shoulder, so that the hands do not cover the face.
+- Stirring: the fingers do the work rather than the wrist, quietly and with no churning ([A Bar Above](https://abarabove.com/stirring-technique/)).
+- Straining: a Hawthorne strainer sits on the mouth of the vessel, coil down, and the vessel is tipped over the glass ([Bartender Mechanics](https://leopard-cone-sx22.squarespace.com/bar-knowledge/bartender-mechanics)). The movement plays when the player moves on to the garnish step, since there is no separate strain step to press.
+- Muddling: press and give a quarter turn, not a beating ([Bartender Mechanics](https://leopard-cone-sx22.squarespace.com/bar-knowledge/bartender-mechanics)).
+
+The liquid itself uses the technique Valve described for Half-Life: Alyx: the inside of a container is one closed mesh cut off by a shader at a level plane, its back faces shaded as the surface. See `src/view/liquid.ts`.
+
+These are visual only: the movements never change amounts, timing or scoring. Held shakes and stirs still count from the moment the button goes down, including the moment the tin takes to go on.
+
 ## Scope and acceptance
 The full screenshot scope is tracked in docs/requirements.md. Three seed recipes are a first implementation set, not the final menu.
 

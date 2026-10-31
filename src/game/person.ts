@@ -12,8 +12,6 @@ export const shoulders: [number, number, number][] = [
   [-0.34, 0.77, 0],
   [0.34, 0.77, 0],
 ];
-/** From the shoulder to the middle of the hand, with the arm hanging straight down. */
-export const armReach = 0.46;
 
 /**
  * A character's voxel model, worked out from their id. The room builds their body
@@ -24,12 +22,20 @@ export const armReach = 0.46;
 export function personModel(
   id: string,
   bartender = false,
-): { head: VoxelPart[]; body: VoxelPart[]; arms: [VoxelPart[], VoxelPart[]] } {
+): {
+  head: VoxelPart[];
+  body: VoxelPart[];
+  arms: [VoxelPart[], VoxelPart[]];
+  skin: string;
+  shirt: string;
+} {
   const index = [...id].reduce((n, c) => n + c.charCodeAt(0), 0);
   const skin = ['#e9b592', '#b97857', '#db9e78', '#f0c7a1'][index % 4],
     hair = ['#403029', '#a85e39', '#d2a265', '#674143'][index % 4],
     shirt = bartender ? cream : shirts[index % shirts.length];
   return {
+    skin,
+    shirt,
     body: [
       [0, 0.56, 0, 0.5, 0.48, 0.3, shirt],
       [0, 0.3, 0, 0.46, 0.16, 0.31, '#3c4546'],

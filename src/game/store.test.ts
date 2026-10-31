@@ -303,4 +303,12 @@ describe('service clock and queue', () => {
     expect(decodeBackup).not.toHaveBeenCalled();
     expect(useGame.getState().game).toBe(before);
   });
+  it('tells the counter how much of what was just poured', () => {
+    const { act } = useGame.getState();
+    useGame.setState({ game: newGame(), pouring: null });
+    act({ type: 'prep', id: -1, operation: 'measure', ingredient: 'gin', amount: 30 });
+    expect(useGame.getState().pouring).toBeNull();
+    act({ type: 'prep', id: -1, operation: 'transfer' });
+    expect(useGame.getState().pouring).toMatchObject({ id: 'gin', quantity: 30 });
+  });
 });
